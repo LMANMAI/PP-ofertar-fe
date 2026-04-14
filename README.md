@@ -131,4 +131,4 @@ npm run web
 
 ## Referencias
 
-- [Discusión en Reddit r/devsarg — proyecto similar de comparación de precios](https://www.reddit.com/r/devsarg/comments/18n81fc/web_para_buscar_el_mejor_precio_en_los/)
+- [Figma]([https://www.reddit.com/r/devsarg/comments/18n81fc/web_para_buscar_el_mejor_precio_en_los/](https://www.figma.com/deck/PrBPgXyBzzwoPLDoelUE3H))
