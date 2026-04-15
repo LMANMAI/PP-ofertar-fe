@@ -127,19 +127,14 @@ jobs:
             STATUS_MSG="Backport applied cleanly."
           fi
 
-          PR_BODY="${STATUS_ICON} ${STATUS_MSG}
-
-## Backport of #${PR_NUMBER}
-
-**Original PR:** #${PR_NUMBER}
-**Source branch:** main
-**Target branch:** ${BASE}
-
----
-*Generated automatically by the backport workflow.*"
+          printf '%s\n\n%s\n\nOriginal PR: #%s\nSource branch: main\nTarget branch: %s\n\n---\nGenerated automatically by the backport workflow.' \
+            "${STATUS_ICON} ${STATUS_MSG}" \
+            "Backport of #${PR_NUMBER}" \
+            "${PR_NUMBER}" \
+            "${BASE}" > /tmp/pr_body.txt
 
           gh pr create \
             --title "[Backport] ${PR_TITLE}" \
             --base "$BASE" \
             --head "$BACKPORT_BRANCH" \
-            --body "$PR_BODY"
+            --body-file /tmp/pr_body.txt
