@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - master
+      - main
 
 permissions:
   contents: write
@@ -137,7 +137,7 @@ jobs:
 ${STATUS_ICON} ${STATUS_MSG}
 
 **Original PR:** #${PR_NUMBER}
-**Source branch:** master
+**Source branch:** main
 **Target branch:** ${BASE}
 
 ---
