@@ -1,0 +1,7 @@
+# Ensure consistent LF line endings for all text files
+* text=auto eol=lf
+
+# Explicitly enforce LF for workflow files
+.github/workflows/*.yml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
