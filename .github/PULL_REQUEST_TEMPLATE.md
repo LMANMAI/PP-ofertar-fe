@@ -1,57 +1,32 @@
-## Descripción general
+## 📋 Descripción y contexto
+<!-- Escribe aquí una breve descripción de lo que hace este PR -->
 
-<!-- Qué problema resuelve este PR y por qué se hace este cambio -->
+## 🔗 Links/imágenes de referencia
+<!-- Enlaces a Jira, documentación o diseños -->
 
----
+## 📸 Screenshots/vídeo
+<!-- Adjunta evidencia visual si aplica -->
 
-## Cambios realizados
+## 📅 ¿Cuándo es la fecha tentativa para subir a producción?
+<!-- Indicar fecha o hito -->
 
-- [ ] <!-- Cambio 1 -->
-- [ ] <!-- Cambio 2 -->
-- [ ] <!-- Cambio 3 -->
+## 🔗 ¿Tiene dependencias con otros PR?
+<!-- Sí/No y cuáles -->
 
----
+## ✅ Checklist
+- [ ] Agregué los tests unitarios para este cambio.
+- [ ] Agregué métricas (Melidata, Hotjar).
+- [ ] Agregué logs con mensajes significativos y con contexto.
+- [ ] Hice pruebas en el ambiente de stage/test.
+- [ ] Hice las pruebas de stress necesarias.
+- [ ] Ejecuté lint y pruebas unitarias localmente antes de hacer el PR.
 
-## Estado de integración
+## 🧪 ¿Cómo fue probado?
+<!-- Detalla los pasos para recrear las pruebas -->
 
-| Aspecto | Estado | Notas |
-|---------|--------|-------|
-| **Prioridad** | `Alta / Media / Baja` | |
-| **Backend** | `Listo / En progreso / No aplica` | |
-| **DB / Migraciones** | `Listo / En progreso / No aplica` | |
-
----
-
-## Cómo testear
-
-1. <!-- Paso 1 -->
-2. <!-- Paso 2 -->
-3. <!-- Paso 3 -->
-
-**Resultado esperado:** <!-- qué debería verse/pasar -->
-
----
-
-## Plan de producción
-
-<!-- Pasos especiales para deploy, feature flags, orden de merge, rollback, etc. Si no aplica, escribir "Deploy normal". -->
-
----
-
-## Checklist del autor
-
-- [ ] Build sin errores
-- [ ] Sin warnings nuevos en consola
-- [ ] Prueba manual del golden path realizada
-- [ ] Sin datos sensibles expuestos (tokens, claves, PII)
-- [ ] Branch correcta (`develop` para features, `master` solo para hotfixes urgentes)
-
----
-
-## Checklist del revisor
-
-- [ ] Código legible y con nombres claros
-- [ ] Sin lógica duplicada o que ya exista en el proyecto
-- [ ] Cambios visuales revisados en el browser
-- [ ] Sin regresiones en funcionalidad existente
-- [ ] Listo para mergear
+## 🏷️ Tipo del cambio
+- [ ] Hot fix
+- [ ] Bug fix
+- [ ] Nuevo feature
+- [ ] Refactor / Mejoras
+- [ ] Breaking change
