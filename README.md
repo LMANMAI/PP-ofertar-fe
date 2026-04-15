@@ -132,3 +132,9 @@ npm run web
 ## Referencias
 
 - [Figma]([https://www.reddit.com/r/devsarg/comments/18n81fc/web_para_buscar_el_mejor_precio_en_los/](https://www.figma.com/deck/PrBPgXyBzzwoPLDoelUE3H))
+<<<<<<< HEAD
+=======
+test backport
+test2
+test3
+>>>>>>> 9488cbd (Merge pull request #3 from LMANMAI/test/backport-probe-3)
