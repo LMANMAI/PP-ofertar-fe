@@ -1,6 +1,7 @@
 export const colors = {
 	navy: "#0A1F44",
 	cyan: "#7DD4F5",
+	orange: "#E76F51",
 	background: "#F8FAFC",
 	defaultText: "#0F172A",
 	mutedText: "#5C6B84",

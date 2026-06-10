@@ -18,7 +18,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, typography } from "../theme/designSystem";
 
-export function AuthWelcomeScreen() {
+type AuthWelcomeScreenProps = {
+	onAlreadyHaveAccount?: () => void;
+};
+
+export function AuthWelcomeScreen({
+	onAlreadyHaveAccount,
+}: AuthWelcomeScreenProps) {
 	const insets = useSafeAreaInsets();
 	const [fontsLoaded] = useFonts({
 		PlusJakartaSans_400Regular,
@@ -84,6 +90,7 @@ export function AuthWelcomeScreen() {
 					</Pressable>
 
 					<Pressable
+						onPress={onAlreadyHaveAccount}
 						style={({ pressed }) => [
 							styles.secondaryButton,
 							pressed && styles.pressed,
@@ -205,7 +212,7 @@ const styles = StyleSheet.create({
 	primaryButton: {
 		minHeight: 42,
 		borderRadius: 4,
-		backgroundColor: "#FF7A59",
+		backgroundColor: colors.orange,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -219,13 +226,13 @@ const styles = StyleSheet.create({
 		minHeight: 34,
 		borderRadius: 4,
 		borderWidth: 1,
-		borderColor: "#FF7A59",
+		borderColor: colors.orange,
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "transparent",
 	},
 	secondaryButtonText: {
-		color: "#FFBEA8",
+		color: colors.orange,
 		fontFamily: typography.family.medium,
 		fontSize: 13,
 		lineHeight: 16,
