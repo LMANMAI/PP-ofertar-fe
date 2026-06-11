@@ -20,10 +20,12 @@ import { colors, typography } from "../theme/designSystem";
 
 type AuthWelcomeScreenProps = {
 	onAlreadyHaveAccount?: () => void;
+	onCreateAccount?: () => void;
 };
 
 export function AuthWelcomeScreen({
 	onAlreadyHaveAccount,
+	onCreateAccount,
 }: AuthWelcomeScreenProps) {
 	const insets = useSafeAreaInsets();
 	const [fontsLoaded] = useFonts({
@@ -58,20 +60,24 @@ export function AuthWelcomeScreen({
 			<StatusBar style="light" />
 
 			<View style={styles.background}>
-				<View style={styles.content}>
+				<View style={styles.zoneTop} />
+
+				<View style={styles.zoneHero}>
 					<View style={styles.hero}>
 						<Image
 							source={require("../../assets/logo_ofertar.png")}
 							style={styles.badgeIcon}
 							resizeMode="cover"
 						/>
-
 						<Text style={styles.brandTitle}>
 							Ofert<Text style={styles.brandAccent}>AR</Text>
 						</Text>
 						<Text style={styles.overline}>Tecnología en tus ahorros</Text>
 
-						<Text style={styles.headline}>Pagá menos en cada compra.</Text>
+						<Text style={styles.headline}>
+							Pagá menos en cada{" "}
+							<Text style={styles.headlineAccent}>compra.</Text>
+						</Text>
 						<Text style={styles.body}>
 							Escaneá tus tickets y descubrí dónde encontrar tus productos de
 							mejor precio.
@@ -79,12 +85,15 @@ export function AuthWelcomeScreen({
 					</View>
 				</View>
 
-				<View style={styles.footer}>
+				<View style={styles.zoneMid} />
+
+				<View style={styles.zoneCta}>
 					<Pressable
 						style={({ pressed }) => [
 							styles.primaryButton,
 							pressed && styles.pressed,
 						]}
+						onPress={onCreateAccount}
 					>
 						<Text style={styles.primaryButtonText}>Crear cuenta</Text>
 					</Pressable>
@@ -117,9 +126,23 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: colors.navy,
 		paddingHorizontal: 24,
-		paddingTop: 16,
-		paddingBottom: 14,
+		paddingTop: 10,
+		paddingBottom: 10,
 		overflow: "hidden",
+	},
+	zoneTop: {
+		flex: 0.1,
+	},
+	zoneHero: {
+		flex: 2,
+		justifyContent: "center",
+	},
+	zoneMid: {
+		flex: 1.1,
+	},
+	zoneCta: {
+		paddingBottom: 6,
+		gap: 10,
 	},
 	loader: {
 		flex: 1,
@@ -127,91 +150,59 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		backgroundColor: colors.navy,
 	},
-	topGlow: {
-		position: "absolute",
-		top: -120,
-		right: -100,
-		width: 240,
-		height: 240,
-		borderRadius: 240,
-		backgroundColor: "rgba(125, 212, 245, 0.08)",
-	},
-	bottomGlow: {
-		position: "absolute",
-		bottom: -160,
-		left: -120,
-		width: 280,
-		height: 280,
-		borderRadius: 280,
-		backgroundColor: "rgba(255, 255, 255, 0.03)",
-	},
-	topLabel: {
-		color: "rgba(255, 255, 255, 0.46)",
-		fontFamily: typography.family.regular,
-		fontSize: 11,
-		lineHeight: 14,
-	},
-	content: {
-		flex: 1,
-		justifyContent: "center",
-	},
 	hero: {
-		maxWidth: 280,
-		gap: 10,
-	},
-	badge: {
-		width: 40,
-		height: 40,
-		borderRadius: 10,
-		backgroundColor: "#0F2E66",
-		alignItems: "center",
+		maxWidth: 324,
+		gap: 12,
 		justifyContent: "center",
-		marginBottom: 6,
 	},
 	badgeIcon: {
-		width: 64,
-		height: 64,
+		width: 84,
+		height: 84,
 		borderRadius: 7,
-	},
-	brandTitle: {
-		color: colors.buttonText,
-		fontFamily: typography.family.bold,
-		fontSize: 18,
-		lineHeight: 22,
-	},
-	brandAccent: {
-		color: colors.cyan,
+		marginBottom: 12,
 	},
 	overline: {
 		color: colors.cyan,
 		fontFamily: typography.family.medium,
-		fontSize: 10,
-		lineHeight: 12,
-		letterSpacing: 2.1,
+		fontSize: 11,
+		lineHeight: 14,
+		letterSpacing: 2.2,
 		textTransform: "uppercase",
 		marginTop: 2,
+	},
+	brandTitle: {
+		color: colors.buttonText,
+		fontFamily: typography.family.medium,
+		fontSize: 28,
+		lineHeight: 36,
+	},
+	brandAccent: {
+		color: colors.cyan,
 	},
 	headline: {
 		marginTop: 8,
 		color: colors.buttonText,
-		fontFamily: typography.family.bold,
-		fontSize: 26,
-		lineHeight: 30,
-		letterSpacing: -0.7,
+		fontFamily: typography.family.medium,
+		fontSize: 36,
+		lineHeight: 44,
+		letterSpacing: -0.6,
+	},
+	headlineAccent: {
+		color: colors.cyan,
 	},
 	body: {
-		marginTop: 2,
+		marginTop: 8,
 		color: "rgba(255, 255, 255, 0.58)",
 		fontFamily: typography.family.regular,
-		fontSize: 13,
-		lineHeight: 19,
+		fontSize: 17,
+		lineHeight: 26,
 	},
 	footer: {
 		gap: 10,
 	},
 	primaryButton: {
-		minHeight: 42,
-		borderRadius: 4,
+		height: 52,
+		borderRadius: 14,
 		backgroundColor: colors.orange,
 		alignItems: "center",
 		justifyContent: "center",
@@ -223,8 +214,8 @@ const styles = StyleSheet.create({
 		lineHeight: 16,
 	},
 	secondaryButton: {
-		minHeight: 34,
-		borderRadius: 4,
+		height: 52,
+		borderRadius: 14,
 		borderWidth: 1,
 		borderColor: colors.orange,
 		alignItems: "center",
@@ -241,8 +232,8 @@ const styles = StyleSheet.create({
 		marginTop: 2,
 		color: "rgba(255, 255, 255, 0.35)",
 		fontFamily: typography.family.regular,
-		fontSize: 8,
-		lineHeight: 12,
+		fontSize: 10,
+		lineHeight: 14,
 		textAlign: "left",
 	},
 	pressed: {

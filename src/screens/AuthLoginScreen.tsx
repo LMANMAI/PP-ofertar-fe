@@ -167,15 +167,15 @@ const styles = StyleSheet.create({
 	title: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
-		fontSize: 22,
-		lineHeight: 28,
+		fontSize: 28,
+		lineHeight: 36,
 	},
 	subtitle: {
 		marginTop: 6,
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
-		lineHeight: 18,
+		fontSize: 17,
+		lineHeight: 26,
 	},
 	form: {
 		marginTop: 20,
