@@ -36,14 +36,10 @@ export function AuthWelcomeScreen({
 
 	if (!fontsLoaded) {
 		return (
-			<View
-				style={[
-					styles.safeArea,
-					{ paddingTop: insets.top, paddingBottom: insets.bottom },
-				]}
-			>
-				<StatusBar style="light" />
-				<View style={styles.loader}>
+			<View style={styles.safeArea}>
+				<View style={[styles.statusBarBg, { height: insets.top }]} />
+				<StatusBar style="light" translucent />
+				<View style={[styles.loader, { paddingBottom: insets.bottom }]}>
 					<ActivityIndicator size="small" color={colors.cyan} />
 				</View>
 			</View>
@@ -51,15 +47,11 @@ export function AuthWelcomeScreen({
 	}
 
 	return (
-		<View
-			style={[
-				styles.safeArea,
-				{ paddingTop: insets.top, paddingBottom: insets.bottom },
-			]}
-		>
-			<StatusBar style="light" />
+		<View style={styles.safeArea}>
+			<View style={[styles.statusBarBg, { height: insets.top }]} />
+			<StatusBar style="light" translucent />
 
-			<View style={styles.background}>
+			<View style={[styles.background, { paddingBottom: insets.bottom }]}>
 				<View style={styles.zoneTop} />
 
 				<View style={styles.zoneHero}>
@@ -120,6 +112,9 @@ export function AuthWelcomeScreen({
 const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
+		backgroundColor: colors.navy,
+	},
+	statusBarBg: {
 		backgroundColor: colors.navy,
 	},
 	background: {

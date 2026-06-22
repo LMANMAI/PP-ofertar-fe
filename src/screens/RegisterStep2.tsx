@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 import { InputField } from "../components";
 
@@ -28,17 +29,18 @@ export default function RegisterStep2({ onNext, onBack }: Props) {
 		passwordChecks.number &&
 		passwordChecks.special &&
 		passwordChecks.matches;
+
 	return (
 		<View style={[styles.safeArea, { paddingTop: insets.top }]}>
 			<View style={styles.header}>
 				<View style={styles.headerLine}>
 					<View style={styles.headerLeft}>
 						<Pressable onPress={onBack} style={styles.backButton}>
-							<Text style={styles.backText}>←</Text>
+							<Ionicons name="chevron-back" size={20} color={colors.buttonText} />
 						</Pressable>
 						<Text style={styles.headerTitle}>Registrarse</Text>
 					</View>
-					<Text style={styles.stepLabel}>Paso 2 de 2</Text>
+					<Text style={styles.stepLabel}>Paso 2 de 3</Text>
 				</View>
 			</View>
 			<View style={styles.progressWrap}>
@@ -58,7 +60,7 @@ export default function RegisterStep2({ onNext, onBack }: Props) {
 				<View style={styles.form}>
 					<InputField
 						label="Contraseña"
-						leftIcon="🔒"
+						leftIcon=""
 						value={password}
 						onChangeText={setPassword}
 						secureTextEntry
@@ -86,11 +88,10 @@ export default function RegisterStep2({ onNext, onBack }: Props) {
 
 					<InputField
 						label="Repetí contraseña"
-						leftIcon="🔒"
+						leftIcon=""
 						value={repeatPassword}
 						onChangeText={setRepeatPassword}
 						secureTextEntry
-						rightIcon={passwordChecks.matches ? "✓" : ""}
 					/>
 
 					<View style={styles.requirementsList}>
@@ -130,14 +131,11 @@ export default function RegisterStep2({ onNext, onBack }: Props) {
 function RequirementItem({ active, text }: { active: boolean; text: string }) {
 	return (
 		<View style={styles.requirementRow}>
-			<Text
-				style={[
-					styles.requirementCheck,
-					active && styles.requirementCheckActive,
-				]}
-			>
-				{active ? "✓" : "○"}
-			</Text>
+			<Ionicons
+				name={active ? "checkmark-circle" : "ellipse-outline"}
+				size={14}
+				color={active ? colors.cyan : colors.mutedText}
+			/>
 			<Text
 				style={[styles.requirementText, active && styles.requirementTextActive]}
 			>
@@ -150,7 +148,7 @@ function RequirementItem({ active, text }: { active: boolean; text: string }) {
 const styles = StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	header: {
-		paddingHorizontal: 16,
+		paddingHorizontal: 12,
 		paddingTop: 8,
 		paddingBottom: 0,
 		backgroundColor: colors.navy,
@@ -162,39 +160,25 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		marginBottom: 8,
 	},
-	headerLeft: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 2,
-	},
-	backButton: { paddingVertical: 8, paddingRight: 4, paddingLeft: 0 },
-	backText: { color: colors.buttonText, fontSize: 16 },
+	headerLeft: { flexDirection: "row", alignItems: "center", gap: 4 },
+	backButton: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 16,
 	},
-	stepLabel: {
-		color: colors.cyan,
-		fontSize: 11,
-		lineHeight: 14,
-		marginBottom: 8,
-		alignSelf: "flex-end",
-	},
+	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: 4 },
 	progressWrap: { backgroundColor: colors.navy },
 	progressTrack: { height: 6, backgroundColor: colors.softCyan, width: "100%" },
-	progressFill: { height: 6, backgroundColor: colors.cyan, width: "100%" },
+	progressFill: { height: 6, backgroundColor: colors.cyan, width: "66%" },
 	container: {
-		paddingHorizontal: 18,
-		paddingTop: 14,
-		paddingBottom: 16,
+		paddingHorizontal: 20,
+		paddingTop: 24,
+		paddingBottom: 24,
 		backgroundColor: colors.background,
 		flexGrow: 1,
 	},
-	intro: {
-		gap: 5,
-		paddingBottom: 12,
-	},
+	intro: { gap: 6, paddingBottom: 18 },
 	title: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
@@ -207,9 +191,7 @@ const styles = StyleSheet.create({
 		fontSize: 17,
 		lineHeight: 26,
 	},
-	form: {
-		gap: 10,
-	},
+	form: { gap: 16 },
 	passwordFeedbackRow: {
 		flexDirection: "row",
 		justifyContent: "space-between",
@@ -223,56 +205,32 @@ const styles = StyleSheet.create({
 		lineHeight: 13,
 		color: colors.mutedText,
 	},
-	feedbackRight: {
-		textAlign: "right",
-	},
+	feedbackRight: { textAlign: "right" },
 	feedbackTextActive: {
 		color: colors.cyan,
 		fontFamily: typography.family.medium,
 	},
-	requirementsList: {
-		gap: 4,
-		marginTop: 2,
-	},
-	requirementRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-	},
-	requirementCheck: {
-		width: 16,
-		color: colors.mutedText,
-		fontSize: 12,
-	},
-	requirementCheckActive: {
-		color: colors.cyan,
-	},
-	requirementText: {
-		color: colors.mutedText,
-		fontSize: 11,
-		lineHeight: 14,
-	},
+	requirementsList: { gap: 6, marginTop: 4 },
+	requirementRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	requirementText: { color: colors.mutedText, fontSize: 12, lineHeight: 16 },
 	requirementTextActive: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 	},
-	footer: {
-		paddingTop: 12,
-	},
+	footer: { paddingTop: 22 },
 	primaryButton: {
 		backgroundColor: colors.navy,
-		paddingVertical: 12,
-		borderRadius: 8,
+		height: 52,
+		borderRadius: 10,
 		alignItems: "center",
+		justifyContent: "center",
 	},
-	primaryButtonPressed: {
-		opacity: 0.9,
-	},
-	primaryButtonDisabled: {
-		opacity: 0.55,
-	},
+	primaryButtonPressed: { opacity: 0.9 },
+	primaryButtonDisabled: { opacity: 0.55 },
 	primaryButtonText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
+		fontSize: 15,
+		lineHeight: 18,
 	},
 });

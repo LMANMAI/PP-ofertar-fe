@@ -56,42 +56,42 @@ export function InputField({
 
 const styles = StyleSheet.create({
 	wrapper: {
-		gap: 6,
+		gap: 8,
 	},
 	label: {
 		color: colors.mutedText,
 		fontFamily: typography.family.medium,
-		fontSize: 11,
-		lineHeight: 14,
+		fontSize: 13,
+		lineHeight: 16,
 	},
 	inputRow: {
-		height: 42,
+		height: 52,
 		borderWidth: 1,
 		borderColor: colors.border,
-		borderRadius: 6,
+		borderRadius: 10,
 		backgroundColor: colors.card,
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 10,
+		paddingHorizontal: 14,
 	},
 	inputRowFocused: {
 		borderColor: colors.cyan,
 		backgroundColor: colors.softCyan,
 	},
 	leftIcon: {
-		width: 22,
+		width: 26,
 		color: colors.mutedText,
-		fontSize: 14,
+		fontSize: 16,
 	},
 	input: {
 		flex: 1,
-		height: 42,
+		height: 52,
 		color: colors.defaultText,
 		fontFamily: typography.family.regular,
-		fontSize: 14,
+		fontSize: 15,
 	},
 	rightIcon: {
 		color: colors.mutedText,
-		fontSize: 14,
+		fontSize: 16,
 	},
 });
