@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 import { InputField } from "../components";
+import type { OCRResponse } from "../services";
 
 type Product = {
 	id: string;
@@ -28,16 +29,40 @@ const MOCK_PRODUCTS: Product[] = [
 	{ id: "5", name: "Detergente Magistral", quantity: "1 u", unitPrice: "$1.490" },
 ];
 
+function formatCurrency(value: number): string {
+	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function buildProductsFromOcr(ocr: OCRResponse): Product[] {
+	return ocr.items.map((item, index) => ({
+		id: item.code ? `${item.code}-${index}` : `${index}`,
+		name: item.description,
+		quantity: `${item.quantity} u`,
+		unitPrice: formatCurrency(item.price),
+	}));
+}
+
 type Props = {
+	ocrData?: OCRResponse;
 	onBack: () => void;
 	onFinish: () => void;
 	onSelectProduct?: (productName: string) => void;
 };
 
-export function TicketProcessedScreen({ onBack, onFinish, onSelectProduct }: Props) {
+export function TicketProcessedScreen({ ocrData, onBack, onFinish, onSelectProduct }: Props) {
 	const insets = useSafeAreaInsets();
-	const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+	const initialProducts = ocrData ? buildProductsFromOcr(ocrData) : MOCK_PRODUCTS;
+	const [products, setProducts] = useState<Product[]>(initialProducts);
 	const [editing, setEditing] = useState<Product | null>(null);
+
+	const supermarket = ocrData?.supermarket_name?.trim();
+	const storeDisplay = supermarket || "Ticket escaneado";
+	const storeBadge = (supermarket || "TI").slice(0, 2).toUpperCase();
+	const ticketMeta = ocrData?.ticket_id
+		? `ID: ${ocrData.ticket_id}`
+		: supermarket
+			? ""
+			: "12 may · 18:42";
 
 	const handleSave = (updated: Product) => {
 		setProducts((curr) =>
@@ -69,24 +94,34 @@ export function TicketProcessedScreen({ onBack, onFinish, onSelectProduct }: Pro
 			>
 				<View style={styles.summaryCard}>
 					<View style={styles.summaryHeader}>
-						<View style={styles.storeBadge}>
-							<Text style={styles.storeBadgeText}>CO</Text>
+						<View style={[styles.storeBadge, supermarket ? { backgroundColor: "#E1352F" } : undefined]}>
+							<Text style={styles.storeBadgeText}>{storeBadge}</Text>
 						</View>
 						<View style={{ flex: 1 }}>
-							<Text style={styles.storeName}>COTO — AV. CABILDO</Text>
-							<Text style={styles.storeMeta}>12 may · 18:42</Text>
+							<Text style={styles.storeName}>{storeDisplay}</Text>
+							{ticketMeta ? (
+								<Text style={styles.storeMeta}>{ticketMeta}</Text>
+							) : null}
 						</View>
 					</View>
 					<Text style={styles.totalLabel}>TOTAL RECONOCIDO</Text>
-					<Text style={styles.totalValue}>$9.970,00</Text>
+					<Text style={styles.totalValue}>
+						{ocrData ? formatCurrency(ocrData.total) : "$9.970,00"}
+					</Text>
 					<View style={styles.tagsRow}>
 						<Tag text={`Productos ${products.length}`} />
-						<Tag text="Categorías 3" />
+						<Tag
+							text={`Categorías ${
+								ocrData
+									? new Set(ocrData.items.map((i) => i.category)).size
+									: 3
+							}`}
+						/>
 						<Tag text="+85 pts ganados" tone="cyan" />
 					</View>
 				</View>
 
-				<Text style={styles.sectionTitle}>OTROS PRODUCTOS</Text>
+				<Text style={styles.sectionTitle}>PRODUCTOS ESCANEADOS</Text>
 				<View style={styles.productsList}>
 					{products.map((p, idx) => (
 						<Pressable

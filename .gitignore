@@ -3,12 +3,14 @@
 # dependencies
 node_modules/
 .claude
+.agents
 .github
 # Expo
 .expo/
 dist/
 web-build/
 expo-env.d.ts
+skills-lock.json
 
 # Native
 .kotlin/
