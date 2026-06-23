@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
 
 import {
 	AccountCreatedScreen,
 	AuthLoginScreen,
 	AuthWelcomeScreen,
+	CaptureTicketScreen,
 	ChangePasswordScreen,
 	CheckEmailScreen,
 	ComparePricesScreen,
@@ -27,6 +30,7 @@ import {
 	PasswordSuccessScreen,
 	PaymentMethodsScreen,
 	PersonalDataScreen,
+	PdfConfirmScreen,
 	PointsHistoryScreen,
 	PointsScreen,
 	ProfileScreen,
@@ -36,7 +40,7 @@ import {
 	RegisterStep2,
 	RewardDetailScreen,
 	ScanErrorScreen,
-	ScanTicketScreen,
+	ScanMethodScreen,
 	SmartShoppingListScreen,
 	StoreDetailScreen,
 	TicketDetailScreen,
@@ -45,7 +49,10 @@ import {
 	WelcomeTransitionScreen,
 } from "./src/screens";
 import type { TabKey } from "./src/components";
+import { LoadingOverlay } from "./src/components";
 import { MOCK_USER, type MockSession } from "./src/auth/mockAuth";
+import { sendOcrTicket, sendOcrTickets } from "./src/services";
+import type { OCRResponse } from "./src/services";
 import { OFFERS } from "./src/data/offers";
 import { REWARDS } from "./src/data/rewards";
 
@@ -55,7 +62,7 @@ type Screen =
 	| "googleChoose" | "googleVerifying" | "googleFirstTime"
 	| "passwordRecovery" | "checkEmail" | "changePassword" | "passwordSuccess"
 	| "main"
-	| "scan" | "scanError" | "ticketProcessed"
+	| "scanMethod" | "captureTicket" | "pdfConfirm" | "scanError" | "ticketProcessed"
 	| "compare" | "storeDetail"
 	| "offerDetail" | "offerCode"
 	| "rewardDetail" | "confirmRedeem" | "redeemSuccess"
@@ -67,7 +74,6 @@ export default function App() {
 	const [screen, setScreen] = useState<Screen>("welcome");
 	const [tab, setTab] = useState<TabKey>("home");
 	const [session, setSession] = useState<MockSession | null>(null);
-	const [nextScanOutcome, setNextScanOutcome] = useState<"success" | "error">("success");
 	const [compareProduct, setCompareProduct] = useState<string>("Aceite Natura girasol 1.5L");
 	const [selectedStore, setSelectedStore] = useState<string>("dia");
 	const [compareOrigin, setCompareOrigin] = useState<"main" | "ticketProcessed">("main");
@@ -76,8 +82,14 @@ export default function App() {
 	const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
 	const [redeemCode, setRedeemCode] = useState<string>("DIA-X4K2-9WM7");
 
+	const [selectedPdf, setSelectedPdf] = useState<{ name: string; base64: string } | null>(null);
+	const [ocrResult, setOcrResult] = useState<OCRResponse | null>(null);
+	const [ocrErrorMsg, setOcrErrorMsg] = useState<string>("");
+	const [processingOcr, setProcessingOcr] = useState(false);
+	const [processingFileType, setProcessingFileType] = useState<"pdf" | "image" | null>(null);
+
 	const goMain = (t: TabKey = "home") => { setTab(t); setScreen("main"); };
-	const handleScanPress = () => { setTab("scan"); setScreen("scan"); };
+	const handleScanPress = () => { setTab("scan"); setScreen("scanMethod"); };
 	const handleSelectTab = (t: TabKey) => {
 		if (t === "scan") return handleScanPress();
 		setTab(t);
@@ -108,6 +120,73 @@ export default function App() {
 		setScreen("offerCode");
 	};
 	const showOfferCode = (id: string) => { setSelectedOfferId(id); setScreen("offerCode"); };
+
+	const handleChoosePdf = async () => {
+		try {
+			const result = await DocumentPicker.getDocumentAsync({
+				type: "application/pdf",
+				copyToCacheDirectory: true,
+			});
+
+			if (result.canceled || !result.assets || result.assets.length === 0) {
+				return;
+			}
+
+			const asset = result.assets[0];
+			const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+				encoding: "base64" as const,
+			});
+
+			setSelectedPdf({ name: asset.name ?? "ticket.pdf", base64 });
+			setScreen("pdfConfirm");
+		} catch (error) {
+			setOcrErrorMsg(error instanceof Error ? error.message : "No se pudo leer el PDF");
+			setScreen("scanError");
+		}
+	};
+
+	const handleSendPhotos = async (photos: { id: string; uri: string; base64: string }[]) => {
+		if (photos.length === 0) return;
+		setProcessingFileType("image");
+		setProcessingOcr(true);
+		try {
+			const result = await sendOcrTickets(photos.map((p) => p.base64));
+			setOcrResult(result);
+			setScreen("ticketProcessed");
+		} catch (error) {
+			setOcrErrorMsg(error instanceof Error ? error.message : "Error al procesar el ticket");
+			setScreen("scanError");
+		} finally {
+			setProcessingOcr(false);
+			setProcessingFileType(null);
+		}
+	};
+
+	const handleSendPdf = async () => {
+		if (!selectedPdf) return;
+		setProcessingFileType("pdf");
+		setProcessingOcr(true);
+		try {
+			const result = await sendOcrTicket("pdf", selectedPdf.base64);
+			setOcrResult(result);
+			setSelectedPdf(null);
+			setScreen("ticketProcessed");
+		} catch (error) {
+			setOcrErrorMsg(error instanceof Error ? error.message : "Error al procesar el PDF");
+			setScreen("scanError");
+		} finally {
+			setProcessingOcr(false);
+			setProcessingFileType(null);
+		}
+	};
+
+	const handleOcrRetry = () => {
+		setOcrResult(null);
+		setOcrErrorMsg("");
+		setSelectedPdf(null);
+		setProcessingFileType(null);
+		setScreen("scanMethod");
+	};
 
 	return (
 		<SafeAreaProvider>
@@ -261,17 +340,32 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "scan" && (
-				<ScanTicketScreen
-					mockOutcome={nextScanOutcome}
-					onCancel={() => goMain("home")}
-					onProcessed={() => { setNextScanOutcome("error"); setScreen("ticketProcessed"); }}
-					onError={() => { setNextScanOutcome("success"); setScreen("scanError"); }}
+			{screen === "scanMethod" && (
+				<ScanMethodScreen
+					onChoosePhotos={() => setScreen("captureTicket")}
+					onChoosePdf={handleChoosePdf}
+					onBack={() => goMain("home")}
+				/>
+			)}
+
+			{screen === "captureTicket" && (
+				<CaptureTicketScreen
+					onBack={() => setScreen("scanMethod")}
+					onSend={handleSendPhotos}
+				/>
+			)}
+
+			{screen === "pdfConfirm" && selectedPdf && (
+				<PdfConfirmScreen
+					pdfName={selectedPdf.name}
+					onSend={handleSendPdf}
+					onCancel={() => { setSelectedPdf(null); setScreen("scanMethod"); }}
 				/>
 			)}
 
 			{screen === "ticketProcessed" && (
 				<TicketProcessedScreen
+					ocrData={ocrResult ?? undefined}
 					onBack={() => goMain("home")}
 					onFinish={() => goMain("home")}
 					onSelectProduct={(name) => {
@@ -284,7 +378,8 @@ export default function App() {
 
 			{screen === "scanError" && (
 				<ScanErrorScreen
-					onRetry={() => setScreen("scan")}
+					errorMessage={ocrErrorMsg}
+					onRetry={handleOcrRetry}
 					onManualEntry={() => goMain("home")}
 					onSeeOffers={() => goMain("offers")}
 					onBack={() => goMain("home")}
@@ -405,6 +500,10 @@ export default function App() {
 
 			{screen === "smartList" && (
 				<SmartShoppingListScreen onBack={() => goMain("home")} />
+			)}
+
+			{processingOcr && processingFileType && (
+				<LoadingOverlay fileType={processingFileType} />
 			)}
 		</SafeAreaProvider>
 	);

@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 
 type Props = {
+	errorMessage?: string;
 	onRetry: () => void;
 	onManualEntry: () => void;
 	onSeeOffers: () => void;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function ScanErrorScreen({
+	errorMessage,
 	onRetry,
 	onManualEntry,
 	onSeeOffers,
@@ -44,8 +46,9 @@ export function ScanErrorScreen({
 					<Ionicons name="close-circle-outline" size={64} color="#E76F51" />
 					<Text style={styles.errorTitle}>No pudimos leer el ticket</Text>
 					<Text style={styles.errorBody}>
-						El ticket puede estar arrugado, muy iluminado o fuera de foco.
-						Intentá de nuevo.
+						{errorMessage
+							? errorMessage
+							: "El ticket puede estar arrugado, muy iluminado o fuera de foco. Intentá de nuevo."}
 					</Text>
 				</View>
 
