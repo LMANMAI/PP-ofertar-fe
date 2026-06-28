@@ -10,3 +10,16 @@ export type {
 	DiscountItem,
 	ImageQuality,
 } from "./api";
+
+export {
+	register,
+	getProfile,
+	updateProfile,
+	changePassword,
+} from "./authApi";
+
+export type {
+	UserProfile,
+	AuthResponse,
+	UpdateProfileData,
+} from "./authApi";

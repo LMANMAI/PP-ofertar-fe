@@ -1,11 +1,13 @@
 import { useState } from "react";
 import {
+	Pressable,
 	StyleSheet,
 	Text,
 	TextInput,
 	View,
 	KeyboardTypeOptions,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../../theme/designSystem";
 
 type InputFieldProps = {
@@ -17,6 +19,7 @@ type InputFieldProps = {
 	autoCapitalize?: "none" | "sentences" | "words" | "characters";
 	secureTextEntry?: boolean;
 	rightIcon?: string;
+	showPasswordToggle?: boolean;
 };
 
 export function InputField({
@@ -28,8 +31,12 @@ export function InputField({
 	autoCapitalize,
 	secureTextEntry,
 	rightIcon,
+	showPasswordToggle,
 }: InputFieldProps) {
 	const [focused, setFocused] = useState(false);
+	const [passwordVisible, setPasswordVisible] = useState(false);
+
+	const isSecure = showPasswordToggle ? !passwordVisible : secureTextEntry;
 
 	return (
 		<View style={styles.wrapper}>
@@ -44,11 +51,25 @@ export function InputField({
 					style={styles.input}
 					keyboardType={keyboardType}
 					autoCapitalize={autoCapitalize}
-					secureTextEntry={secureTextEntry}
+					secureTextEntry={isSecure}
 					onFocus={() => setFocused(true)}
 					onBlur={() => setFocused(false)}
 				/>
-				{rightIcon && <Text style={styles.rightIcon}>{rightIcon}</Text>}
+				{showPasswordToggle ? (
+					<Pressable
+						onPress={() => setPasswordVisible((prev) => !prev)}
+						style={styles.eyeButton}
+						hitSlop={8}
+					>
+						<Ionicons
+							name={passwordVisible ? "eye-outline" : "eye-off-outline"}
+							size={20}
+							color={colors.mutedText}
+						/>
+					</Pressable>
+				) : rightIcon ? (
+					<Text style={styles.rightIcon}>{rightIcon}</Text>
+				) : null}
 			</View>
 		</View>
 	);
@@ -93,5 +114,11 @@ const styles = StyleSheet.create({
 	rightIcon: {
 		color: colors.mutedText,
 		fontSize: 16,
+	},
+	eyeButton: {
+		width: 32,
+		height: 32,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 });

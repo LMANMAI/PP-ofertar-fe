@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -7,8 +8,11 @@ import {
 	AccountCreatedScreen,
 	AuthLoginScreen,
 	AuthWelcomeScreen,
+	BiometricLockScreen,
+	BiometricPromptScreen,
 	CaptureTicketScreen,
 	ChangePasswordScreen,
+	ChangePasswordAuthScreen,
 	CheckEmailScreen,
 	ComparePricesScreen,
 	ConfirmRedeemScreen,
@@ -49,18 +53,22 @@ import {
 	WelcomeTransitionScreen,
 } from "./src/screens";
 import type { TabKey } from "./src/components";
-import { LoadingOverlay } from "./src/components";
-import { MOCK_USER, type MockSession } from "./src/auth/mockAuth";
+import { LoadingOverlay, Toast } from "./src/components";
+import { MOCK_USER } from "./src/auth/mockAuth";
+import type { Session } from "./src/auth/session";
+import { splitName } from "./src/auth/session";
+import { getStoredToken, storeToken, clearStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
 import { sendOcrTicket, sendOcrTickets } from "./src/services";
 import type { OCRResponse } from "./src/services";
 import { OFFERS } from "./src/data/offers";
 import { REWARDS } from "./src/data/rewards";
+import { colors } from "./src/theme/designSystem";
 
 type Screen =
-	| "welcome" | "login" | "register1" | "register2" | "loader"
+	| "biometricLock" | "biometricPrompt" | "welcome" | "login" | "register1" | "register2" | "loader"
 	| "welcomeTransition" | "accountCreated" | "locationPermission"
 	| "googleChoose" | "googleVerifying" | "googleFirstTime"
-	| "passwordRecovery" | "checkEmail" | "changePassword" | "passwordSuccess"
+	| "passwordRecovery" | "checkEmail" | "changePassword" | "passwordSuccess" | "changePasswordAuth"
 	| "main"
 	| "scanMethod" | "captureTicket" | "pdfConfirm" | "scanError" | "ticketProcessed"
 	| "compare" | "storeDetail"
@@ -73,7 +81,8 @@ type Screen =
 export default function App() {
 	const [screen, setScreen] = useState<Screen>("welcome");
 	const [tab, setTab] = useState<TabKey>("home");
-	const [session, setSession] = useState<MockSession | null>(null);
+	const [session, setSession] = useState<Session | null>(null);
+	const [registerData, setRegisterData] = useState<{ firstName: string; lastName: string; email: string; phone: string } | null>(null);
 	const [compareProduct, setCompareProduct] = useState<string>("Aceite Natura girasol 1.5L");
 	const [selectedStore, setSelectedStore] = useState<string>("dia");
 	const [compareOrigin, setCompareOrigin] = useState<"main" | "ticketProcessed">("main");
@@ -87,6 +96,28 @@ export default function App() {
 	const [ocrErrorMsg, setOcrErrorMsg] = useState<string>("");
 	const [processingOcr, setProcessingOcr] = useState(false);
 	const [processingFileType, setProcessingFileType] = useState<"pdf" | "image" | null>(null);
+	const [biometricEnabled, setBiometricEnabled] = useState(false);
+	const [booted, setBooted] = useState(false);
+	const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+	useEffect(() => {
+		(async () => {
+			try {
+				const pref = await getBiometricPreference();
+				if (pref) {
+					setBiometricEnabled(true);
+					const token = await getStoredToken();
+					if (token) {
+						setScreen("biometricLock");
+					}
+				}
+			} catch {
+				// SecureStore puede fallar en algunos entornos
+			} finally {
+				setBooted(true);
+			}
+		})();
+	}, []);
 
 	const goMain = (t: TabKey = "home") => { setTab(t); setScreen("main"); };
 	const handleScanPress = () => { setTab("scan"); setScreen("scanMethod"); };
@@ -95,7 +126,22 @@ export default function App() {
 		setTab(t);
 	};
 	const handleLogout = () => {
-		setSession(null); setTab("home"); setActivatedOfferIds(new Set()); setScreen("welcome");
+		setSession(null); setTab("home"); setActivatedOfferIds(new Set()); setBiometricEnabled(false); setScreen("welcome");
+		clearStoredToken();
+	};
+
+	const handlePostLogin = async () => {
+		try {
+			const available = await isBiometricAvailable();
+			if (!available) { goMain("home"); return; }
+			const pref = await getBiometricPreference();
+			if (pref) { goMain("home"); return; }
+			const dismissed = await getPromptDismissed();
+			if (dismissed) { goMain("home"); return; }
+			setScreen("biometricPrompt");
+		} catch {
+			goMain("home");
+		}
 	};
 
 	const findOffer = (id: string | null) => OFFERS.find((o) => o.id === id) ?? OFFERS[0];
@@ -103,13 +149,8 @@ export default function App() {
 	const generateCode = () =>
 		`OFE-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
-	const enterMain = () => {
-		setSession({
-			email: MOCK_USER.email,
-			firstName: MOCK_USER.firstName,
-			lastName: MOCK_USER.lastName,
-			initials: MOCK_USER.firstName[0] + MOCK_USER.lastName[0],
-		});
+	const enterMain = (ss: Session) => {
+		setSession(ss);
 		goMain("home");
 	};
 
@@ -190,6 +231,30 @@ export default function App() {
 
 	return (
 		<SafeAreaProvider>
+			{!booted && (
+				<View style={{ flex: 1, backgroundColor: colors.navy, alignItems: "center", justifyContent: "center" }}>
+					<ActivityIndicator size="small" color={colors.cyan} />
+				</View>
+			)}
+
+			{screen === "biometricLock" && (
+				<BiometricLockScreen
+					onSuccess={(s) => { setSession(s); goMain("home"); }}
+					onFallback={() => { setBiometricEnabled(false); setScreen("welcome"); }}
+				/>
+			)}
+
+			{screen === "biometricPrompt" && session && (
+				<BiometricPromptScreen
+					session={session}
+					onEnable={() => { setBiometricEnabled(true); goMain("home"); }}
+					onDismiss={async () => {
+						await setPromptDismissed();
+						goMain("home");
+					}}
+				/>
+			)}
+
 			{screen === "welcome" && (
 				<AuthWelcomeScreen
 					onAlreadyHaveAccount={() => setScreen("login")}
@@ -201,7 +266,15 @@ export default function App() {
 				<AuthLoginScreen
 					onBackPress={() => setScreen("welcome")}
 					onGoToRegister={() => setScreen("register1")}
-					onLoginSuccess={(s) => { setSession(s); setScreen("loader"); }}
+					onLoginSuccess={async (s) => {
+						setSession(s);
+						setScreen("loader");
+						const pref = await getBiometricPreference();
+						if (pref) {
+							setBiometricEnabled(true);
+							await storeToken(s.token);
+						}
+					}}
 					onForgotPassword={() => setScreen("passwordRecovery")}
 					onGoogleLogin={() => setScreen("googleChoose")}
 				/>
@@ -210,21 +283,25 @@ export default function App() {
 			{screen === "register1" && (
 				<RegisterStep1
 					onBack={() => setScreen("welcome")}
-					onNext={() => setScreen("register2")}
+					onNext={(data) => { setRegisterData(data); setScreen("register2"); }}
 					onGoToLogin={() => setScreen("login")}
 				/>
 			)}
 
-			{screen === "register2" && (
+			{screen === "register2" && registerData && (
 				<RegisterStep2
+					firstName={registerData.firstName}
+					lastName={registerData.lastName}
+					email={registerData.email}
+					phone={registerData.phone}
 					onBack={() => setScreen("register1")}
-					onNext={() => setScreen("accountCreated")}
+					onNext={(s) => { setSession(s); setScreen("accountCreated"); }}
 				/>
 			)}
 
-			{screen === "accountCreated" && (
+			{screen === "accountCreated" && session && (
 				<AccountCreatedScreen
-					name={MOCK_USER.firstName}
+					name={splitName(session.user.name).firstName}
 					onStart={() => setScreen("locationPermission")}
 				/>
 			)}
@@ -236,12 +313,12 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "welcomeTransition" && (
-				<WelcomeTransitionScreen name={MOCK_USER.firstName} onDone={enterMain} />
+			{screen === "welcomeTransition" && session && (
+				<WelcomeTransitionScreen name={splitName(session.user.name).firstName} onDone={() => enterMain(session)} />
 			)}
 
 			{screen === "loader" && (
-				<LoaderScreen onDone={() => goMain("home")} />
+				<LoaderScreen onDone={handlePostLogin} />
 			)}
 
 			{screen === "googleChoose" && (
@@ -258,7 +335,21 @@ export default function App() {
 			{screen === "googleFirstTime" && (
 				<GoogleFirstTimeScreen
 					onBack={() => setScreen("login")}
-					onComplete={() => setScreen("welcomeTransition")}
+					onComplete={() => {
+						setSession({
+							token: "",
+							user: {
+								id: 0,
+								name: `${MOCK_USER.firstName} ${MOCK_USER.lastName}`,
+								email: MOCK_USER.email,
+								profilePicture: null,
+								address: null,
+								phone: null,
+								createdAt: "",
+							},
+						});
+						setScreen("welcomeTransition");
+					}}
 				/>
 			)}
 
@@ -280,6 +371,14 @@ export default function App() {
 				<ChangePasswordScreen
 					onBack={() => setScreen("checkEmail")}
 					onSuccess={() => setScreen("passwordSuccess")}
+				/>
+			)}
+
+			{screen === "changePasswordAuth" && session && (
+				<ChangePasswordAuthScreen
+					session={session}
+					biometricEnabled={biometricEnabled}
+					onBack={(msg) => { if (msg) setToastMessage(msg); goMain("profile"); }}
 				/>
 			)}
 
@@ -337,6 +436,18 @@ export default function App() {
 					onOpenStores={() => setScreen("favoriteStores")}
 					onOpenSavings={() => setScreen("ticketHistory")}
 					onOpenHelp={() => setScreen("helpCenter")}
+					onChangePassword={() => setScreen("changePasswordAuth")}
+					biometricEnabled={biometricEnabled}
+					onToggleBiometric={async (enabled) => {
+						if (enabled && session) {
+							await storeToken(session.token);
+							await setBiometricPreference(true);
+							setBiometricEnabled(true);
+						} else {
+							await setBiometricPreference(false);
+							setBiometricEnabled(false);
+						}
+					}}
 				/>
 			)}
 
@@ -504,6 +615,10 @@ export default function App() {
 
 			{processingOcr && processingFileType && (
 				<LoadingOverlay fileType={processingFileType} />
+			)}
+
+			{toastMessage && (
+				<Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
 			)}
 		</SafeAreaProvider>
 	);

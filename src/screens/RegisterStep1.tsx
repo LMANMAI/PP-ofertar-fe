@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, typography } from "../theme/designSystem";
 
 type Props = {
-	onNext: () => void;
+	onNext: (data: { firstName: string; lastName: string; email: string; phone: string }) => void;
 	onBack: () => void;
 	onGoToLogin?: () => void;
 };
@@ -31,6 +31,24 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
 	const [accepted, setAccepted] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	const handleContinue = () => {
+		setError(null);
+		if (!firstName.trim()) {
+			setError("Ingresá tu nombre");
+			return;
+		}
+		if (!email.trim() || !email.includes("@")) {
+			setError("Ingresá un correo electrónico válido");
+			return;
+		}
+		if (!accepted) {
+			setError("Aceptá los Términos y condiciones para continuar");
+			return;
+		}
+		onNext({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), phone: phone.trim() });
+	};
 
 	if (!fontsLoaded) return null;
 
@@ -107,7 +125,14 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 					</Text>
 				</Pressable>
 
-				<Pressable onPress={onNext} style={styles.primaryButton}>
+				{error && (
+					<View style={styles.errorBox}>
+						<Ionicons name="alert-circle" size={16} color="#A8341E" />
+						<Text style={styles.errorText}>{error}</Text>
+					</View>
+				)}
+
+				<Pressable onPress={handleContinue} style={styles.primaryButton}>
 					<Text style={styles.primaryButtonText}>Continuar</Text>
 					<Ionicons name="arrow-forward" size={16} color={colors.buttonText} />
 				</Pressable>
@@ -224,4 +249,6 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		textDecorationLine: "underline",
 	},
+	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
+	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 });
