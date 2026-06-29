@@ -25,10 +25,11 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "usesCleartextTraffic": true,
       "permissions": [
-        "android.permission.CAMERA"
-      ]
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.ofertar.ofertarapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,7 +41,15 @@
           "cameraPermission": "Necesitamos acceso a la cámara para escanear tus tickets de compra."
         }
       ],
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fe35e6c3-753b-4a6a-8941-2a1aecde3d69"
+      }
+    },
+    "owner": "ofertar"
   }
 }

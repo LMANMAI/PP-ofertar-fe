@@ -57,7 +57,7 @@ import { LoadingOverlay, Toast } from "./src/components";
 import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
-import { getStoredToken, storeToken, clearStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
+import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
 import { sendOcrTicket, sendOcrTickets } from "./src/services";
 import type { OCRResponse } from "./src/services";
 import { OFFERS } from "./src/data/offers";
@@ -97,20 +97,20 @@ export default function App() {
 	const [processingOcr, setProcessingOcr] = useState(false);
 	const [processingFileType, setProcessingFileType] = useState<"pdf" | "image" | null>(null);
 	const [biometricEnabled, setBiometricEnabled] = useState(false);
+	const [showBiometricOnWelcome, setShowBiometricOnWelcome] = useState(false);
 	const [booted, setBooted] = useState(false);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 
 	useEffect(() => {
 		(async () => {
 			try {
-				const pref = await getBiometricPreference();
-				if (pref) {
-					setBiometricEnabled(true);
-					const token = await getStoredToken();
-					if (token) {
-						setScreen("biometricLock");
-					}
-				}
+				const [pref, available, token] = await Promise.all([
+					getBiometricPreference(),
+					isBiometricAvailable(),
+					getStoredToken(),
+				]);
+				if (pref) setBiometricEnabled(true);
+				if (available && token) setShowBiometricOnWelcome(true);
 			} catch {
 				// SecureStore puede fallar en algunos entornos
 			} finally {
@@ -259,6 +259,8 @@ export default function App() {
 				<AuthWelcomeScreen
 					onAlreadyHaveAccount={() => setScreen("login")}
 					onCreateAccount={() => setScreen("register1")}
+					showBiometricButton={showBiometricOnWelcome}
+					onBiometricLogin={() => setScreen("biometricLock")}
 				/>
 			)}
 
