@@ -1,5 +1,7 @@
 export { AuthLoginScreen } from "./AuthLoginScreen";
 export { AuthWelcomeScreen } from "./AuthWelcomeScreen";
+export { BiometricLockScreen } from "./BiometricLockScreen";
+export { BiometricPromptScreen } from "./BiometricPromptScreen";
 export { default as RegisterStep1 } from "./RegisterStep1";
 export { default as RegisterStep2 } from "./RegisterStep2";
 export { LoaderScreen } from "./LoaderScreen";
@@ -12,6 +14,7 @@ export { GoogleFirstTimeScreen } from "./GoogleFirstTimeScreen";
 export { PasswordRecoveryScreen } from "./PasswordRecoveryScreen";
 export { CheckEmailScreen } from "./CheckEmailScreen";
 export { ChangePasswordScreen } from "./ChangePasswordScreen";
+export { ChangePasswordAuthScreen } from "./ChangePasswordAuthScreen";
 export { PasswordSuccessScreen } from "./PasswordSuccessScreen";
 export { HomeScreen } from "./HomeScreen";
 export { OffersScreen } from "./OffersScreen";

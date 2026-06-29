@@ -17,15 +17,20 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, typography } from "../theme/designSystem";
+import { Ionicons } from "@expo/vector-icons";
 
 type AuthWelcomeScreenProps = {
 	onAlreadyHaveAccount?: () => void;
 	onCreateAccount?: () => void;
+	showBiometricButton?: boolean;
+	onBiometricLogin?: () => void;
 };
 
 export function AuthWelcomeScreen({
 	onAlreadyHaveAccount,
 	onCreateAccount,
+	showBiometricButton = false,
+	onBiometricLogin,
 }: AuthWelcomeScreenProps) {
 	const insets = useSafeAreaInsets();
 	const [fontsLoaded] = useFonts({
@@ -99,6 +104,19 @@ export function AuthWelcomeScreen({
 					>
 						<Text style={styles.secondaryButtonText}>Ya tengo cuenta</Text>
 					</Pressable>
+
+					{showBiometricButton && (
+						<Pressable
+							onPress={onBiometricLogin}
+							style={({ pressed }) => [
+								styles.biometricButton,
+								pressed && { opacity: 0.6 },
+							]}
+						>
+							<Ionicons name="finger-print-outline" size={16} color="rgba(255,255,255,0.45)" />
+							<Text style={styles.biometricButtonText}>Iniciar con huella</Text>
+						</Pressable>
+					)}
 
 					<Text style={styles.legalText}>
 						Al continuar aceptás los términos y la política de privacidad.
@@ -230,6 +248,19 @@ const styles = StyleSheet.create({
 		fontSize: 10,
 		lineHeight: 14,
 		textAlign: "left",
+	},
+	biometricButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingVertical: 8,
+	},
+	biometricButtonText: {
+		color: "rgba(255,255,255,0.45)",
+		fontFamily: typography.family.medium,
+		fontSize: 13,
+		lineHeight: 16,
 	},
 	pressed: {
 		opacity: 0.88,

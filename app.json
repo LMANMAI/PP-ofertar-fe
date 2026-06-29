@@ -1,43 +1,55 @@
 {
-	"expo": {
-		"name": "ofertar-app",
-		"slug": "ofertar-app",
-		"version": "1.0.0",
-		"orientation": "portrait",
-		"icon": "./assets/icon.png",
-		"userInterfaceStyle": "light",
-		"newArchEnabled": true,
-		"splash": {
-			"image": "./assets/splash-icon.png",
-			"resizeMode": "contain",
-			"backgroundColor": "#F8FAFC"
-		},
-		"ios": {
-			"supportsTablet": true,
-			"infoPlist": {
-				"NSCameraUsageDescription": "Necesitamos acceso a la cámara para escanear tus tickets de compra."
-			}
-		},
-		"android": {
-			"adaptiveIcon": {
-				"foregroundImage": "./assets/adaptive-icon.png",
-				"backgroundColor": "#F8FAFC"
-			},
-			"edgeToEdgeEnabled": true,
-			"predictiveBackGestureEnabled": false,
-			"usesCleartextTraffic": true,
-			"permissions": ["android.permission.CAMERA"]
-		},
-		"web": {
-			"favicon": "./assets/favicon.png"
-		},
-		"plugins": [
-			[
-				"expo-camera",
-				{
-					"cameraPermission": "Necesitamos acceso a la cámara para escanear tus tickets de compra."
-				}
-			]
-		]
-	}
+  "expo": {
+    "name": "ofertar-app",
+    "slug": "ofertar-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8FAFC"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Necesitamos acceso a la cámara para escanear tus tickets de compra."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F8FAFC"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.ofertar.ofertarapp"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Necesitamos acceso a la cámara para escanear tus tickets de compra."
+        }
+      ],
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fe35e6c3-753b-4a6a-8941-2a1aecde3d69"
+      }
+    },
+    "owner": "ofertar"
+  }
 }

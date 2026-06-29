@@ -39,8 +39,8 @@ export function ChangePasswordScreen({ onBack, onSuccess }: Props) {
 					Usá al menos 8 caracteres, una mayúscula, un número y un carácter especial.
 				</Text>
 
-				<InputField label="Nueva contraseña" leftIcon="" value={pw} onChangeText={setPw} secureTextEntry />
-				<InputField label="Repetí contraseña" leftIcon="" value={pw2} onChangeText={setPw2} secureTextEntry />
+				<InputField label="Nueva contraseña" leftIcon="" value={pw} onChangeText={setPw} secureTextEntry showPasswordToggle />
+				<InputField label="Repetí contraseña" leftIcon="" value={pw2} onChangeText={setPw2} secureTextEntry showPasswordToggle />
 
 				<View style={styles.checks}>
 					{[

@@ -1,16 +1,27 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { KeyboardAvoidingView, Platform, View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { InputField } from "../components";
+import { InputField, PasswordStrengthBar } from "../components";
+import { register } from "../services/authApi";
+import type { Session } from "../auth/session";
 
-type Props = { onNext: () => void; onBack: () => void };
+type Props = {
+	firstName: string;
+	lastName: string;
+	email: string;
+	phone: string;
+	onNext: (session: Session) => void;
+	onBack: () => void;
+};
 
-export default function RegisterStep2({ onNext, onBack }: Props) {
+export default function RegisterStep2({ firstName, lastName, email, phone: _phone, onNext, onBack }: Props) {
 	const insets = useSafeAreaInsets();
 	const [password, setPassword] = useState("");
 	const [repeatPassword, setRepeatPassword] = useState("");
+	const [error, setError] = useState<string | null>(null);
+	const [loading, setLoading] = useState(false);
 
 	const passwordChecks = useMemo(
 		() => ({
@@ -29,6 +40,21 @@ export default function RegisterStep2({ onNext, onBack }: Props) {
 		passwordChecks.number &&
 		passwordChecks.special &&
 		passwordChecks.matches;
+
+	const handleRegister = async () => {
+		if (!canContinue) return;
+		setError(null);
+		setLoading(true);
+		try {
+			const name = `${firstName} ${lastName}`.trim();
+			const authResponse = await register(name, email.trim(), password);
+			onNext({ token: authResponse.token, user: authResponse.user });
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Error al crear la cuenta");
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	return (
 		<View style={[styles.safeArea, { paddingTop: insets.top }]}>
@@ -49,7 +75,8 @@ export default function RegisterStep2({ onNext, onBack }: Props) {
 				</View>
 			</View>
 
-			<ScrollView contentContainerStyle={styles.container}>
+			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+			<ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 120 }]} keyboardShouldPersistTaps="handled">
 				<View style={styles.intro}>
 					<Text style={styles.title}>Elegí una contraseña</Text>
 					<Text style={styles.subtitle}>
@@ -64,83 +91,49 @@ export default function RegisterStep2({ onNext, onBack }: Props) {
 						value={password}
 						onChangeText={setPassword}
 						secureTextEntry
+						showPasswordToggle
 					/>
 
-					<View style={styles.passwordFeedbackRow}>
-						<Text
-							style={[
-								styles.feedbackText,
-								passwordChecks.minLength && styles.feedbackTextActive,
-							]}
-						>
-							Fortaleza: Buena
-						</Text>
-						<Text
-							style={[
-								styles.feedbackText,
-								passwordChecks.special && styles.feedbackTextActive,
-								styles.feedbackRight,
-							]}
-						>
-							Falta un caracter especial
-						</Text>
-					</View>
+					<PasswordStrengthBar
+						minLength={passwordChecks.minLength}
+						uppercase={passwordChecks.uppercase}
+						number={passwordChecks.number}
+						special={passwordChecks.special}
+					/>
 
 					<InputField
-						label="Repetí contraseña"
+						label="Repetí tu contraseña"
 						leftIcon=""
 						value={repeatPassword}
 						onChangeText={setRepeatPassword}
 						secureTextEntry
+						showPasswordToggle
 					/>
+				</View>
 
-					<View style={styles.requirementsList}>
-						<RequirementItem
-							active={passwordChecks.minLength}
-							text="Mínimo 8 caracteres"
-						/>
-						<RequirementItem
-							active={passwordChecks.uppercase}
-							text="Una letra mayúscula"
-						/>
-						<RequirementItem active={passwordChecks.number} text="Un número" />
-						<RequirementItem
-							active={passwordChecks.special}
-							text="Un carácter especial (!@#$)"
-						/>
+				{error && (
+					<View style={styles.errorBox}>
+						<Ionicons name="alert-circle" size={16} color="#A8341E" />
+						<Text style={styles.errorText}>{error}</Text>
 					</View>
-				</View>
+				)}
 
-				<View style={styles.footer}>
-					<Pressable
-						onPress={canContinue ? onNext : undefined}
-						style={({ pressed }) => [
-							styles.primaryButton,
-							pressed && canContinue && styles.primaryButtonPressed,
-							!canContinue && styles.primaryButtonDisabled,
-						]}
-					>
+				<Pressable
+					onPress={canContinue && !loading ? handleRegister : undefined}
+					style={({ pressed }) => [
+						styles.primaryButton,
+						pressed && canContinue && !loading && styles.primaryButtonPressed,
+						(!canContinue || loading) && styles.primaryButtonDisabled,
+					]}
+				>
+					{loading ? (
+						<ActivityIndicator size="small" color={colors.buttonText} />
+					) : (
 						<Text style={styles.primaryButtonText}>Crear cuenta</Text>
-					</Pressable>
-				</View>
+					)}
+				</Pressable>
 			</ScrollView>
-		</View>
-	);
-}
-
-function RequirementItem({ active, text }: { active: boolean; text: string }) {
-	return (
-		<View style={styles.requirementRow}>
-			<Ionicons
-				name={active ? "checkmark-circle" : "ellipse-outline"}
-				size={14}
-				color={active ? colors.cyan : colors.mutedText}
-			/>
-			<Text
-				style={[styles.requirementText, active && styles.requirementTextActive]}
-			>
-				{text}
-			</Text>
+			</KeyboardAvoidingView>
 		</View>
 	);
 }
@@ -192,38 +185,13 @@ const styles = StyleSheet.create({
 		lineHeight: 26,
 	},
 	form: { gap: 16 },
-	passwordFeedbackRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "flex-start",
-		gap: 8,
-		marginTop: -2,
-	},
-	feedbackText: {
-		flex: 1,
-		fontSize: 10,
-		lineHeight: 13,
-		color: colors.mutedText,
-	},
-	feedbackRight: { textAlign: "right" },
-	feedbackTextActive: {
-		color: colors.cyan,
-		fontFamily: typography.family.medium,
-	},
-	requirementsList: { gap: 6, marginTop: 4 },
-	requirementRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-	requirementText: { color: colors.mutedText, fontSize: 12, lineHeight: 16 },
-	requirementTextActive: {
-		color: colors.defaultText,
-		fontFamily: typography.family.medium,
-	},
-	footer: { paddingTop: 22 },
 	primaryButton: {
 		backgroundColor: colors.navy,
 		height: 52,
 		borderRadius: 10,
 		alignItems: "center",
 		justifyContent: "center",
+		marginTop: 20,
 	},
 	primaryButtonPressed: { opacity: 0.9 },
 	primaryButtonDisabled: { opacity: 0.55 },
@@ -233,4 +201,6 @@ const styles = StyleSheet.create({
 		fontSize: 15,
 		lineHeight: 18,
 	},
+	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
+	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 });

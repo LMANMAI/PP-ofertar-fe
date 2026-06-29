@@ -5,6 +5,7 @@ export const MOCK_USER = {
 	lastName: "Alvarez",
 } as const;
 
+/** @deprecated Usar Session de src/auth/session.ts */
 export type MockSession = {
 	email: string;
 	firstName: string;
@@ -12,6 +13,7 @@ export type MockSession = {
 	initials: string;
 };
 
+/** @deprecated Usar authApi.login() de src/services/authApi.ts */
 export function validateCredentials(
 	email: string,
 	password: string,

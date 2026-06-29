@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
+	Image,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -13,12 +14,14 @@ import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { BottomNav, type TabKey } from "../components";
 import { colors, typography } from "../theme/designSystem";
-import type { MockSession } from "../auth/mockAuth";
+import type { Session } from "../auth/session";
+import { getInitials, getAvatarUri, splitName } from "../auth/session";
+import { isBiometricAvailable } from "../auth/biometricAuth";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
 
 type Props = {
-	session: MockSession;
+	session: Session;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
@@ -28,6 +31,9 @@ type Props = {
 	onOpenStores: () => void;
 	onOpenSavings: () => void;
 	onOpenHelp: () => void;
+	onChangePassword?: () => void;
+	biometricEnabled?: boolean;
+	onToggleBiometric?: (enabled: boolean) => void;
 };
 
 type LinkItem = {
@@ -35,7 +41,7 @@ type LinkItem = {
 	icon: IonName;
 	label: string;
 	hint?: string;
-	action: keyof Pick<Props, "onOpenPersonalData" | "onOpenPayment" | "onOpenStores" | "onOpenSavings">;
+	action: keyof Pick<Props, "onOpenPersonalData" | "onOpenPayment" | "onOpenStores" | "onOpenSavings" | "onChangePassword">;
 };
 
 const ACCOUNT_ITEMS: LinkItem[] = [
@@ -43,6 +49,7 @@ const ACCOUNT_ITEMS: LinkItem[] = [
 	{ id: "payment", icon: "card-outline", label: "Métodos de pago", hint: "2 tarjetas guardadas", action: "onOpenPayment" },
 	{ id: "stores", icon: "location-outline", label: "Mis tiendas favoritas", action: "onOpenStores" },
 	{ id: "savings", icon: "wallet-outline", label: "Mis últimos ahorros", action: "onOpenSavings" },
+	{ id: "password", icon: "lock-closed-outline", label: "Cambiar contraseña", action: "onChangePassword" },
 ];
 
 export function ProfileScreen({
@@ -56,16 +63,25 @@ export function ProfileScreen({
 	onOpenStores,
 	onOpenSavings,
 	onOpenHelp,
+	onChangePassword,
+	biometricEnabled = false,
+	onToggleBiometric,
 }: Props) {
 	const insets = useSafeAreaInsets();
 	const [alertsEnabled, setAlertsEnabled] = useState(true);
 	const [shareData, setShareData] = useState(false);
+	const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+	useEffect(() => {
+		isBiometricAvailable().then(setBiometricAvailable).catch(() => {});
+	}, []);
 
 	const handlers: Record<string, () => void> = {
 		onOpenPersonalData,
 		onOpenPayment,
 		onOpenStores,
 		onOpenSavings,
+		onChangePassword: onChangePassword ?? (() => {}),
 	};
 
 	return (
@@ -84,13 +100,17 @@ export function ProfileScreen({
 			>
 				<Pressable style={styles.profileCard} onPress={onOpenPersonalData}>
 					<View style={styles.avatar}>
-						<Text style={styles.avatarText}>{session.initials}</Text>
+						{session.user.profilePicture ? (
+							<Image source={{ uri: getAvatarUri(session.user.profilePicture) }} style={styles.avatarImage} />
+						) : (
+							<Text style={styles.avatarText}>{getInitials(session.user.name)}</Text>
+						)}
 					</View>
 					<View style={{ flex: 1, gap: 4 }}>
 						<Text style={styles.profileName}>
-							{session.firstName} {session.lastName}
+							{splitName(session.user.name).firstName} {splitName(session.user.name).lastName}
 						</Text>
-						<Text style={styles.profileEmail}>{session.email}</Text>
+						<Text style={styles.profileEmail}>{session.user.email}</Text>
 						<View style={styles.levelBadge}>
 							<Ionicons name="star" size={10} color={colors.navy} />
 							<Text style={styles.levelBadgeText}>Nivel Plata · 2.430 pts</Text>
@@ -151,6 +171,27 @@ export function ProfileScreen({
 						/>
 					</View>
 					<View style={styles.listDivider} />
+					<View style={styles.listItem}>
+						<View style={styles.listIconWrap}>
+							<Ionicons name="finger-print-outline" size={16} color={colors.navy} />
+						</View>
+						<View style={{ flex: 1, gap: 2 }}>
+							<Text style={styles.listLabel}>Inicio de sesión biométrico</Text>
+							<Text style={styles.listHint}>
+								{biometricAvailable
+									? "Usá tu huella para ingresar"
+									: "No disponible en este dispositivo"}
+							</Text>
+						</View>
+						<Switch
+							value={biometricEnabled}
+							onValueChange={(v) => onToggleBiometric?.(v)}
+							trackColor={{ true: colors.cyan, false: "#D9DEE5" }}
+							thumbColor="#fff"
+							disabled={!biometricAvailable}
+						/>
+					</View>
+					<View style={styles.listDivider} />
 					<Pressable style={styles.listItem} onPress={onOpenHelp}>
 						<View style={styles.listIconWrap}>
 							<Ionicons name="help-circle-outline" size={16} color={colors.navy} />
@@ -187,7 +228,8 @@ const styles = StyleSheet.create({
 	scroll: { flex: 1 },
 	scrollContent: { padding: 16, gap: 12 },
 	profileCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1, borderColor: "#E5E7EB" },
-	avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center" },
+	avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+	avatarImage: { width: "100%", height: "100%" },
 	avatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
 	profileName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 16 },
 	profileEmail: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12 },

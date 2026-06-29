@@ -19,12 +19,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, typography } from "../theme/designSystem";
-import { validateCredentials, type MockSession } from "../auth/mockAuth";
+import { login } from "../services/authApi";
+import type { Session } from "../auth/session";
 
 type AuthLoginScreenProps = {
 	onBackPress?: () => void;
 	onGoToRegister?: () => void;
-	onLoginSuccess?: (session: MockSession) => void;
+	onLoginSuccess?: (session: Session) => void;
 	onForgotPassword?: () => void;
 	onGoogleLogin?: () => void;
 };
@@ -45,15 +46,19 @@ export function AuthLoginScreen({
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
+	const [loading, setLoading] = useState(false);
 
-	const handleLogin = () => {
-		const session = validateCredentials(email, password);
-		if (!session) {
-			setError("Credenciales inválidas. Probá test@ofertar.ar / test1234");
-			return;
-		}
+	const handleLogin = async () => {
 		setError(null);
-		onLoginSuccess?.(session);
+		setLoading(true);
+		try {
+			const authResponse = await login(email.trim(), password);
+			onLoginSuccess?.({ token: authResponse.token, user: authResponse.user });
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Error al iniciar sesión");
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	if (!fontsLoaded) {
@@ -100,6 +105,7 @@ export function AuthLoginScreen({
 						value={password}
 						onChangeText={setPassword}
 						secureTextEntry
+						showPasswordToggle
 					/>
 				</View>
 
@@ -115,13 +121,18 @@ export function AuthLoginScreen({
 				</Pressable>
 
 				<Pressable
-					onPress={handleLogin}
+					onPress={loading ? undefined : handleLogin}
 					style={({ pressed }) => [
 						styles.primaryButton,
-						pressed && styles.pressed,
+						pressed && !loading && styles.pressed,
+						loading && { opacity: 0.55 },
 					]}
 				>
-					<Text style={styles.primaryButtonText}>Iniciar sesión</Text>
+					{loading ? (
+						<ActivityIndicator size="small" color={colors.buttonText} />
+					) : (
+						<Text style={styles.primaryButtonText}>Iniciar sesión</Text>
+					)}
 				</Pressable>
 
 				<View style={styles.dividerRow}>

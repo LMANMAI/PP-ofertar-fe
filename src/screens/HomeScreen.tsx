@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import {
+	Image,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -10,12 +11,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomNav, type TabKey } from "../components";
 import { colors, typography } from "../theme/designSystem";
-import { type MockSession } from "../auth/mockAuth";
+import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import { OFFERS, EXPIRED_IDS } from "../data/offers";
 import { TRACKED_PRODUCTS, HOME_SAVINGS } from "../data/tracked";
 
 type Props = {
-	session: MockSession;
+	session: Session;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
@@ -50,14 +51,29 @@ export function HomeScreen({
 			<View style={styles.header}>
 				<View style={styles.headerLeft}>
 					<Text style={styles.greeting}>
-						¡Hola, {session.firstName}!{" "}
+						¡Hola, {splitName(session.user.name).firstName}!{" "}
 						<Text style={styles.wave}>👋</Text>
 					</Text>
 					<Text style={styles.greetingSub}>Bienvenida de nuevo</Text>
 				</View>
-				<View style={styles.avatar}>
-					<Text style={styles.avatarText}>{session.initials}</Text>
-				</View>
+				<Pressable
+					onPress={() => onSelectTab("profile")}
+					style={({ pressed }) => [
+						styles.avatar,
+						styles.avatarPressable,
+						pressed && { opacity: 0.85 },
+					]}
+					hitSlop={8}
+				>
+					{session.user.profilePicture ? (
+						<Image
+							source={{ uri: getAvatarUri(session.user.profilePicture) }}
+							style={styles.avatarImage}
+						/>
+					) : (
+						<Text style={styles.avatarText}>{getInitials(session.user.name)}</Text>
+					)}
+				</Pressable>
 			</View>
 			<View style={styles.headerBottomCurve} />
 
@@ -284,7 +300,10 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.cyan,
 		alignItems: "center",
 		justifyContent: "center",
+		overflow: "hidden",
 	},
+	avatarPressable: {},
+	avatarImage: { width: "100%", height: "100%" },
 	avatarText: {
 		color: colors.navy,
 		fontFamily: typography.family.bold,
