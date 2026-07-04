@@ -1,4 +1,5 @@
 import {
+	Image,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -39,7 +40,13 @@ export function PointsScreen({
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>Mis puntos</Text>
+				<View style={styles.headerTitleRow}>
+					<Image
+						source={require("../../assets/logo_ofertar.png")}
+						style={styles.headerLogo}
+					/>
+					<Text style={styles.headerTitle}>Mis puntos</Text>
+				</View>
 				<Pressable onPress={onShowHistory} hitSlop={8}>
 					<Ionicons name="time-outline" size={22} color={colors.buttonText} />
 				</Pressable>
@@ -134,6 +141,8 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 	},
+	headerTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+	headerLogo: { width: 24, height: 24, borderRadius: 6 },
 	headerTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,

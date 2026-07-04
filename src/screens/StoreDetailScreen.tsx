@@ -10,12 +10,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { colors, typography } from "../theme/designSystem";
+import { BottomNav, type TabKey } from "../components";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
 
 type Props = {
 	storeId?: string;
 	onBack: () => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
 };
 
 type StoreInfo = {
@@ -67,7 +71,7 @@ const INFO: InfoRow[] = [
 	{ icon: "card-outline", label: "Medios de pago", value: "Efectivo, débito, crédito, MODO" },
 ];
 
-export function StoreDetailScreen({ storeId = "dia", onBack }: Props) {
+export function StoreDetailScreen({ storeId = "dia", onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const store = STORES[storeId] ?? STORES.dia;
 
@@ -85,7 +89,7 @@ export function StoreDetailScreen({ storeId = "dia", onBack }: Props) {
 
 			<ScrollView
 				style={styles.scroll}
-				contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+				contentContainerStyle={{ paddingBottom: 16 }}
 				showsVerticalScrollIndicator={false}
 			>
 				{/* Mock de mapa con grid */}
@@ -157,11 +161,15 @@ export function StoreDetailScreen({ storeId = "dia", onBack }: Props) {
 				</View>
 			</ScrollView>
 
-			<View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+			<View style={styles.footer}>
 				<Pressable style={styles.primaryButton}>
 					<Ionicons name="map-outline" size={18} color={colors.cyan} />
 					<Text style={styles.primaryButtonText}>Cómo llegar · {store.distance.split(" ")[0]} km</Text>
 				</Pressable>
+			</View>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
 		</View>
 	);
@@ -314,12 +322,9 @@ const styles = StyleSheet.create({
 	},
 	infoDivider: { height: 1, backgroundColor: "#E5E7EB" },
 	footer: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		bottom: 0,
 		paddingHorizontal: 16,
 		paddingTop: 12,
+		paddingBottom: 12,
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
 		borderTopColor: "#E5E7EB",

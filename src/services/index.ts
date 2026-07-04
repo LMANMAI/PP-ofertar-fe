@@ -1,18 +1,21 @@
 export {
-	login,
-	sendOcrTicket,
-	sendOcrTickets,
-} from "./api";
+	scanTicket,
+	getTickets,
+	getTicket,
+	updateTicket,
+	getSavingsReport,
+} from "./ticketApi";
 
 export type {
-	OCRResponse,
-	TicketItem,
-	DiscountItem,
-	ImageQuality,
-} from "./api";
+	TicketItemResponse,
+	TicketResponse,
+	SavingsReportResponse,
+	UpdateTicketData,
+} from "./ticketApi";
 
 export {
 	register,
+	login,
 	getProfile,
 	updateProfile,
 	changePassword,

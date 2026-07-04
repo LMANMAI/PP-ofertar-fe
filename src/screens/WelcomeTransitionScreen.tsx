@@ -21,7 +21,7 @@ export function WelcomeTransitionScreen({ onDone, name = "Martina" }: Props) {
 				<View style={styles.checkCircle}>
 					<Ionicons name="checkmark" size={48} color={colors.cyan} />
 				</View>
-				<Text style={styles.title}>¡Bienvenida, {name}!</Text>
+				<Text style={styles.title}>¡Te damos la bienvenida, {name}!</Text>
 				<Text style={styles.subtitle}>Estamos preparando tu OfertAR</Text>
 			</View>
 		</View>

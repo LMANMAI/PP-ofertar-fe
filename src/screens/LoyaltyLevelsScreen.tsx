@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
+import { BottomNav, type TabKey } from "../components";
 
 type Level = {
 	id: string;
@@ -21,9 +22,9 @@ const LEVELS: Level[] = [
 
 const CURRENT_PTS = 2430;
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
 
-export function LoyaltyLevelsScreen({ onBack }: Props) {
+export function LoyaltyLevelsScreen({ onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 
 	return (
@@ -86,6 +87,10 @@ export function LoyaltyLevelsScreen({ onBack }: Props) {
 					);
 				})}
 			</ScrollView>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { colors, typography } from "../theme/designSystem";
+import { BottomNav, type TabKey } from "../components";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
 
@@ -26,9 +27,9 @@ const ENTRIES: Entry[] = [
 	{ id: "5", icon: "receipt-outline", iconColor: "#22C55E", bg: "#E0F5EF", title: "Ticket Día · Av. Corrientes", date: "29 abr · 19:24", pts: "+72", tone: "green" },
 ];
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
 
-export function PointsHistoryScreen({ onBack }: Props) {
+export function PointsHistoryScreen({ onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	return (
 		<View style={styles.safeArea}>
@@ -73,6 +74,10 @@ export function PointsHistoryScreen({ onBack }: Props) {
 					))}
 				</View>
 			</ScrollView>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }

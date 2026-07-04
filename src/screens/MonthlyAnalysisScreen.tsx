@@ -1,21 +1,87 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
+import { getSavingsReport } from "../services";
+import type { SavingsReportResponse } from "../services";
+import type { Session } from "../auth/session";
+import { BottomNav, type TabKey } from "../components";
 
-type Props = { onBack: () => void };
+function formatCurrency(value: number | null | undefined): string {
+	if (value == null) return "$0";
+	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
-const CATS = [
-	{ name: "Almacén", pct: 38, amount: "$8.520", color: "#7DD4F5" },
-	{ name: "Lácteos", pct: 24, amount: "$5.380", color: "#0D80CC" },
-	{ name: "Limpieza", pct: 18, amount: "$4.020", color: "#22C55E" },
-	{ name: "Bebidas", pct: 12, amount: "$2.690", color: "#F2B61D" },
-	{ name: "Otros", pct: 8, amount: "$1.810", color: "#9CA3A8" },
-];
+function formatMonth(date: Date): string {
+	return date.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+}
 
-export function MonthlyAnalysisScreen({ onBack }: Props) {
+function yyyyMM(date: Date): string {
+	const y = date.getFullYear();
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	return `${y}-${m}`;
+}
+
+const CAT_COLORS = ["#7DD4F5", "#0D80CC", "#22C55E", "#F2B61D", "#9CA3A8", "#E76F51"];
+
+type Props = {
+	onBack: () => void;
+	session: Session;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
+};
+
+export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const [report, setReport] = useState<SavingsReportResponse | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+	useEffect(() => {
+		loadReport();
+	}, [selectedMonth]);
+
+	const loadReport = async () => {
+		setLoading(true);
+		setError(null);
+		try {
+			const monthKey = yyyyMM(selectedMonth);
+			const data = await getSavingsReport(session.token, monthKey, monthKey);
+			setReport(data);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Error al cargar el reporte");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const prevMonth = () => {
+		setSelectedMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
+	};
+
+	const nextMonth = () => {
+		const now = new Date();
+		const next = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1);
+		if (next <= new Date(now.getFullYear(), now.getMonth(), 1)) {
+			setSelectedMonth(next);
+		}
+	};
+
+	const savingsPct = report?.summary?.totalSavings != null
+		&& report.summary.totalSavings > 0
+		&& report.summary.totalSpent != null
+		? ((report.summary.totalSavings / (report.summary.totalSpent + report.summary.totalSavings)) * 100)
+				.toFixed(1).replace(".", ",")
+		: null;
+
+	const maxPercent = report?.byCategory?.length
+		? Math.max(...report.byCategory.map((c) => c.totalDiscounts), 1)
+		: 1;
+
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
@@ -27,45 +93,123 @@ export function MonthlyAnalysisScreen({ onBack }: Props) {
 				<Text style={styles.headerTitle}>Análisis mensual</Text>
 			</View>
 
-			<ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 24 }}>
-				<View style={styles.heroCard}>
-					<Text style={styles.heroLabel}>GASTO TOTAL · MAYO</Text>
-					<Text style={styles.heroValue}>$22.420</Text>
-					<View style={styles.heroDelta}>
-						<Ionicons name="trending-down" size={12} color="#7DD4F5" />
-						<Text style={styles.heroDeltaText}>-12% vs abril</Text>
-					</View>
-				</View>
+			<View style={styles.monthSelector}>
+				<Pressable onPress={prevMonth} style={styles.monthArrow}>
+					<Ionicons name="chevron-back" size={18} color={colors.navy} />
+				</Pressable>
+				<Text style={styles.monthLabel}>{formatMonth(selectedMonth)}</Text>
+				<Pressable onPress={nextMonth} style={styles.monthArrow}>
+					<Ionicons name="chevron-forward" size={18} color={colors.navy} />
+				</Pressable>
+			</View>
 
-				<Text style={styles.sectionLabel}>POR CATEGORÍA</Text>
-				<View style={styles.catsCard}>
-					{CATS.map((c, idx) => (
-						<View key={c.name} style={[styles.catRow, idx === CATS.length - 1 && { borderBottomWidth: 0 }]}>
-							<View style={[styles.catDot, { backgroundColor: c.color }]} />
-							<View style={{ flex: 1 }}>
-								<View style={styles.catHeader}>
-									<Text style={styles.catName}>{c.name}</Text>
-									<Text style={styles.catAmount}>{c.amount}</Text>
-								</View>
-								<View style={styles.catBarTrack}>
-									<View style={[styles.catBarFill, { width: `${c.pct}%`, backgroundColor: c.color }]} />
+			{loading && (
+				<View style={styles.loaderWrap}>
+					<ActivityIndicator size="small" color={colors.cyan} />
+				</View>
+			)}
+
+			{error && (
+				<View style={styles.errorBanner}>
+					<Ionicons name="warning-outline" size={18} color="#E76F51" />
+					<Text style={styles.errorText}>{error}</Text>
+				</View>
+			)}
+
+			{!loading && !error && report && (
+				<ScrollView
+					style={{ flex: 1 }}
+					contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }}>
+					<View style={styles.heroCard}>
+						<Text style={styles.heroLabel}>
+							GASTO TOTAL · {formatMonth(selectedMonth).toUpperCase()}
+						</Text>
+						<Text style={styles.heroValue}>
+							{formatCurrency(report.summary.totalSpent)}
+						</Text>
+						<View style={styles.heroRow}>
+							<Tag text={`${report.summary.ticketCount} tickets`} />
+							{report.summary.totalSavings != null && report.summary.totalSavings > 0 && (
+								<Tag text={`${formatCurrency(report.summary.totalSavings)} ahorrado`} tone="cyan" />
+							)}
+							{savingsPct && (
+								<Tag text={`${savingsPct}% del total`} tone="cyan" />
+							)}
+						</View>
+					</View>
+
+					{report.byCategory.length > 0 && (
+						<>
+							<Text style={styles.sectionLabel}>AHORRO POR CATEGORÍA</Text>
+							<View style={styles.catsCard}>
+								{report.byCategory.map((c, idx) => (
+									<View key={c.category} style={[styles.catRow, idx === report.byCategory.length - 1 && { borderBottomWidth: 0 }]}>
+										<View style={[styles.catDot, { backgroundColor: CAT_COLORS[idx % CAT_COLORS.length] }]} />
+										<View style={{ flex: 1 }}>
+											<View style={styles.catHeader}>
+												<Text style={styles.catName}>{c.category}</Text>
+												<Text style={styles.catAmount}>{formatCurrency(c.totalDiscounts)}</Text>
+											</View>
+											<View style={styles.catBarTrack}>
+												<View style={[styles.catBarFill, { width: `${(c.totalDiscounts / maxPercent) * 100}%`, backgroundColor: CAT_COLORS[idx % CAT_COLORS.length] }]} />
+											</View>
+										</View>
+										<Text style={styles.catPct}>{c.itemCount} prod.</Text>
+									</View>
+								))}
+							</View>
+						</>
+					)}
+
+					{report.byStore.length > 0 && (
+						<>
+							<Text style={styles.sectionLabel}>AHORRO POR SUPERMERCADO</Text>
+							<View style={styles.catsCard}>
+								{report.byStore.map((s, idx) => (
+									<View key={s.storeName} style={[styles.catRow, idx === report.byStore.length - 1 && { borderBottomWidth: 0 }]}>
+										<Ionicons name="storefront-outline" size={16} color={colors.navy} />
+										<View style={{ flex: 1 }}>
+											<Text style={styles.catName}>{s.storeName}</Text>
+										</View>
+										<Text style={styles.catAmount}>{formatCurrency(s.totalDiscounts)}</Text>
+									</View>
+								))}
+							</View>
+						</>
+					)}
+
+					<View style={styles.highlightsRow}>
+							<View style={styles.highlightPill}>
+								<Ionicons name="trending-up-outline" size={16} color="#22C55E" />
+								<View>
+									<Text style={styles.highlightValue}>
+										{formatCurrency(report.summary.averageSavings)}
+									</Text>
+									<Text style={styles.highlightLabel}>prom. por ticket</Text>
 								</View>
 							</View>
-							<Text style={styles.catPct}>{c.pct}%</Text>
+							<View style={styles.highlightPill}>
+								<Ionicons name="pricetags-outline" size={16} color={colors.navy} />
+								<View>
+									<Text style={styles.highlightValue}>{report.byCategory.length}</Text>
+									<Text style={styles.highlightLabel}>categorías</Text>
+								</View>
+							</View>
 						</View>
-					))}
-				</View>
+				</ScrollView>
+			)}
 
-				<View style={styles.savingsCard}>
-					<View style={styles.savingsRow}>
-						<Ionicons name="trending-up-outline" size={20} color="#22C55E" />
-						<View style={{ flex: 1 }}>
-							<Text style={styles.savingsTitle}>Ahorraste $3.180 este mes</Text>
-							<Text style={styles.savingsHint}>Comparando con precios promedio</Text>
-						</View>
-					</View>
-				</View>
-			</ScrollView>
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
+		</View>
+	);
+}
+
+function Tag({ text, tone }: { text: string; tone?: "cyan" }) {
+	return (
+		<View style={[styles.tag, tone === "cyan" ? styles.tagCyan : styles.tagMuted]}>
+			<Text style={[styles.tagText, tone === "cyan" ? styles.tagTextCyan : styles.tagTextMuted]}>{text}</Text>
 		</View>
 	);
 }
@@ -76,11 +220,22 @@ const styles = StyleSheet.create({
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
+	monthSelector: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 12, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
+	monthArrow: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+	monthLabel: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15, textTransform: "capitalize" },
+	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 12 },
+	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 13 },
 	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: 20, gap: 8 },
 	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	heroValue: { color: "#fff", fontFamily: typography.family.bold, fontSize: 34 },
-	heroDelta: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(125,212,245,0.15)", alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-	heroDeltaText: { color: "#7DD4F5", fontFamily: typography.family.medium, fontSize: 12 },
+	heroRow: { flexDirection: "row", gap: 6, marginTop: 4 },
+	tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+	tagMuted: { backgroundColor: "rgba(255,255,255,0.12)" },
+	tagCyan: { backgroundColor: colors.cyan },
+	tagText: { fontFamily: typography.family.medium, fontSize: 11 },
+	tagTextMuted: { color: "rgba(255,255,255,0.85)" },
+	tagTextCyan: { color: colors.navy },
 	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	catsCard: { backgroundColor: colors.card, borderRadius: 14, padding: 6 },
 	catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
@@ -90,9 +245,31 @@ const styles = StyleSheet.create({
 	catAmount: { color: "#6B7280", fontFamily: typography.family.medium, fontSize: 12 },
 	catBarTrack: { height: 6, backgroundColor: "#F8F9FB", borderRadius: 3, overflow: "hidden" },
 	catBarFill: { height: 6, borderRadius: 3 },
-	catPct: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 13, width: 36, textAlign: "right" },
-	savingsCard: { backgroundColor: "#E0F5EF", borderRadius: 14, padding: 16 },
-	savingsRow: { flexDirection: "row", gap: 12, alignItems: "center" },
-	savingsTitle: { color: "#15803D", fontFamily: typography.family.bold, fontSize: 14 },
-	savingsHint: { color: "#15803D", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
+	catPct: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 13, width: 54, textAlign: "right" },
+	highlightsRow: {
+		flexDirection: "row",
+		gap: 10,
+	},
+	highlightPill: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+		backgroundColor: colors.card,
+		borderRadius: 12,
+		padding: 14,
+		borderWidth: 1,
+		borderColor: colors.border,
+	},
+	highlightValue: {
+		color: colors.navy,
+		fontFamily: typography.family.bold,
+		fontSize: 15,
+	},
+	highlightLabel: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: 11,
+		marginTop: 1,
+	},
 });

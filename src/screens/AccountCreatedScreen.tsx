@@ -15,7 +15,7 @@ export function AccountCreatedScreen({ name = "Martina", onStart }: Props) {
 				<View style={styles.checkCircle}>
 					<Ionicons name="checkmark" size={48} color="#22C55E" />
 				</View>
-				<Text style={styles.title}>¡Bienvenida, {name}!</Text>
+				<Text style={styles.title}>¡Te damos la bienvenida, {name}!</Text>
 				<Text style={styles.body}>
 					Tu cuenta se creó con éxito. Empezá a escanear tickets y ahorrar.
 				</Text>

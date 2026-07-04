@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import {
 	ActivityIndicator,
+	Image,
 	StyleSheet,
 	View,
 } from "react-native";
@@ -26,7 +27,11 @@ export function LoaderScreen({ onDone, durationMs = 1500 }: Props) {
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="dark" translucent />
 			<View style={[styles.center, { paddingBottom: insets.bottom }]}>
-				<ActivityIndicator size="large" color={colors.cyan} />
+				<Image
+					source={require("../../assets/logo_ofertar.png")}
+					style={styles.logo}
+				/>
+				<ActivityIndicator size="large" color={colors.cyan} style={styles.spinner} />
 			</View>
 		</View>
 	);
@@ -41,4 +46,6 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		backgroundColor: colors.card,
 	},
+	logo: { width: 72, height: 72, borderRadius: 12 },
+	spinner: { marginTop: 24 },
 });

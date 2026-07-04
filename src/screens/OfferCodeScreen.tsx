@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
+import { BottomNav, type TabKey } from "../components";
 
 type Props = {
 	offer: {
@@ -17,6 +18,9 @@ type Props = {
 		expiresAt: string; // "Vence el 20 may · 10 días restantes"
 	};
 	onBack: () => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
 };
 
 // Generador determinista de "QR" pseudoaleatorio para placeholder visual.
@@ -56,7 +60,7 @@ function useQrPattern(seed: string) {
 	}, [seed]);
 }
 
-export function OfferCodeScreen({ offer, onBack }: Props) {
+export function OfferCodeScreen({ offer, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const qr = useQrPattern(offer.id);
 
@@ -136,6 +140,10 @@ export function OfferCodeScreen({ offer, onBack }: Props) {
 					</View>
 				</View>
 			</ScrollView>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }

@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
+	ActivityIndicator,
 	Image,
 	Pressable,
 	ScrollView,
@@ -13,7 +15,9 @@ import { BottomNav, type TabKey } from "../components";
 import { colors, typography } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import { OFFERS, EXPIRED_IDS } from "../data/offers";
-import { TRACKED_PRODUCTS, HOME_SAVINGS } from "../data/tracked";
+import { TRACKED_PRODUCTS } from "../data/tracked";
+import { getSavingsReport } from "../services";
+import type { SavingsReportResponse } from "../services";
 
 type Props = {
 	session: Session;
@@ -42,6 +46,21 @@ export function HomeScreen({
 }: Props) {
 	const insets = useSafeAreaInsets();
 	const activeOffers = OFFERS.filter((o) => !EXPIRED_IDS.has(o.id)).slice(0, 4);
+	const [savings, setSavings] = useState<SavingsReportResponse["summary"] | null>(null);
+
+	function formatCurrencyS(value: number | null | undefined): string {
+		if (value == null) return "$0";
+		return `$${Math.round(value).toLocaleString("es-AR")}`;
+	}
+
+	useEffect(() => {
+		getSavingsReport(session.token)
+			.then((r) => setSavings(r.summary))
+			.catch(() => {});
+	}, [session.token]);
+
+	const savingsTickets = savings?.ticketCount ?? 0;
+	const savingsAvg = savings ? formatCurrencyS(savings.averageSavings) : "$0";
 
 	return (
 		<View style={styles.safeArea}>
@@ -49,12 +68,16 @@ export function HomeScreen({
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
+				<Image
+					source={require("../../assets/logo_ofertar.png")}
+					style={styles.headerLogo}
+				/>
 				<View style={styles.headerLeft}>
 					<Text style={styles.greeting}>
 						¡Hola, {splitName(session.user.name).firstName}!{" "}
 						<Text style={styles.wave}>👋</Text>
 					</Text>
-					<Text style={styles.greetingSub}>Bienvenida de nuevo</Text>
+					<Text style={styles.greetingSub}>Qué bueno tenerte de nuevo</Text>
 				</View>
 				<Pressable
 					onPress={() => onSelectTab("profile")}
@@ -85,28 +108,31 @@ export function HomeScreen({
 				{/* Savings card */}
 				<View style={styles.savingsCard}>
 					<Text style={styles.savingsOverline}>AHORRO DEL MES</Text>
-					<Text style={styles.savingsAmount}>{HOME_SAVINGS.amount}</Text>
-					<View style={styles.savingsDeltaRow}>
-						<Ionicons name="arrow-up" size={11} color={colors.cyan} />
-						<Text style={styles.savingsDeltaText}>{HOME_SAVINGS.delta}</Text>
-					</View>
-
+					{savings ? (
+						<Text style={styles.savingsAmount}>
+							{formatCurrencyS(savings.totalSavings)}
+						</Text>
+					) : (
+						<View style={{ paddingVertical: 8 }}>
+							<ActivityIndicator size="small" color={colors.cyan} />
+						</View>
+					)}
 					<View style={styles.savingsBottomRow}>
 						<View style={styles.metricsRow}>
 							<View>
 								<Text style={styles.metricLabel}>TICKETS</Text>
-								<Text style={styles.metricValue}>{HOME_SAVINGS.tickets}</Text>
+								<Text style={styles.metricValue}>{savingsTickets}</Text>
 							</View>
 							<View style={styles.metricDivider} />
 							<View>
-								<Text style={styles.metricLabel}>PUNTOS</Text>
+								<Text style={styles.metricLabel}>PROMEDIO</Text>
 								<Text style={[styles.metricValue, { color: colors.cyan }]}>
-									{HOME_SAVINGS.points.toLocaleString("es-AR")}
+									{savingsAvg}
 								</Text>
 							</View>
 						</View>
 						<Pressable style={styles.savingsCta} onPress={onOpenHistory}>
-							<Text style={styles.savingsCtaText}>Ver mis ahorros</Text>
+							<Text style={styles.savingsCtaText}>Ver mis tickets</Text>
 						</Pressable>
 					</View>
 				</View>
@@ -278,6 +304,7 @@ const styles = StyleSheet.create({
 		borderBottomLeftRadius: 18,
 		borderBottomRightRadius: 18,
 	},
+	headerLogo: { width: 32, height: 32, borderRadius: 8, marginRight: 10 },
 	headerLeft: { flex: 1 },
 	greeting: {
 		color: colors.buttonText,

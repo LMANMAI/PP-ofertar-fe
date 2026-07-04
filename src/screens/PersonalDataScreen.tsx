@@ -7,18 +7,18 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
 import { colors, typography } from "../theme/designSystem";
-import { InputField } from "../components";
+import { InputField, BottomNav, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { getProfile, updateProfile, uploadProfilePicture } from "../services/authApi";
 
-type Props = { session: Session; onBack: () => void };
+type Props = { session: Session; onBack: (message?: string) => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const MAX_IMAGE_SIZE_MB = 5;
 
-export function PersonalDataScreen({ session, onBack }: Props) {
+export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const [fetching, setFetching] = useState(false);
 	const [first, setFirst] = useState(splitName(session.user.name).firstName);
@@ -27,7 +27,6 @@ export function PersonalDataScreen({ session, onBack }: Props) {
 	const [phone, setPhone] = useState(session.user.phone ?? "");
 	const [saving, setSaving] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
-	const [saveSuccess, setSaveSuccess] = useState(false);
 
 	const [profilePic, setProfilePic] = useState<string | null>(session.user.profilePicture);
 	const [picUploading, setPicUploading] = useState(false);
@@ -154,12 +153,11 @@ export function PersonalDataScreen({ session, onBack }: Props) {
 
 	const handleSave = async () => {
 		setSaveError(null);
-		setSaveSuccess(false);
 		setSaving(true);
 		try {
 			const name = `${first.trim()} ${last.trim()}`.trim();
 			await updateProfile(session.token, { name, phone: phone.trim() || undefined });
-			setSaveSuccess(true);
+			onBack("Datos actualizados correctamente");
 		} catch (err) {
 			setSaveError(err instanceof Error ? err.message : "Error al guardar");
 		} finally {
@@ -174,7 +172,7 @@ export function PersonalDataScreen({ session, onBack }: Props) {
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={() => onBack()} style={styles.backButton}>
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Datos personales</Text>
@@ -227,12 +225,6 @@ export function PersonalDataScreen({ session, onBack }: Props) {
 							<View style={styles.errorBox}>
 								<Ionicons name="alert-circle" size={16} color="#A8341E" />
 								<Text style={styles.errorText}>{saveError}</Text>
-							</View>
-						)}
-						{saveSuccess && (
-							<View style={styles.successBox}>
-								<Ionicons name="checkmark-circle" size={16} color="#16A34A" />
-								<Text style={styles.successText}>Datos guardados</Text>
 							</View>
 						)}
 
@@ -299,6 +291,10 @@ export function PersonalDataScreen({ session, onBack }: Props) {
 					</Animated.View>
 				</Pressable>
 			</Modal>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }
@@ -323,8 +319,6 @@ const styles = StyleSheet.create({
 	saveText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	errorBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
 	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	successBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#A7F3D0", flexDirection: "row", alignItems: "center", gap: 8 },
-	successText: { flex: 1, color: "#16A34A", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
 	sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
 	sheetContent: { gap: 20 },

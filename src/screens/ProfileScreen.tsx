@@ -90,6 +90,10 @@ export function ProfileScreen({
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
+				<Image
+					source={require("../../assets/logo_ofertar.png")}
+					style={styles.headerLogo}
+				/>
 				<Text style={styles.headerTitle}>Perfil</Text>
 			</View>
 
@@ -223,7 +227,8 @@ export function ProfileScreen({
 const styles = StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 20, height: 56, justifyContent: "center" },
+	header: { backgroundColor: colors.navy, paddingHorizontal: 20, height: 56, flexDirection: "row", alignItems: "center", gap: 10 },
+	headerLogo: { width: 24, height: 24, borderRadius: 6 },
 	headerTitle: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	scroll: { flex: 1 },
 	scrollContent: { padding: 16, gap: 12 },

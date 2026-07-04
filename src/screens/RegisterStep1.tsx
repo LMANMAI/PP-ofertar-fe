@@ -6,7 +6,7 @@ import {
 	PlusJakartaSans_500Medium,
 	PlusJakartaSans_700Bold,
 } from "@expo-google-fonts/plus-jakarta-sans";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { InputField } from "../components";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -73,7 +73,11 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 				</View>
 			</View>
 
-			<ScrollView contentContainerStyle={styles.container}>
+			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+			<ScrollView
+				contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 120 }]}
+				keyboardShouldPersistTaps="handled"
+			>
 				<Text style={styles.title}>Creá tu cuenta</Text>
 				<Text style={styles.subtitle}>
 					Completá tus datos para empezar a ahorrar.
@@ -144,6 +148,7 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 					</Text>
 				</Pressable>
 			</ScrollView>
+			</KeyboardAvoidingView>
 		</View>
 	);
 }

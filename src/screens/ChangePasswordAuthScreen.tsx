@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
 import { colors, typography } from "../theme/designSystem";
-import { InputField, PasswordStrengthBar } from "../components";
+import { InputField, PasswordStrengthBar, BottomNav, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { changePassword } from "../services/authApi";
 
@@ -13,9 +13,12 @@ type Props = {
 	session: Session;
 	biometricEnabled: boolean;
 	onBack: (message?: string) => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
 };
 
-export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack }: Props) {
+export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const [currentPw, setCurrentPw] = useState("");
 	const [newPw, setNewPw] = useState("");
@@ -137,6 +140,10 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack }: 
 					</Pressable>
 			</ScrollView>
 			</KeyboardAvoidingView>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }

@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
+import { BottomNav, type TabKey } from "../components";
 
 type Store = {
 	id: string;
@@ -41,6 +42,9 @@ type Props = {
 	onBack: () => void;
 	onSelectStore: (storeId: string) => void;
 	onSave?: () => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
 };
 
 export function ComparePricesScreen({
@@ -50,6 +54,9 @@ export function ComparePricesScreen({
 	onBack,
 	onSelectStore,
 	onSave,
+	activeTab,
+	onSelectTab,
+	onScanPress,
 }: Props) {
 	const insets = useSafeAreaInsets();
 	const [filter, setFilter] = useState<string>("Precio");
@@ -195,6 +202,10 @@ export function ComparePricesScreen({
 					<Text style={styles.cancelButtonText}>Cancelar</Text>
 				</Pressable>
 			</ScrollView>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }
