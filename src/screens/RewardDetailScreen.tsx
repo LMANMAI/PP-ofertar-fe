@@ -5,14 +5,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
 import { SALDO_PUNTOS } from "../data/rewards";
+import { BottomNav, type TabKey } from "../components";
 
 type Props = {
 	reward: Reward;
 	onBack: () => void;
 	onRedeem: () => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
 };
 
-export function RewardDetailScreen({ reward, onBack, onRedeem }: Props) {
+export function RewardDetailScreen({ reward, onBack, onRedeem, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const remaining = SALDO_PUNTOS - reward.points;
 	const canRedeem = remaining >= 0;
@@ -27,7 +31,7 @@ export function RewardDetailScreen({ reward, onBack, onRedeem }: Props) {
 				</Pressable>
 				<Text style={styles.headerTitle}>Detalle</Text>
 			</View>
-			<ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}>
+			<ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
 				<View style={styles.heroWrap}>
 					<View style={styles.hero}>
 						<Ionicons name={reward.icon} size={28} color={colors.cyan} />
@@ -53,7 +57,7 @@ export function RewardDetailScreen({ reward, onBack, onRedeem }: Props) {
 				</View>
 			</ScrollView>
 
-			<View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+			<View style={styles.footer}>
 				<View style={{ flex: 1 }}>
 					<Text style={styles.balText}>Tu saldo: {SALDO_PUNTOS.toLocaleString("es-AR")} pts</Text>
 					<Text style={[styles.balRemaining, !canRedeem && { color: "#EF4444" }]}>
@@ -66,6 +70,10 @@ export function RewardDetailScreen({ reward, onBack, onRedeem }: Props) {
 				>
 					<Text style={styles.ctaText}>Canjear {reward.points} pts</Text>
 				</Pressable>
+			</View>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
 		</View>
 	);
@@ -108,7 +116,7 @@ const styles = StyleSheet.create({
 	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16, marginBottom: 8 },
 	condCard: { marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 4 },
 	condText: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 18 },
-	footer: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: "#E5E7EB", flexDirection: "row", alignItems: "center", gap: 12 },
+	footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: "#E5E7EB", flexDirection: "row", alignItems: "center", gap: 12 },
 	balText: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13 },
 	balRemaining: { color: "#22C55E", fontFamily: typography.family.regular, fontSize: 13 },
 	cta: { backgroundColor: colors.navy, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8 },

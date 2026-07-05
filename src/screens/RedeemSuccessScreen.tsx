@@ -5,15 +5,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
 import { SALDO_PUNTOS } from "../data/rewards";
+import { BottomNav, type TabKey } from "../components";
 
 type Props = {
 	reward: Reward;
 	code: string;
 	onSeeMy: () => void;
 	onKeepRedeeming: () => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
 };
 
-export function RedeemSuccessScreen({ reward, code, onSeeMy, onKeepRedeeming }: Props) {
+export function RedeemSuccessScreen({ reward, code, onSeeMy, onKeepRedeeming, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const remaining = SALDO_PUNTOS - reward.points;
 
@@ -68,6 +72,10 @@ export function RedeemSuccessScreen({ reward, code, onSeeMy, onKeepRedeeming }: 
 					<Text style={styles.linkText}>Seguir canjeando</Text>
 				</Pressable>
 			</ScrollView>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }

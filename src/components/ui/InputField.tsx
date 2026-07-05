@@ -42,7 +42,7 @@ export function InputField({
 		<View style={styles.wrapper}>
 			<Text style={styles.label}>{label}</Text>
 			<View style={[styles.inputRow, focused && styles.inputRowFocused]}>
-				<Text style={styles.leftIcon}>{leftIcon}</Text>
+				{leftIcon ? <Text style={styles.leftIcon}>{leftIcon}</Text> : null}
 				<TextInput
 					value={value}
 					onChangeText={onChangeText}

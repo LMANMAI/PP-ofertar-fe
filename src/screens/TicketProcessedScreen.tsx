@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+	Alert,
 	Modal,
 	Pressable,
 	ScrollView,
@@ -11,64 +12,116 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { InputField } from "../components";
-import type { OCRResponse } from "../services";
+import { InputField, BottomNav, type TabKey } from "../components";
+import type { TicketResponse } from "../services";
+import type { Session } from "../auth/session";
+import { updateTicket } from "../services";
 
 type Product = {
-	id: string;
+	id: number | null;
 	name: string;
-	quantity: string;
-	unitPrice: string;
+	quantity: number;
+	unitPrice: number;
+	originalPrice: number | null;
+	category: string | null;
+	discountAmount: number | null;
 };
 
-const MOCK_PRODUCTS: Product[] = [
-	{ id: "1", name: "Aceite Natura 1.5L", quantity: "1 u", unitPrice: "$2.450" },
-	{ id: "2", name: "Leche La Serenísima 1L", quantity: "2 u", unitPrice: "$1.960" },
-	{ id: "3", name: "Pan Lactal Bimbo", quantity: "1 u", unitPrice: "$1.850" },
-	{ id: "4", name: "Yerba Playadito 1kg", quantity: "1 u", unitPrice: "$3.200" },
-	{ id: "5", name: "Detergente Magistral", quantity: "1 u", unitPrice: "$1.490" },
-];
-
-function formatCurrency(value: number): string {
+function formatCurrency(value: number | null): string {
+	if (value == null) return "$0,00";
 	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function buildProductsFromOcr(ocr: OCRResponse): Product[] {
-	return ocr.items.map((item, index) => ({
-		id: item.code ? `${item.code}-${index}` : `${index}`,
+function buildProductsFromTicket(ticket: TicketResponse): Product[] {
+	return ticket.items.map((item) => ({
+		id: item.id ?? null,
 		name: item.description,
-		quantity: `${item.quantity} u`,
-		unitPrice: formatCurrency(item.price),
+		quantity: item.quantity,
+		unitPrice: item.unitPrice,
+		originalPrice: item.originalPrice,
+		category: item.category,
+		discountAmount: item.discountAmount,
 	}));
 }
 
 type Props = {
-	ocrData?: OCRResponse;
+	ticket: TicketResponse | null;
+	session: Session;
 	onBack: () => void;
 	onFinish: () => void;
 	onSelectProduct?: (productName: string) => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
 };
 
-export function TicketProcessedScreen({ ocrData, onBack, onFinish, onSelectProduct }: Props) {
+export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSelectProduct, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
-	const initialProducts = ocrData ? buildProductsFromOcr(ocrData) : MOCK_PRODUCTS;
+	const initialProducts = ticket ? buildProductsFromTicket(ticket) : [];
 	const [products, setProducts] = useState<Product[]>(initialProducts);
 	const [editing, setEditing] = useState<Product | null>(null);
+	const [saving, setSaving] = useState(false);
 
-	const supermarket = ocrData?.supermarket_name?.trim();
+	useEffect(() => {
+		if (ticket) {
+			setProducts(buildProductsFromTicket(ticket));
+		}
+	}, [ticket]);
+
+	const isFailed = ticket?.status === "FAILED";
+	const supermarket = ticket?.storeName?.trim();
 	const storeDisplay = supermarket || "Ticket escaneado";
 	const storeBadge = (supermarket || "TI").slice(0, 2).toUpperCase();
-	const ticketMeta = ocrData?.ticket_id
-		? `ID: ${ocrData.ticket_id}`
-		: supermarket
-			? ""
-			: "12 may · 18:42";
+	const ticketMeta = ticket?.ticketId
+		? `ID: ${ticket.ticketId}`
+		: ticket?.createdAt
+			? new Date(ticket.createdAt).toLocaleDateString("es-AR", {
+				day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+			})
+			: "";
+	const categoriesCount = ticket
+		? new Set(ticket.items.map((i) => i.category).filter(Boolean)).size
+		: 0;
+
+	const computedSavings = products.reduce(
+		(sum, p) => sum + (p.discountAmount ?? 0),
+		0,
+	);
+	const computedTotal = products.reduce(
+		(sum, p) => sum + p.unitPrice * p.quantity,
+		0,
+	);
 
 	const handleSave = (updated: Product) => {
 		setProducts((curr) =>
 			curr.map((p) => (p.id === updated.id ? updated : p)),
 		);
 		setEditing(null);
+	};
+
+	const handleConfirm = async () => {
+		if (!ticket) return;
+		setSaving(true);
+		try {
+			const updatedItems = products.map((p) => ({
+				id: p.id ?? undefined,
+				description: p.name,
+				quantity: p.quantity,
+				unitPrice: p.unitPrice,
+				originalPrice: p.originalPrice ?? undefined,
+				discountAmount: p.discountAmount ?? undefined,
+			}));
+
+			await updateTicket(session.token, ticket.id, { items: updatedItems });
+			onFinish();
+		} catch (error) {
+			Alert.alert(
+				"Error",
+				error instanceof Error ? error.message : "No se pudo guardar el ticket",
+			);
+		} finally {
+			setSaving(false);
+		}
 	};
 
 	return (
@@ -81,10 +134,17 @@ export function TicketProcessedScreen({ ocrData, onBack, onFinish, onSelectProdu
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Ticket procesado</Text>
-				<View style={styles.ocrBadge}>
-					<Ionicons name="checkmark-circle" size={12} color={colors.cyan} />
-					<Text style={styles.ocrText}>OCR completo</Text>
-				</View>
+				{isFailed ? (
+					<View style={styles.failedBadge}>
+						<Ionicons name="alert-circle" size={12} color="#E76F51" />
+						<Text style={styles.failedText}>Error</Text>
+					</View>
+				) : (
+					<View style={styles.ocrBadge}>
+						<Ionicons name="checkmark-circle" size={12} color={colors.cyan} />
+						<Text style={styles.ocrText}>OCR completo</Text>
+					</View>
+				)}
 			</View>
 
 			<ScrollView
@@ -92,9 +152,18 @@ export function TicketProcessedScreen({ ocrData, onBack, onFinish, onSelectProdu
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
 			>
+				{isFailed && (
+					<View style={styles.failedBanner}>
+						<Ionicons name="warning-outline" size={18} color="#E76F51" />
+						<Text style={styles.failedBannerText}>
+							No se pudo procesar este ticket. Reintentá escaneando nuevamente.
+						</Text>
+					</View>
+				)}
+
 				<View style={styles.summaryCard}>
 					<View style={styles.summaryHeader}>
-						<View style={[styles.storeBadge, supermarket ? { backgroundColor: "#E1352F" } : undefined]}>
+						<View style={[styles.storeBadge, supermarket ? undefined : { backgroundColor: "#5C6B84" }]}>
 							<Text style={styles.storeBadgeText}>{storeBadge}</Text>
 						</View>
 						<View style={{ flex: 1 }}>
@@ -104,20 +173,19 @@ export function TicketProcessedScreen({ ocrData, onBack, onFinish, onSelectProdu
 							) : null}
 						</View>
 					</View>
-					<Text style={styles.totalLabel}>TOTAL RECONOCIDO</Text>
+					<Text style={styles.totalLabel}>GASTO</Text>
 					<Text style={styles.totalValue}>
-						{ocrData ? formatCurrency(ocrData.total) : "$9.970,00"}
+						{formatCurrency(computedTotal)}
 					</Text>
 					<View style={styles.tagsRow}>
 						<Tag text={`Productos ${products.length}`} />
-						<Tag
-							text={`Categorías ${
-								ocrData
-									? new Set(ocrData.items.map((i) => i.category)).size
-									: 3
-							}`}
-						/>
-						<Tag text="+85 pts ganados" tone="cyan" />
+						<Tag text={`Categorías ${categoriesCount}`} />
+						{computedSavings > 0 && computedTotal > 0 && (
+							<Tag
+								text={`${((computedSavings / (computedTotal + computedSavings)) * 100).toFixed(1).replace(".", ",")}% ahorrado`}
+								tone="cyan"
+							/>
+						)}
 					</View>
 				</View>
 
@@ -125,7 +193,7 @@ export function TicketProcessedScreen({ ocrData, onBack, onFinish, onSelectProdu
 				<View style={styles.productsList}>
 					{products.map((p, idx) => (
 						<Pressable
-							key={p.id}
+							key={`${p.id ?? idx}`}
 							style={[
 								styles.productRow,
 								idx === products.length - 1 && styles.productRowLast,
@@ -133,10 +201,25 @@ export function TicketProcessedScreen({ ocrData, onBack, onFinish, onSelectProdu
 							onPress={() => onSelectProduct ? onSelectProduct(p.name) : setEditing(p)}
 						>
 							<View style={{ flex: 1 }}>
-								<Text style={styles.productName}>{p.name}</Text>
-								<Text style={styles.productMeta}>
-									{p.quantity} · {p.unitPrice}
-								</Text>
+								<View style={styles.productNameRow}>
+									<Text style={styles.productName}>{p.name}</Text>
+									{p.discountAmount != null && p.discountAmount > 0 && (
+										<View style={styles.savingsChip}>
+											<Text style={styles.savingsChipText}>
+												Ahorraste {formatCurrency(p.discountAmount)}
+											</Text>
+										</View>
+									)}
+								</View>
+								<View style={styles.priceRow}>
+									<Text style={styles.productMeta}>
+										{p.quantity} u · {formatCurrency(p.unitPrice)}
+									</Text>
+									{p.discountAmount != null && p.discountAmount > 0
+										&& p.originalPrice != null && p.originalPrice > p.unitPrice && (
+										<Text style={styles.originalPrice}>{formatCurrency(p.originalPrice / p.quantity)}</Text>
+									)}
+								</View>
 							</View>
 							<Pressable
 								hitSlop={8}
@@ -153,18 +236,33 @@ export function TicketProcessedScreen({ ocrData, onBack, onFinish, onSelectProdu
 				</View>
 			</ScrollView>
 
-			<View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-				<Pressable style={styles.primaryButton} onPress={onFinish}>
-					<Ionicons name="add" size={18} color={colors.buttonText} />
-					<Text style={styles.primaryButtonText}>Agregar producto</Text>
-				</Pressable>
-			</View>
+			{!isFailed && (
+				<View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+					<Pressable
+						style={[styles.primaryButton, saving && { opacity: 0.6 }]}
+						onPress={handleConfirm}
+						disabled={saving}
+					>
+						<Ionicons name="checkmark-circle" size={18} color={colors.buttonText} />
+						<Text style={styles.primaryButtonText}>
+							{saving ? "Guardando..." : "Confirmar ticket"}
+						</Text>
+					</Pressable>
+					<Pressable style={styles.cancelButton} onPress={onBack}>
+						<Text style={styles.cancelText}>Cancelar</Text>
+					</Pressable>
+				</View>
+			)}
 
 			<EditProductSheet
 				product={editing}
 				onClose={() => setEditing(null)}
 				onSave={handleSave}
 			/>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }
@@ -202,14 +300,19 @@ function EditProductSheet({
 	useEffect(() => {
 		if (product) {
 			setName(product.name);
-			setQuantity(product.quantity);
-			setUnitPrice(product.unitPrice);
+			setQuantity(String(product.quantity));
+			setUnitPrice(String(product.unitPrice));
 		}
 	}, [product]);
 
 	const handleSave = () => {
 		if (!product) return;
-		onSave({ ...product, name, quantity, unitPrice });
+		onSave({
+			...product,
+			name,
+			quantity: parseFloat(quantity) || 1,
+			unitPrice: parseFloat(unitPrice) || 0,
+		});
 	};
 
 	return (
@@ -245,6 +348,7 @@ function EditProductSheet({
 									leftIcon=""
 									value={quantity}
 									onChangeText={setQuantity}
+									keyboardType="numeric"
 								/>
 							</View>
 							<View style={{ flex: 1 }}>
@@ -257,6 +361,19 @@ function EditProductSheet({
 								/>
 							</View>
 						</View>
+						{product && (
+							<View style={styles.readOnlyInfo}>
+								{product.category && (
+									<Text style={styles.readOnlyText}>Categoría: {product.category}</Text>
+								)}
+								{product.originalPrice != null && product.originalPrice > 0 && (
+									<Text style={styles.readOnlyText}>Precio original: {formatCurrency(product.originalPrice)}</Text>
+								)}
+								{product.discountAmount != null && product.discountAmount > 0 && (
+									<Text style={styles.readOnlyText}>Descuento: {formatCurrency(product.discountAmount)}</Text>
+								)}
+							</View>
+						)}
 					</View>
 				</View>
 			</View>
@@ -296,6 +413,35 @@ const styles = StyleSheet.create({
 		color: colors.cyan,
 		fontFamily: typography.family.medium,
 		fontSize: 11,
+	},
+	failedBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 5,
+		backgroundColor: "rgba(231,111,81,0.18)",
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 999,
+	},
+	failedText: {
+		color: "#E76F51",
+		fontFamily: typography.family.medium,
+		fontSize: 11,
+	},
+	failedBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+		backgroundColor: "#FEF2F2",
+		borderRadius: 12,
+		padding: 14,
+		marginBottom: 12,
+	},
+	failedBannerText: {
+		flex: 1,
+		color: "#991B1B",
+		fontFamily: typography.family.medium,
+		fontSize: 13,
 	},
 	scroll: { flex: 1 },
 	scrollContent: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 24 },
@@ -373,16 +519,45 @@ const styles = StyleSheet.create({
 		borderBottomColor: colors.border,
 	},
 	productRowLast: { borderBottomWidth: 0 },
+	productNameRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		flexWrap: "wrap",
+	},
 	productName: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: 14,
 	},
+	savingsChip: {
+		backgroundColor: "#E0F5EF",
+		paddingHorizontal: 8,
+		paddingVertical: 2,
+		borderRadius: 999,
+	},
+	savingsChipText: {
+		color: "#15803D",
+		fontFamily: typography.family.medium,
+		fontSize: 11,
+	},
+	priceRow: {
+		flexDirection: "row",
+		alignItems: "baseline",
+		gap: 8,
+		marginTop: 2,
+	},
 	productMeta: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
-		marginTop: 2,
+	},
+	originalPrice: {
+		textDecorationLine: "line-through",
+		color: colors.mutedText,
+		opacity: 0.6,
+		fontFamily: typography.family.regular,
+		fontSize: 12,
 	},
 	footer: {
 		paddingHorizontal: 20,
@@ -390,6 +565,7 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
 		borderTopColor: colors.border,
+		gap: 10,
 	},
 	primaryButton: {
 		backgroundColor: colors.navy,
@@ -404,6 +580,19 @@ const styles = StyleSheet.create({
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 15,
+	},
+	cancelButton: {
+		height: 44,
+		borderRadius: 10,
+		alignItems: "center",
+		justifyContent: "center",
+		borderWidth: 1,
+		borderColor: colors.border,
+	},
+	cancelText: {
+		color: colors.mutedText,
+		fontFamily: typography.family.medium,
+		fontSize: 14,
 	},
 	modalBackdrop: {
 		flex: 1,
@@ -443,4 +632,15 @@ const styles = StyleSheet.create({
 	},
 	modalForm: { paddingTop: 18, gap: 14 },
 	modalRow: { flexDirection: "row", gap: 12 },
+	readOnlyInfo: {
+		backgroundColor: colors.softNavy,
+		borderRadius: 8,
+		padding: 12,
+		gap: 4,
+	},
+	readOnlyText: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: 13,
+	},
 });

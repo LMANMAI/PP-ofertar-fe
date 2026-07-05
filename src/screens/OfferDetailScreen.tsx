@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
+import { BottomNav, type TabKey } from "../components";
 
 export type OfferDetail = {
 	id: string;
@@ -27,9 +28,12 @@ type Props = {
 	offer: OfferDetail;
 	onBack: () => void;
 	onActivate: () => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
 };
 
-export function OfferDetailScreen({ offer, onBack, onActivate }: Props) {
+export function OfferDetailScreen({ offer, onBack, onActivate, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 
 	return (
@@ -46,7 +50,7 @@ export function OfferDetailScreen({ offer, onBack, onActivate }: Props) {
 
 			<ScrollView
 				style={styles.scroll}
-				contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+				contentContainerStyle={{ paddingBottom: 16 }}
 				showsVerticalScrollIndicator={false}
 			>
 				<View style={styles.hero}>
@@ -94,15 +98,14 @@ export function OfferDetailScreen({ offer, onBack, onActivate }: Props) {
 				</View>
 			</ScrollView>
 
-			<View
-				style={[
-					styles.footer,
-					{ paddingBottom: insets.bottom + 12 },
-				]}
-			>
+			<View style={styles.footer}>
 				<Pressable style={styles.activateButton} onPress={onActivate}>
 					<Text style={styles.activateButtonText}>Activar oferta</Text>
 				</Pressable>
+			</View>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
 		</View>
 	);
@@ -238,12 +241,9 @@ const styles = StyleSheet.create({
 		lineHeight: 18,
 	},
 	footer: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		bottom: 0,
 		paddingHorizontal: 16,
 		paddingTop: 12,
+		paddingBottom: 12,
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
 		borderTopColor: "#E5E7EB",

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+	Image,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -46,7 +47,13 @@ export function OffersScreen({
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>Ofertas para vos</Text>
+				<View style={styles.headerTitleRow}>
+					<Image
+						source={require("../../assets/logo_ofertar.png")}
+						style={styles.headerLogo}
+					/>
+					<Text style={styles.headerTitle}>Ofertas para vos</Text>
+				</View>
 				<View style={styles.bellWrap}>
 					<Ionicons name="notifications-outline" size={22} color={colors.buttonText} />
 					<View style={styles.bellDot} />
@@ -247,6 +254,8 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 	},
+	headerTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+	headerLogo: { width: 24, height: 24, borderRadius: 6 },
 	headerTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,

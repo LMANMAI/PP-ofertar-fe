@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
+import { BottomNav, type TabKey } from "../components";
 
 type Faq = { id: string; q: string; a: string };
 
@@ -15,9 +16,9 @@ const FAQS: Faq[] = [
 	{ id: "5", q: "¿Puedo cambiar mi nivel?", a: "Tu nivel sube automáticamente cuando alcanzás los puntos requeridos. Mirá 'Niveles de fidelidad' para ver los umbrales." },
 ];
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
 
-export function HelpCenterScreen({ onBack }: Props) {
+export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const [open, setOpen] = useState<string | null>(null);
 	return (
@@ -63,6 +64,10 @@ export function HelpCenterScreen({ onBack }: Props) {
 					<Text style={styles.contactText}>Contactar soporte</Text>
 				</Pressable>
 			</ScrollView>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }

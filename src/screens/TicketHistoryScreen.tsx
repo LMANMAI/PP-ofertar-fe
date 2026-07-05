@@ -1,25 +1,74 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
+import { getTickets } from "../services";
+import type { TicketResponse } from "../services";
+import type { Session } from "../auth/session";
+import { BottomNav, type TabKey } from "../components";
 
-type Ticket = {
-	id: string; storeCode: string; storeColor: string; storeName: string;
-	date: string; total: string; products: number; points: string;
+function formatCurrency(value: number | null | undefined): string {
+	if (value == null) return "$0";
+	return `$${Math.round(value).toLocaleString("es-AR")}`;
+}
+
+function formatDate(iso: string): string {
+	const d = new Date(iso);
+	return d.toLocaleDateString("es-AR", {
+		day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+	});
+}
+
+function storeBadge(name: string | null): { code: string; color: string } {
+	if (!name) return { code: "TI", color: "#5C6B84" };
+	const words = name.split(" ");
+	const code = words.map((w) => w[0] ?? "").join("").toUpperCase().slice(0, 2);
+	const color = "#0D80CC";
+	return { code, color };
+}
+
+type Props = {
+	onBack: () => void;
+	onSelectTicket: (id: number) => void;
+	session: Session;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
 };
 
-const TICKETS: Ticket[] = [
-	{ id: "t1", storeCode: "CO", storeColor: "#CC1A1A", storeName: "Coto — Av. Cabildo", date: "12 may · 18:42", total: "$9.970", products: 5, points: "+85 pts" },
-	{ id: "t2", storeCode: "CA", storeColor: "#0059A6", storeName: "Carrefour — Maipú", date: "6 may · 11:08", total: "$12.450", products: 8, points: "+120 pts" },
-	{ id: "t3", storeCode: "DI", storeColor: "#0D80CC", storeName: "Día — Av. Corrientes", date: "29 abr · 19:24", total: "$7.220", products: 4, points: "+72 pts" },
-	{ id: "t4", storeCode: "JU", storeColor: "#008040", storeName: "Jumbo — Pueyrredón", date: "21 abr · 17:33", total: "$15.180", products: 11, points: "+150 pts" },
-];
-
-type Props = { onBack: () => void; onSelectTicket: (id: string) => void };
-
-export function TicketHistoryScreen({ onBack, onSelectTicket }: Props) {
+export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const [tickets, setTickets] = useState<TicketResponse[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [refreshing, setRefreshing] = useState(false);
+
+	const loadTickets = async () => {
+		try {
+			const data = await getTickets(session.token);
+			setTickets(data);
+			setError(null);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Error al cargar tickets");
+		}
+	};
+
+	useEffect(() => {
+		setLoading(true);
+		loadTickets().finally(() => setLoading(false));
+	}, []);
+
+	const handleRefresh = async () => {
+		setRefreshing(true);
+		await loadTickets();
+		setRefreshing(false);
+	};
+
+	const totalSpent = tickets.reduce((sum, t) => sum + (t.total ?? 0), 0);
+	const totalSaved = tickets.reduce((sum, t) => sum + (t.totalDiscounts ?? 0), 0);
+
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
@@ -31,37 +80,83 @@ export function TicketHistoryScreen({ onBack, onSelectTicket }: Props) {
 				<Text style={styles.headerTitle}>Historial de tickets</Text>
 			</View>
 
-			<ScrollView contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 24 }}>
-				<View style={styles.summary}>
-					<View style={{ flex: 1 }}>
-						<Text style={styles.summaryLabel}>ESTE MES</Text>
-						<Text style={styles.summaryValue}>$22.420</Text>
-						<Text style={styles.summaryHint}>en 2 tickets</Text>
-					</View>
-					<View style={styles.summaryDivider} />
-					<View style={{ flex: 1 }}>
-						<Text style={styles.summaryLabel}>AHORRADO</Text>
-						<Text style={[styles.summaryValue, { color: "#22C55E" }]}>$1.840</Text>
-						<Text style={styles.summaryHint}>vs precio promedio</Text>
-					</View>
+			{loading && (
+				<View style={styles.loaderWrap}>
+					<ActivityIndicator size="small" color={colors.cyan} />
 				</View>
+			)}
 
-				{TICKETS.map((t) => (
-					<Pressable key={t.id} style={styles.row} onPress={() => onSelectTicket(t.id)}>
-						<View style={[styles.badge, { backgroundColor: t.storeColor }]}>
-							<Text style={styles.badgeText}>{t.storeCode}</Text>
-						</View>
+			{error && !loading && (
+				<View style={styles.errorBanner}>
+					<Ionicons name="warning-outline" size={18} color="#E76F51" />
+					<Text style={styles.errorText}>{error}</Text>
+				</View>
+			)}
+
+			{!loading && !error && tickets.length === 0 && (
+				<View style={styles.emptyWrap}>
+					<Ionicons name="receipt-outline" size={56} color={colors.border} />
+					<Text style={styles.emptyTitle}>Sin tickets aún</Text>
+					<Text style={styles.emptyHint}>Escaneá tu primer ticket y aparecerá acá</Text>
+				</View>
+			)}
+
+			{!loading && tickets.length > 0 && (
+				<ScrollView
+					contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 24 }}
+					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.cyan} />}
+				>
+					<View style={styles.summary}>
 						<View style={{ flex: 1 }}>
-							<Text style={styles.store}>{t.storeName}</Text>
-							<Text style={styles.date}>{t.date} · {t.products} productos</Text>
+							<Text style={styles.summaryLabel}>GASTADO</Text>
+							<Text style={styles.summaryValue}>{formatCurrency(totalSpent)}</Text>
+							<Text style={styles.summaryHint}>en {tickets.length} tickets</Text>
 						</View>
-						<View style={{ alignItems: "flex-end" }}>
-							<Text style={styles.total}>{t.total}</Text>
-							<Text style={styles.points}>{t.points}</Text>
+						<View style={styles.summaryDivider} />
+						<View style={{ flex: 1 }}>
+							<Text style={styles.summaryLabel}>AHORRADO</Text>
+							<Text style={[styles.summaryValue, { color: "#22C55E" }]}>{formatCurrency(totalSaved)}</Text>
+							<Text style={styles.summaryHint}>descuentos</Text>
 						</View>
-					</Pressable>
-				))}
-			</ScrollView>
+					</View>
+
+					{tickets.map((t) => {
+						const badge = storeBadge(t.storeName);
+						const ticketTotal = t.total;
+						const ticketSavings = t.totalDiscounts;
+						return (
+							<Pressable key={t.id} style={styles.row} onPress={() => onSelectTicket(t.id)}>
+								<View style={[styles.badge, { backgroundColor: badge.color }]}>
+									<Text style={styles.badgeText}>{badge.code}</Text>
+								</View>
+								<View style={{ flex: 1 }}>
+									<Text style={styles.store}>{t.storeName || "Ticket sin nombre"}</Text>
+									<Text style={styles.date}>
+										{formatDate(t.createdAt)} · {t.items.length} productos
+									</Text>
+								</View>
+								<View style={{ alignItems: "flex-end" }}>
+									<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
+									<View style={styles.statusRow}>
+										{ticketSavings > 0 && (
+											<Text style={styles.savings}>-{formatCurrency(ticketSavings)}</Text>
+										)}
+										<View style={[styles.statusBadge, t.status === "FAILED" ? styles.statusFailed : styles.statusOk]}>
+											<Text style={[styles.statusText, t.status === "FAILED" && { color: "#E76F51" }]}>
+												{t.status === "PROCESSED" ? "OK" : t.status === "FAILED" ? "Falló" : "Pendiente"}
+											</Text>
+										</View>
+									</View>
+								</View>
+							</Pressable>
+						);
+					})}
+				</ScrollView>
+			)}
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }
@@ -72,6 +167,12 @@ const styles = StyleSheet.create({
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
+	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 12 },
+	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 13 },
+	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 60 },
+	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
+	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14 },
 	summary: { flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: 16 },
 	summaryDivider: { width: 1, height: 40, backgroundColor: "#E5E7EB", marginHorizontal: 12, alignSelf: "center" },
 	summaryLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
@@ -83,5 +184,10 @@ const styles = StyleSheet.create({
 	store: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
 	date: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	total: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
-	points: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 11, marginTop: 2 },
+	statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+	savings: { color: "#22C55E", fontFamily: typography.family.medium, fontSize: 11 },
+	statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+	statusOk: { backgroundColor: "#E0F5EF" },
+	statusFailed: { backgroundColor: "rgba(231,111,81,0.15)" },
+	statusText: { fontFamily: typography.family.medium, fontSize: 10, color: "#15803D" },
 });

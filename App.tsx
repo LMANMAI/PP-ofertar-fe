@@ -58,8 +58,8 @@ import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
 import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
-import { sendOcrTicket, sendOcrTickets } from "./src/services";
-import type { OCRResponse } from "./src/services";
+import { scanTicket } from "./src/services";
+import type { TicketResponse } from "./src/services";
 import { OFFERS } from "./src/data/offers";
 import { REWARDS } from "./src/data/rewards";
 import { colors } from "./src/theme/designSystem";
@@ -91,8 +91,8 @@ export default function App() {
 	const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
 	const [redeemCode, setRedeemCode] = useState<string>("DIA-X4K2-9WM7");
 
-	const [selectedPdf, setSelectedPdf] = useState<{ name: string; base64: string } | null>(null);
-	const [ocrResult, setOcrResult] = useState<OCRResponse | null>(null);
+	const [selectedPdf, setSelectedPdf] = useState<{ name: string; uri: string; base64: string } | null>(null);
+	const [scannedTicket, setScannedTicket] = useState<TicketResponse | null>(null);
 	const [ocrErrorMsg, setOcrErrorMsg] = useState<string>("");
 	const [processingOcr, setProcessingOcr] = useState(false);
 	const [processingFileType, setProcessingFileType] = useState<"pdf" | "image" | null>(null);
@@ -100,6 +100,7 @@ export default function App() {
 	const [showBiometricOnWelcome, setShowBiometricOnWelcome] = useState(false);
 	const [booted, setBooted] = useState(false);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
+	const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
 
 	useEffect(() => {
 		(async () => {
@@ -124,6 +125,7 @@ export default function App() {
 	const handleSelectTab = (t: TabKey) => {
 		if (t === "scan") return handleScanPress();
 		setTab(t);
+		setScreen("main");
 	};
 	const handleLogout = () => {
 		setSession(null); setTab("home"); setActivatedOfferIds(new Set()); setBiometricEnabled(false); setScreen("welcome");
@@ -178,7 +180,7 @@ export default function App() {
 				encoding: "base64" as const,
 			});
 
-			setSelectedPdf({ name: asset.name ?? "ticket.pdf", base64 });
+		setSelectedPdf({ name: asset.name ?? "ticket.pdf", uri: asset.uri, base64 });
 			setScreen("pdfConfirm");
 		} catch (error) {
 			setOcrErrorMsg(error instanceof Error ? error.message : "No se pudo leer el PDF");
@@ -187,12 +189,12 @@ export default function App() {
 	};
 
 	const handleSendPhotos = async (photos: { id: string; uri: string; base64: string }[]) => {
-		if (photos.length === 0) return;
+		if (photos.length === 0 || !session) return;
 		setProcessingFileType("image");
 		setProcessingOcr(true);
 		try {
-			const result = await sendOcrTickets(photos.map((p) => p.base64));
-			setOcrResult(result);
+			const ticket = await scanTicket(session.token, photos);
+			setScannedTicket(ticket);
 			setScreen("ticketProcessed");
 		} catch (error) {
 			setOcrErrorMsg(error instanceof Error ? error.message : "Error al procesar el ticket");
@@ -204,12 +206,16 @@ export default function App() {
 	};
 
 	const handleSendPdf = async () => {
-		if (!selectedPdf) return;
+		if (!selectedPdf || !session) return;
 		setProcessingFileType("pdf");
 		setProcessingOcr(true);
 		try {
-			const result = await sendOcrTicket("pdf", selectedPdf.base64);
-			setOcrResult(result);
+			const ticket = await scanTicket(
+				session.token,
+				[{ uri: selectedPdf.uri, base64: selectedPdf.base64 }],
+				"application/pdf",
+			);
+			setScannedTicket(ticket);
 			setSelectedPdf(null);
 			setScreen("ticketProcessed");
 		} catch (error) {
@@ -222,7 +228,7 @@ export default function App() {
 	};
 
 	const handleOcrRetry = () => {
-		setOcrResult(null);
+		setScannedTicket(null);
 		setOcrErrorMsg("");
 		setSelectedPdf(null);
 		setProcessingFileType(null);
@@ -381,6 +387,9 @@ export default function App() {
 					session={session}
 					biometricEnabled={biometricEnabled}
 					onBack={(msg) => { if (msg) setToastMessage(msg); goMain("profile"); }}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
 				/>
 			)}
 
@@ -476,11 +485,15 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "ticketProcessed" && (
+			{screen === "ticketProcessed" && session && (
 				<TicketProcessedScreen
-					ocrData={ocrResult ?? undefined}
+					ticket={scannedTicket}
+					session={session}
 					onBack={() => goMain("home")}
 					onFinish={() => goMain("home")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
 					onSelectProduct={(name) => {
 						setCompareProduct(name);
 						setCompareOrigin("ticketProcessed");
@@ -507,11 +520,20 @@ export default function App() {
 						else setScreen("main");
 					}}
 					onSelectStore={(storeId) => { setSelectedStore(storeId); setScreen("storeDetail"); }}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
 				/>
 			)}
 
 			{screen === "storeDetail" && (
-				<StoreDetailScreen storeId={selectedStore} onBack={() => setScreen("compare")} />
+				<StoreDetailScreen
+					storeId={selectedStore}
+					onBack={() => setScreen("compare")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
 			{screen === "offerDetail" && selectedOfferId && (
@@ -523,6 +545,9 @@ export default function App() {
 						if (id) setActivatedOfferIds((prev) => new Set(prev).add(id));
 						setScreen("offerCode");
 					}}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
 				/>
 			)}
 
@@ -533,6 +558,9 @@ export default function App() {
 						expiresAt: findOffer(selectedOfferId).expiresAtLabel,
 					}}
 					onBack={() => goMain("offers")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
 				/>
 			)}
 
@@ -541,6 +569,9 @@ export default function App() {
 					reward={findReward(selectedRewardId)}
 					onBack={() => goMain("points")}
 					onRedeem={() => setScreen("confirmRedeem")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
 				/>
 			)}
 
@@ -558,31 +589,65 @@ export default function App() {
 					code={redeemCode}
 					onSeeMy={() => setScreen("pointsHistory")}
 					onKeepRedeeming={() => goMain("points")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
 				/>
 			)}
 
 			{screen === "pointsHistory" && (
-				<PointsHistoryScreen onBack={() => goMain("points")} />
+				<PointsHistoryScreen
+					onBack={() => goMain("points")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
 			{screen === "loyaltyLevels" && (
-				<LoyaltyLevelsScreen onBack={() => goMain("points")} />
+				<LoyaltyLevelsScreen
+					onBack={() => goMain("points")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
 			{screen === "personalData" && session && (
-				<PersonalDataScreen session={session} onBack={() => goMain("profile")} />
+				<PersonalDataScreen
+					session={session}
+					onBack={(msg) => { if (msg) setToastMessage(msg); goMain("profile"); }}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
 			{screen === "paymentMethods" && (
-				<PaymentMethodsScreen onBack={() => goMain("profile")} />
+				<PaymentMethodsScreen
+					onBack={() => goMain("profile")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
 			{screen === "favoriteStores" && (
-				<FavoriteStoresScreen onBack={() => goMain("profile")} />
+				<FavoriteStoresScreen
+					onBack={() => goMain("profile")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
 			{screen === "helpCenter" && (
-				<HelpCenterScreen onBack={() => goMain("profile")} />
+				<HelpCenterScreen
+					onBack={() => goMain("profile")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
 			{screen === "logoutConfirm" && (
@@ -592,27 +657,55 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "ticketHistory" && (
+			{screen === "ticketHistory" && session && (
 				<TicketHistoryScreen
 					onBack={() => goMain("home")}
-					onSelectTicket={() => setScreen("ticketDetail")}
+					onSelectTicket={(id: number) => { setSelectedTicketId(id); setScreen("ticketDetail"); }}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
 				/>
 			)}
 
-			{screen === "ticketDetail" && (
-				<TicketDetailScreen onBack={() => setScreen("ticketHistory")} />
+			{screen === "ticketDetail" && session && selectedTicketId && (
+				<TicketDetailScreen
+					ticketId={selectedTicketId}
+					onBack={() => setScreen("ticketHistory")}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
-			{screen === "monthlyAnalysis" && (
-				<MonthlyAnalysisScreen onBack={() => goMain("home")} />
+			{screen === "monthlyAnalysis" && session && (
+				<MonthlyAnalysisScreen
+					onBack={() => goMain("home")}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
 			{screen === "recurringProducts" && (
-				<RecurringProductsScreen onBack={() => goMain("home")} />
+				<RecurringProductsScreen
+					onBack={() => goMain("home")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
-			{screen === "smartList" && (
-				<SmartShoppingListScreen onBack={() => goMain("home")} />
+			{screen === "smartList" && session && (
+				<SmartShoppingListScreen
+					onBack={() => goMain("home")}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
 			)}
 
 			{processingOcr && processingFileType && (

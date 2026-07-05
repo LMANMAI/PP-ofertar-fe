@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
+import { BottomNav, type TabKey } from "../components";
 
 type Prod = { id: string; name: string; freq: string; bestStore: string; price: string };
 
@@ -14,9 +15,9 @@ const PRODS: Prod[] = [
 	{ id: "5", name: "Detergente Magistral", freq: "Cada 30 días", bestStore: "Carrefour", price: "$1.380" },
 ];
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
 
-export function RecurringProductsScreen({ onBack }: Props) {
+export function RecurringProductsScreen({ onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	return (
 		<View style={styles.safeArea}>
@@ -56,6 +57,10 @@ export function RecurringProductsScreen({ onBack }: Props) {
 					</View>
 				))}
 			</ScrollView>
+
+			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
 		</View>
 	);
 }
