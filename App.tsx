@@ -284,7 +284,6 @@ export default function App() {
 						}
 					}}
 					onForgotPassword={() => setScreen("passwordRecovery")}
-					onGoogleLogin={() => setScreen("googleChoose")}
 				/>
 			)}
 
