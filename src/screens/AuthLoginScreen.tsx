@@ -27,7 +27,6 @@ type AuthLoginScreenProps = {
 	onGoToRegister?: () => void;
 	onLoginSuccess?: (session: Session) => void;
 	onForgotPassword?: () => void;
-	onGoogleLogin?: () => void;
 };
 
 export function AuthLoginScreen({
@@ -35,7 +34,6 @@ export function AuthLoginScreen({
 	onGoToRegister,
 	onLoginSuccess,
 	onForgotPassword,
-	onGoogleLogin,
 }: AuthLoginScreenProps) {
 	const insets = useSafeAreaInsets();
 	const [fontsLoaded] = useFonts({
@@ -135,23 +133,6 @@ export function AuthLoginScreen({
 					)}
 				</Pressable>
 
-				<View style={styles.dividerRow}>
-					<View style={styles.dividerLine} />
-					<Text style={styles.dividerText}>o continuá con</Text>
-					<View style={styles.dividerLine} />
-				</View>
-
-				<Pressable
-					onPress={onGoogleLogin}
-					style={({ pressed }) => [
-						styles.googleButton,
-						pressed && styles.pressed,
-					]}
-				>
-					<Ionicons name="logo-google" size={18} color="#4285F4" />
-					<Text style={styles.googleText}>Continuar con Google</Text>
-				</Pressable>
-
 				<Pressable onPress={onGoToRegister} style={styles.footerLinkWrap}>
 					<Text style={styles.footerText}>
 						¿No tenés cuenta?{" "}
@@ -180,11 +161,6 @@ const styles = StyleSheet.create({
 	forgotText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 16, textDecorationLine: "underline" },
 	primaryButton: { height: 52, borderRadius: 10, backgroundColor: colors.navy, alignItems: "center", justifyContent: "center", marginTop: 14 },
 	primaryButtonText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
-	dividerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 14 },
-	dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-	dividerText: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 16 },
-	googleButton: { height: 52, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12 },
-	googleText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
 	footerLinkWrap: { marginTop: 18, alignItems: "center" },
 	footerText: { textAlign: "center", color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
 	footerLink: { color: colors.navy, fontFamily: typography.family.medium, textDecorationLine: "underline" },

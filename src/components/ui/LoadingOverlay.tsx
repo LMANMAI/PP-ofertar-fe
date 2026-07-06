@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../../theme/designSystem";
+
+const appIcon = require("../../../assets/icon.png");
 
 type Props = {
 	fileType: "pdf" | "image";
@@ -102,7 +103,6 @@ export function LoadingOverlay({ fileType }: Props) {
 		return () => clearInterval(interval);
 	}, []);
 
-	const iconName = isPdf ? "document-text" : "images";
 	const accent = isPdf ? colors.orange : colors.cyan;
 
 	const sweepTranslateX = sweepAnim.interpolate({
@@ -115,7 +115,11 @@ export function LoadingOverlay({ fileType }: Props) {
 			<View style={styles.content}>
 				<Animated.View style={[styles.ringOuter, { transform: [{ scale: pulseAnim }] }]}>
 					<View style={styles.ringInner}>
-						<Ionicons name={iconName} size={36} color={accent} />
+						<Animated.Image
+							source={appIcon}
+							style={styles.logo}
+							resizeMode="contain"
+						/>
 					</View>
 				</Animated.View>
 
@@ -176,6 +180,11 @@ const styles = StyleSheet.create({
 		backgroundColor: "rgba(125,212,245,0.08)",
 		alignItems: "center",
 		justifyContent: "center",
+	},
+	logo: {
+		width: 52,
+		height: 52,
+		borderRadius: 12,
 	},
 	fileBadge: {
 		paddingHorizontal: 14,
