@@ -15,9 +15,8 @@ import { BottomNav, type TabKey } from "../components";
 import { colors, typography } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import { OFFERS, EXPIRED_IDS } from "../data/offers";
-import { TRACKED_PRODUCTS } from "../data/tracked";
-import { getSavingsReport } from "../services";
-import type { SavingsReportResponse } from "../services";
+import { getRecurringProducts, getSavingsReport } from "../services";
+import type { RecurringProduct, SavingsReportResponse } from "../services";
 
 type Props = {
 	session: Session;
@@ -47,6 +46,7 @@ export function HomeScreen({
 	const insets = useSafeAreaInsets();
 	const activeOffers = OFFERS.filter((o) => !EXPIRED_IDS.has(o.id)).slice(0, 4);
 	const [savings, setSavings] = useState<SavingsReportResponse["summary"] | null>(null);
+	const [recurringProducts, setRecurringProducts] = useState<RecurringProduct[]>([]);
 
 	function formatCurrencyS(value: number | null | undefined): string {
 		if (value == null) return "$0";
@@ -56,6 +56,12 @@ export function HomeScreen({
 	useEffect(() => {
 		getSavingsReport(session.token)
 			.then((r) => setSavings(r.summary))
+			.catch(() => {});
+	}, [session.token]);
+
+	useEffect(() => {
+		getRecurringProducts(session.token)
+			.then((products) => setRecurringProducts(products.slice(0, 3)))
 			.catch(() => {});
 	}, [session.token]);
 
@@ -240,24 +246,32 @@ export function HomeScreen({
 					</Pressable>
 				</View>
 				<View style={styles.productsGrid}>
-					{TRACKED_PRODUCTS.map((p) => (
-						<Pressable
-							key={p.id}
-							style={styles.productCard}
-							onPress={onOpenRecurring}
-						>
-							<View style={styles.productIconWrap}>
-								<Ionicons name={p.icon} size={28} color="#9CA3A8" />
-							</View>
-							<Text style={styles.productName}>{p.name}</Text>
-							<View style={styles.productFooter}>
-								<Text style={styles.productPrice}>{p.price}</Text>
-								<View style={styles.productDeltaBadge}>
-									<Text style={styles.productDeltaText}>{p.delta}</Text>
+					{recurringProducts.map((p) => {
+						const id = p.barcode || p.description;
+						const delta = p.bestOffer?.discountPct != null ? `-${Math.round(p.bestOffer.discountPct)}%` : null;
+						return (
+							<Pressable key={id} style={styles.productCard} onPress={onOpenRecurring}>
+								<View style={styles.productIconWrap}>
+									<Ionicons name="cart-outline" size={28} color="#9CA3A8" />
 								</View>
-							</View>
-						</Pressable>
-					))}
+								<Text style={styles.productName}>{p.description}</Text>
+								<View style={styles.productFooter}>
+									{p.bestOffer ? (
+										<>
+											<Text style={styles.productPrice}>{formatCurrencyS(p.bestOffer.price)}</Text>
+											{delta && (
+												<View style={styles.productDeltaBadge}>
+													<Text style={styles.productDeltaText}>{delta}</Text>
+												</View>
+											)}
+										</>
+									) : (
+										<Text style={styles.productPrice}>Sin oferta activa</Text>
+									)}
+								</View>
+							</Pressable>
+						);
+					})}
 				</View>
 
 				{/* Quick actions */}

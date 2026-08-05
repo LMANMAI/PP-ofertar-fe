@@ -157,6 +157,20 @@ export async function updateTicket(
 	return response.json();
 }
 
+export async function deleteTicket(token: string, id: number): Promise<void> {
+	const response = await fetch(`${BACKEND_URL}/tickets/${id}`, {
+		method: "DELETE",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+	});
+
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
+		throw new Error(error.message || `Error ${response.status}`);
+	}
+}
+
 export async function getSavingsReport(
 	token: string,
 	from?: string,

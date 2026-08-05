@@ -4,12 +4,14 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { getSavingsReport } from "../services";
-import type { SavingsReportResponse } from "../services";
+import { getRecurringProducts } from "../services";
+import type { RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
 import { BottomNav, type TabKey } from "../components";
 
-type Item = { id: string; name: string; suggested?: boolean; price: string; discount: number };
+/** Products bought on fewer separate trips than this are one-offs, not part of
+ * the recurring shop — keeping them out avoids a list full of noise. */
+const MIN_TRIPS_TO_BE_HABITUAL = 2;
 
 function formatCurrency(value: number | null | undefined): string {
 	if (value == null) return "$0";
@@ -26,23 +28,16 @@ type Props = {
 
 export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
-	const [items, setItems] = useState<Item[]>([]);
+	const [products, setProducts] = useState<RecurringProduct[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [checked, setChecked] = useState<Set<string>>(new Set());
 
 	useEffect(() => {
 		setLoading(true);
-		getSavingsReport(session.token)
-			.then((report) => {
-				const mapped = report.topProducts.map((p) => ({
-					id: p.barcode || p.description,
-					name: p.description,
-					suggested: p.totalDiscounts > 0 || p.purchaseCount > 1,
-					price: formatCurrency(p.totalDiscounts),
-					discount: p.totalDiscounts,
-				}));
-				setItems(mapped);
+		getRecurringProducts(session.token)
+			.then((all) => {
+				setProducts(all.filter((p) => p.ticketCount >= MIN_TRIPS_TO_BE_HABITUAL));
 				setError(null);
 			})
 			.catch((err) => {
@@ -51,6 +46,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 			.finally(() => setLoading(false));
 	}, [session.token]);
 
+	const idOf = (p: RecurringProduct) => p.barcode || p.description;
 	const toggle = (id: string) =>
 		setChecked((prev) => {
 			const n = new Set(prev);
@@ -59,9 +55,45 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 			return n;
 		});
 
-	const totalDiscount = items
-		.filter((i) => !checked.has(i.id))
-		.reduce((acc, i) => acc + i.discount, 0);
+	// Anything already in the last ticket counts as bought; the rest is what's
+	// still pending for this shop, minus whatever the user ticked off manually.
+	const missing = products.filter((p) => !p.inReferenceTicket && !checked.has(idOf(p)));
+	const bought = products.filter((p) => p.inReferenceTicket || checked.has(idOf(p)));
+	// What you'd save buying the pending items at their current offer price,
+	// not what you saved historically — those are different numbers.
+	const potentialSavings = missing.reduce((acc, p) => {
+		const offer = p.bestOffer;
+		if (!offer || offer.listPrice == null) return acc;
+		return acc + Math.max(0, offer.listPrice - offer.price);
+	}, 0);
+
+	const renderRow = (p: RecurringProduct, isLast: boolean, done: boolean) => {
+		const id = idOf(p);
+		return (
+			<View key={id}>
+				<Pressable style={styles.row} onPress={() => toggle(id)}>
+					<View style={[styles.check, done && styles.checkOn]}>
+						{done && <Ionicons name="checkmark" size={14} color="#fff" />}
+					</View>
+					<View style={{ flex: 1 }}>
+						<Text style={[styles.name, done && styles.nameChecked]}>{p.description}</Text>
+						<Text style={styles.meta}>En {p.ticketCount} de tus compras</Text>
+					</View>
+					{!done && p.bestOffer && (
+						<View style={styles.offerChip}>
+							<Ionicons name="pricetag" size={10} color="#fff" />
+							<Text style={styles.offerChipText}>
+								{p.bestOffer.discountPct != null
+									? `${Math.round(p.bestOffer.discountPct)}% ${p.bestOffer.retailerName}`
+									: p.bestOffer.retailerName}
+							</Text>
+						</View>
+					)}
+				</Pressable>
+				{!isLast && <View style={styles.divider} />}
+			</View>
+		);
+	};
 
 	return (
 		<View style={styles.safeArea}>
@@ -80,74 +112,72 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 				</View>
 			)}
 
-			{error && (
+			{error && !loading && (
 				<View style={styles.errorBanner}>
 					<Ionicons name="warning-outline" size={18} color="#E76F51" />
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
 			)}
 
-			{!loading && !error && items.length === 0 && (
+			{!loading && !error && products.length === 0 && (
 				<View style={styles.emptyWrap}>
 					<Ionicons name="receipt-outline" size={56} color={colors.border} />
-					<Text style={styles.emptyTitle}>Sin productos aún</Text>
-					<Text style={styles.emptyHint}>Escaneá tickets para generar tu lista inteligente</Text>
+					<Text style={styles.emptyTitle}>Todavía no hay compra recurrente</Text>
+					<Text style={styles.emptyHint}>
+						Escaneá al menos dos tickets para que detectemos qué comprás habitualmente
+					</Text>
 				</View>
 			)}
 
-			{!loading && !error && items.length > 0 && (
+			{!loading && !error && products.length > 0 && (
 				<ScrollView contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 16 }}>
 					<View style={styles.heroCard}>
 						<Ionicons name="bulb-outline" size={20} color={colors.cyan} />
 						<View style={{ flex: 1 }}>
-							<Text style={styles.heroTitle}>Lista para tu próxima compra</Text>
+							<Text style={styles.heroTitle}>Tu compra habitual</Text>
 							<Text style={styles.heroBody}>
-								Generada según tus compras frecuentes y ofertas activas.
+								Basada en lo que más se repite en tus tickets. Lo que ya compraste en tu
+								último ticket aparece tildado.
 							</Text>
 						</View>
 					</View>
 
-					<Text style={styles.sectionLabel}>PRODUCTOS FRECUENTES ({items.length})</Text>
-					<View style={styles.list}>
-						{items.map((i, idx) => {
-							const isChecked = checked.has(i.id);
-							return (
-								<View key={i.id}>
-									<Pressable style={styles.row} onPress={() => toggle(i.id)}>
-										<View style={[styles.check, isChecked && styles.checkOn]}>
-											{isChecked && <Ionicons name="checkmark" size={14} color="#fff" />}
-										</View>
-										<View style={{ flex: 1 }}>
-											<Text style={[styles.name, isChecked && styles.nameChecked]}>
-												{i.name}
-											</Text>
-											{i.suggested && !isChecked && (
-												<View style={styles.suggestedChip}>
-													<Text style={styles.suggestedText}>Compra frecuente</Text>
-												</View>
-											)}
-										</View>
-										<Text style={[styles.price, isChecked && styles.priceChecked]}>
-											Ahorro {i.price}
-										</Text>
-									</Pressable>
-									{idx < items.length - 1 && <View style={styles.divider} />}
-								</View>
-							);
-						})}
-					</View>
+					{missing.length > 0 && (
+						<>
+							<Text style={styles.sectionLabel}>TE FALTA COMPRAR ({missing.length})</Text>
+							<View style={styles.list}>
+								{missing.map((p, idx) => renderRow(p, idx === missing.length - 1, false))}
+							</View>
+						</>
+					)}
+
+					{bought.length > 0 && (
+						<>
+							<Text style={styles.sectionLabel}>YA COMPRASTE ({bought.length})</Text>
+							<View style={styles.list}>
+								{bought.map((p, idx) => renderRow(p, idx === bought.length - 1, true))}
+							</View>
+						</>
+					)}
 				</ScrollView>
 			)}
 
-			{!loading && !error && items.length > 0 && (
+			{!loading && !error && products.length > 0 && (
 				<View style={styles.footer}>
 					<View>
-						<Text style={styles.footerLabel}>AHORRO POTENCIAL</Text>
-						<Text style={styles.footerValue}>{formatCurrency(totalDiscount)}</Text>
+						<Text style={styles.footerLabel}>
+							{missing.length > 0 ? "TE FALTAN" : "LISTA COMPLETA"}
+						</Text>
+						<Text style={styles.footerValue}>
+							{missing.length > 0 ? `${missing.length} productos` : "¡Todo listo!"}
+						</Text>
 					</View>
-					<Pressable style={styles.cta}>
-						<Text style={styles.ctaText}>Ver dónde comprar</Text>
-					</Pressable>
+					{potentialSavings > 0 && (
+						<View style={styles.savingsWrap}>
+							<Text style={styles.footerLabel}>AHORRO POTENCIAL</Text>
+							<Text style={styles.savingsValue}>{formatCurrency(potentialSavings)}</Text>
+						</View>
+					)}
 				</View>
 			)}
 
@@ -167,27 +197,26 @@ const styles = StyleSheet.create({
 	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
 	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 12 },
 	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 13 },
-	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 60 },
-	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
-	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center", paddingHorizontal: 40 },
+	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 60, paddingHorizontal: 40 },
+	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 17, textAlign: "center" },
+	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
 	heroCard: { flexDirection: "row", gap: 12, backgroundColor: "#E8F6FC", borderRadius: 14, padding: 16, alignItems: "center" },
 	heroTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
 	heroBody: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2, lineHeight: 16 },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
+	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 4 },
 	list: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: "#E5E7EB", overflow: "hidden" },
 	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
 	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: "#D8E1EE", alignItems: "center", justifyContent: "center" },
 	checkOn: { backgroundColor: colors.cyan, borderColor: colors.cyan },
 	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
 	nameChecked: { color: "#9CA3A8", textDecorationLine: "line-through" },
-	suggestedChip: { alignSelf: "flex-start", backgroundColor: "#FFF7ED", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginTop: 4 },
-	suggestedText: { color: "#B45A14", fontFamily: typography.family.medium, fontSize: 10 },
-	price: { color: "#22C55E", fontFamily: typography.family.medium, fontSize: 12 },
-	priceChecked: { color: "#9CA3A8" },
+	meta: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	offerChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9 },
+	offerChipText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 10 },
 	divider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 48 },
 	footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: "#E5E7EB", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	footerLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	footerValue: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 20, marginTop: 2 },
-	cta: { backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10 },
-	ctaText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 14 },
+	savingsWrap: { alignItems: "flex-end" },
+	savingsValue: { color: "#22C55E", fontFamily: typography.family.bold, fontSize: 20, marginTop: 2 },
 });

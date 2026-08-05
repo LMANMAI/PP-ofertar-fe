@@ -3,6 +3,7 @@ export {
 	getTickets,
 	getTicket,
 	updateTicket,
+	deleteTicket,
 	getSavingsReport,
 } from "./ticketApi";
 
@@ -26,3 +27,7 @@ export type {
 	AuthResponse,
 	UpdateProfileData,
 } from "./authApi";
+
+export { getRecurringProducts } from "./productsApi";
+
+export type { RecurringProduct, BestOffer } from "./productsApi";

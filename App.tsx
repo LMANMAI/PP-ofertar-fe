@@ -688,9 +688,10 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "recurringProducts" && (
+			{screen === "recurringProducts" && session && (
 				<RecurringProductsScreen
 					onBack={() => goMain("home")}
+					session={session}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
