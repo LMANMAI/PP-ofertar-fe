@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { getRecurringProducts } from "../services";
+import { describeCampaignDiscount, getRecurringProducts } from "../services";
 import type { RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
 import { BottomNav, type TabKey } from "../components";
@@ -78,6 +78,14 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 					<View style={{ flex: 1 }}>
 						<Text style={[styles.name, done && styles.nameChecked]}>{p.description}</Text>
 						<Text style={styles.meta}>En {p.ticketCount} de tus compras</Text>
+						{/* The chip's price comes from a same-brand, same-type catalog
+						    product that may be another size — naming it here stops the
+						    discount from reading as a discount on this exact item. */}
+						{!done && p.bestOffer?.productName && (
+							<Text style={styles.offerFor} numberOfLines={1}>
+								Oferta sobre: {p.bestOffer.productName}
+							</Text>
+						)}
 					</View>
 					{!done && p.bestOffer && (
 						<View style={styles.offerChip}>
@@ -86,6 +94,16 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 								{p.bestOffer.discountPct != null
 									? `${Math.round(p.bestOffer.discountPct)}% ${p.bestOffer.retailerName}`
 									: p.bestOffer.retailerName}
+							</Text>
+						</View>
+					)}
+					{/* Same gap the home carousel had: a product whose only offer is a
+					    campaign promotion showed no chip at all here. */}
+					{!done && !p.bestOffer && p.campaignOffers.length > 0 && (
+						<View style={styles.promoChip}>
+							<Ionicons name="megaphone" size={10} color="#fff" />
+							<Text style={styles.offerChipText} numberOfLines={1}>
+								{describeCampaignDiscount(p.campaignOffers[0]) ?? "Promoción"}
 							</Text>
 						</View>
 					)}
@@ -173,8 +191,12 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 						</Text>
 					</View>
 					{potentialSavings > 0 && (
+						// "Estimado" on purpose: this adds up list-vs-offer gaps across
+						// products whose sizes we do not know are the ones the user buys,
+						// so it is an order of magnitude, not a figure they will see at
+						// the register.
 						<View style={styles.savingsWrap}>
-							<Text style={styles.footerLabel}>AHORRO POTENCIAL</Text>
+							<Text style={styles.footerLabel}>AHORRO ESTIMADO</Text>
 							<Text style={styles.savingsValue}>{formatCurrency(potentialSavings)}</Text>
 						</View>
 					)}
@@ -211,6 +233,8 @@ const styles = StyleSheet.create({
 	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
 	nameChecked: { color: "#9CA3A8", textDecorationLine: "line-through" },
 	meta: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	offerFor: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, marginTop: 2 },
+	promoChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.navy, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9, maxWidth: 150 },
 	offerChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9 },
 	offerChipText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 10 },
 	divider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 48 },

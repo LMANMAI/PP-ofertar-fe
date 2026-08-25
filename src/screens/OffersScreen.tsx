@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+	ActivityIndicator,
 	Image,
 	Pressable,
 	ScrollView,
@@ -12,34 +13,50 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomNav, type TabKey } from "../components";
 import { colors, typography } from "../theme/designSystem";
-import { CATEGORIES, EXPIRED_IDS, OFFERS, type Offer } from "../data/offers";
+import { ALL_CATEGORIES, getOffers, offerBadge, offerCategories } from "../services";
+import type { Offer } from "../services";
+import type { Session } from "../auth/session";
 
 type Props = {
+	session: Session;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
-	activatedIds: Set<string>;
 	onOpenOffer: (offerId: string) => void;
-	onActivateOffer: (offerId: string) => void;
-	onShowCode: (offerId: string) => void;
 };
 
-export function OffersScreen({
-	activeTab,
-	onSelectTab,
-	onScanPress,
-	activatedIds,
-	onOpenOffer,
-	onActivateOffer,
-	onShowCode,
-}: Props) {
-	const insets = useSafeAreaInsets();
-	const [category, setCategory] = useState<string>("Todas");
+function formatUntil(iso: string | null): string | null {
+	if (!iso) return null;
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return null;
+	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
+}
 
+export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onOpenOffer }: Props) {
+	const insets = useSafeAreaInsets();
+	const [offers, setOffers] = useState<Offer[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [category, setCategory] = useState<string>(ALL_CATEGORIES);
+
+	useEffect(() => {
+		setLoading(true);
+		getOffers(session.token, 1, 50)
+			.then((data) => {
+				setOffers(data.items);
+				setError(null);
+			})
+			.catch((err) => {
+				setError(err instanceof Error ? err.message : "Error al cargar las ofertas");
+			})
+			.finally(() => setLoading(false));
+	}, [session.token]);
+
+	// Built from the offers on screen rather than a fixed list, so the filter
+	// never shows a chip that matches nothing.
+	const categories = useMemo(() => offerCategories(offers), [offers]);
 	const visibleOffers =
-		category === "Todas"
-			? OFFERS
-			: OFFERS.filter((o) => o.category === category);
+		category === ALL_CATEGORIES ? offers : offers.filter((o) => o.category === category);
 
 	return (
 		<View style={styles.safeArea}>
@@ -54,191 +71,118 @@ export function OffersScreen({
 					/>
 					<Text style={styles.headerTitle}>Ofertas para vos</Text>
 				</View>
-				<View style={styles.bellWrap}>
-					<Ionicons name="notifications-outline" size={22} color={colors.buttonText} />
-					<View style={styles.bellDot} />
-				</View>
 			</View>
 
-			<ScrollView
-				style={styles.scroll}
-				contentContainerStyle={styles.scrollContent}
-				showsVerticalScrollIndicator={false}
-			>
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={styles.chipsRow}
-				>
-					{CATEGORIES.map((c) => {
-						const active = c === category;
-						return (
-							<Pressable
-								key={c}
-								onPress={() => setCategory(c)}
-								style={[styles.chip, active && styles.chipActive]}
-							>
-								<Text style={[styles.chipText, active && styles.chipTextActive]}>
-									{c}
-								</Text>
-							</Pressable>
-						);
-					})}
-				</ScrollView>
+			{loading && (
+				<View style={styles.loaderWrap}>
+					<ActivityIndicator size="small" color={colors.cyan} />
+				</View>
+			)}
 
-				{visibleOffers.map((o) => {
-					const isExpired = EXPIRED_IDS.has(o.id);
-					const isActivated = activatedIds.has(o.id);
-					return (
-						<OfferCard
-							key={o.id}
-							offer={o}
-							expired={isExpired}
-							activated={isActivated}
-							onOpen={() => onOpenOffer(o.id)}
-							onActivate={() => onActivateOffer(o.id)}
-							onShowCode={() => onShowCode(o.id)}
-						/>
-					);
-				})}
-			</ScrollView>
+			{error && !loading && (
+				<View style={styles.errorBanner}>
+					<Ionicons name="warning-outline" size={18} color="#E76F51" />
+					<Text style={styles.errorText}>{error}</Text>
+				</View>
+			)}
+
+			{!loading && !error && offers.length === 0 && (
+				<View style={styles.emptyWrap}>
+					<Ionicons name="pricetags-outline" size={56} color={colors.border} />
+					<Text style={styles.emptyTitle}>No hay ofertas vigentes</Text>
+					<Text style={styles.emptyHint}>
+						No encontramos ofertas en los súper que elegiste como favoritos. Probá sumando cadenas
+						desde tu perfil.
+					</Text>
+				</View>
+			)}
+
+			{!loading && !error && offers.length > 0 && (
+				<ScrollView
+					style={styles.scroll}
+					contentContainerStyle={styles.scrollContent}
+					showsVerticalScrollIndicator={false}
+				>
+					<Text style={styles.intro}>
+						Todo lo que está en oferta en los súper que elegiste como favoritos.
+					</Text>
+
+					{categories.length > 1 && (
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.chipsRow}
+						>
+							{categories.map((c) => {
+								const active = c === category;
+								return (
+									<Pressable
+										key={c}
+										onPress={() => setCategory(c)}
+										style={[styles.chip, active && styles.chipActive]}
+									>
+										<Text style={[styles.chipText, active && styles.chipTextActive]}>{c}</Text>
+									</Pressable>
+								);
+							})}
+						</ScrollView>
+					)}
+
+					{visibleOffers.map((o) => (
+						<OfferCard key={o.id} offer={o} onOpen={() => onOpenOffer(o.id)} />
+					))}
+				</ScrollView>
+			)}
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
-				<BottomNav
-					active={activeTab}
-					onSelect={onSelectTab}
-					onScanPress={onScanPress}
-				/>
+				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
 		</View>
 	);
 }
 
-function OfferCard({
-	offer,
-	expired,
-	activated,
-	onOpen,
-	onActivate,
-	onShowCode,
-}: {
-	offer: Offer;
-	expired: boolean;
-	activated: boolean;
-	onOpen: () => void;
-	onActivate: () => void;
-	onShowCode: () => void;
-}) {
-	if (expired) {
-		return (
-			<View style={[styles.offerCard, styles.offerCardExpired]}>
-				<View style={styles.offerHeader}>
-					<View style={styles.offerStoreRow}>
-						<View style={[styles.storeBadge, { backgroundColor: "#B4B4B4" }]}>
-							<Text style={styles.storeBadgeText}>{offer.storeBadge}</Text>
-						</View>
-						<Text style={[styles.storeName, { color: "#8C8C94" }]}>
-							{offer.storeName}
-						</Text>
-					</View>
-					<View style={styles.expiredBadge}>
-						<Ionicons name="close" size={11} color="#EF4444" />
-						<Text style={styles.expiredBadgeText}>Vencida</Text>
-					</View>
-				</View>
-				<Text style={[styles.offerTitle, { color: "#A0A0A5" }]}>{offer.title}</Text>
-				<Text style={[styles.offerSubtitle, { color: "#BEBEC3" }]}>
-					{offer.subtitle}
-				</Text>
-				<View style={styles.actionButtonExpired}>
-					<Text style={styles.actionButtonExpiredText}>Oferta vencida</Text>
-				</View>
-			</View>
-		);
-	}
-
-	const isDark = offer.tone === "dark";
+function OfferCard({ offer, onOpen }: { offer: Offer; onOpen: () => void }) {
+	const { badge, color } = offerBadge(offer.retailerName);
+	const until = formatUntil(offer.activeTo);
 
 	return (
-		<Pressable
-			onPress={onOpen}
-			style={[styles.offerCard, isDark ? styles.offerCardDark : styles.offerCardLight]}
-		>
+		<Pressable onPress={onOpen} style={styles.offerCard}>
 			<View style={styles.offerHeader}>
 				<View style={styles.offerStoreRow}>
-					<View style={[styles.storeBadge, { backgroundColor: offer.storeBadgeColor }]}>
-						<Text style={styles.storeBadgeText}>{offer.storeBadge}</Text>
+					<View style={[styles.storeBadge, { backgroundColor: color }]}>
+						<Text style={styles.storeBadgeText}>{badge}</Text>
 					</View>
-					<Text style={[styles.storeName, { color: isDark ? colors.buttonText : colors.navy }]}>
-						{offer.storeName}
+					<Text style={styles.storeName} numberOfLines={1}>
+						{offer.retailerName}
+						{offer.province ? ` · ${offer.province}` : ""}
 					</Text>
 				</View>
-				<View
-					style={[
-						styles.pointsBadge,
-						isDark ? styles.pointsBadgeCyan : styles.pointsBadgeNavy,
-					]}
-				>
-					<Text
-						style={[
-							styles.pointsBadgeText,
-							{ color: isDark ? colors.navy : colors.cyan },
-						]}
-					>
-						{offer.points}
-					</Text>
-				</View>
+				<Ionicons name="chevron-forward" size={16} color="#9CA3A8" />
 			</View>
-			<Text
-				style={[
-					styles.offerTitle,
-					{ color: isDark ? colors.buttonText : colors.navy },
-				]}
-			>
-				{offer.title}
-			</Text>
-			<Text
-				style={[
-					styles.offerSubtitle,
-					{ color: isDark ? "#99B2CC" : "#6B7280" },
-				]}
-			>
-				{offer.subtitle}
-			</Text>
 
-			<Pressable
-				onPress={(e) => {
-					e.stopPropagation();
-					if (activated) onShowCode();
-					else onActivate();
-				}}
-				style={[
-					styles.actionButton,
-					activated
-						? styles.actionButtonActivated
-						: isDark
-							? { backgroundColor: colors.cyan }
-							: { backgroundColor: colors.navy },
-				]}
-			>
-				{activated && (
-					<Ionicons name="checkmark" size={14} color={colors.navy} />
-				)}
-				<Text
-					style={[
-						styles.actionButtonText,
-						{
-							color: activated
-								? colors.navy
-								: isDark
-									? colors.navy
-									: colors.buttonText,
-						},
-					]}
-				>
-					{activated ? "Ver código" : "Activar oferta"}
+			<Text style={styles.offerTitle}>{offer.headline}</Text>
+
+			{offer.kind === "catalog" && offer.productName && (
+				<Text style={styles.offerSubtitle}>
+					{offer.productName}
+					{offer.price != null ? ` · $${Math.round(offer.price).toLocaleString("es-AR")}` : ""}
 				</Text>
-			</Pressable>
+			)}
+
+			{until && <Text style={styles.offerValidity}>Vigente hasta el {until}</Text>}
+
+			{offer.brand && (
+				<Text style={styles.offerApplies} numberOfLines={1}>
+					{offer.brand}
+					{offer.category ? ` · ${offer.category}` : ""}
+				</Text>
+			)}
+
+			{offer.percentagesUnverified && (
+				<Text style={styles.offerCaveat}>
+					El porcentaje se leyó de la imagen de la promoción y puede no ser exacto.
+				</Text>
+			)}
 		</Pressable>
 	);
 }
@@ -261,18 +205,36 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 17,
 	},
-	bellWrap: { position: "relative" },
-	bellDot: {
-		position: "absolute",
-		top: -2,
-		right: -2,
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: "#EF4444",
+	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+	errorBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		margin: 16,
+		backgroundColor: "#FEF2F2",
+		borderRadius: 10,
+		padding: 12,
+	},
+	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 13 },
+	emptyWrap: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 12,
+		paddingBottom: 60,
+		paddingHorizontal: 40,
+	},
+	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
+	emptyHint: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: 13,
+		textAlign: "center",
+		lineHeight: 18,
 	},
 	scroll: { flex: 1 },
-	scrollContent: { padding: 16, gap: 16 },
+	scrollContent: { padding: 16, gap: 12 },
+	intro: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
 	chipsRow: { gap: 8, paddingRight: 16 },
 	chip: {
 		paddingHorizontal: 12,
@@ -290,78 +252,27 @@ const styles = StyleSheet.create({
 		letterSpacing: 0.3,
 	},
 	chipTextActive: { color: colors.buttonText },
-	offerCard: { borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 7 },
-	offerCardLight: { backgroundColor: "#E8F6FC" },
-	offerCardDark: { backgroundColor: colors.navy },
-	offerCardExpired: { backgroundColor: "#F5F5F7" },
-	offerHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
+	offerCard: {
+		borderRadius: 16,
+		paddingHorizontal: 16,
+		paddingVertical: 14,
+		gap: 7,
+		backgroundColor: "#E8F6FC",
 	},
-	offerStoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-	storeBadge: {
-		width: 28,
-		height: 28,
-		borderRadius: 14,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	storeBadgeText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.bold,
-		fontSize: 10,
-	},
-	storeName: { fontFamily: typography.family.medium, fontSize: 14 },
-	pointsBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-	pointsBadgeNavy: { backgroundColor: colors.navy },
-	pointsBadgeCyan: { backgroundColor: colors.cyan },
-	pointsBadgeText: {
-		fontFamily: typography.family.medium,
+	offerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+	offerStoreRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+	storeBadge: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 10 },
+	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
+	offerTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 17 },
+	offerSubtitle: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
+	offerValidity: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
+	offerApplies: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
+	offerCaveat: {
+		color: "#9CA3A8",
+		fontFamily: typography.family.regular,
 		fontSize: 11,
-		letterSpacing: 0.3,
-	},
-	expiredBadge: {
-		backgroundColor: "#FEE2E2",
-		paddingHorizontal: 10,
-		paddingVertical: 5,
-		borderRadius: 20,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 4,
-	},
-	expiredBadgeText: {
-		color: "#EF4444",
-		fontFamily: typography.family.medium,
-		fontSize: 11,
-		letterSpacing: 0.3,
-	},
-	offerTitle: { fontFamily: typography.family.bold, fontSize: 17, marginTop: 2 },
-	offerSubtitle: { fontFamily: typography.family.regular, fontSize: 12 },
-	actionButton: {
-		paddingHorizontal: 12,
-		paddingVertical: 10,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-		marginTop: 4,
-		flexDirection: "row",
-		gap: 6,
-	},
-	actionButtonActivated: { backgroundColor: colors.cyan },
-	actionButtonText: { fontFamily: typography.family.medium, fontSize: 12 },
-	actionButtonExpired: {
-		paddingHorizontal: 12,
-		paddingVertical: 10,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-		marginTop: 4,
-		backgroundColor: "#D2D2D6",
-	},
-	actionButtonExpiredText: {
-		color: "#96969B",
-		fontFamily: typography.family.medium,
-		fontSize: 12,
+		lineHeight: 15,
+		fontStyle: "italic",
 	},
 });

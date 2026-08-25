@@ -14,6 +14,14 @@ function formatCurrency(value: number | null | undefined): string {
 	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// A whole number is units; a fraction only ever comes from a line the
+// supermarket weighed, so it reads as kilos rather than "0,52 u".
+function formatQuantity(value: number | null | undefined): string {
+	if (value == null) return "1 u";
+	if (Number.isInteger(value)) return `${value} u`;
+	return `${value.toLocaleString("es-AR", { maximumFractionDigits: 3 })} kg`;
+}
+
 function formatDate(iso: string): string {
 	const d = new Date(iso);
 	return d.toLocaleDateString("es-AR", {
@@ -142,7 +150,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 										<Text style={styles.productName}>{item.description}</Text>
 										<View style={styles.priceRow}>
 											<Text style={styles.productMeta}>
-												{item.quantity} u · {formatCurrency(item.unitPrice)}
+												{formatQuantity(item.quantity)} · {formatCurrency(item.unitPrice)}
 											</Text>
 											{item.discountAmount != null && item.discountAmount > 0
 												&& item.originalPrice != null && item.originalPrice > item.unitPrice && (

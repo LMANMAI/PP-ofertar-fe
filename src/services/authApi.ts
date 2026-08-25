@@ -7,6 +7,8 @@ export type UserProfile = {
 	profilePicture: string | null;
 	address: string | null;
 	phone: string | null;
+	/** Show offers on the same product from other brands. */
+	alternativeBrandsEnabled: boolean;
 	createdAt: string;
 };
 
@@ -20,6 +22,7 @@ export type UpdateProfileData = {
 	profilePicture?: string;
 	address?: string;
 	phone?: string;
+	alternativeBrandsEnabled?: boolean;
 };
 
 async function parseApiError(res: Response): Promise<string> {

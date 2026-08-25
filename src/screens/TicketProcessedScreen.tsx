@@ -37,6 +37,14 @@ function formatCurrency(value: number | null): string {
 	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// A whole number is units; a fraction only ever comes from a line the
+// supermarket weighed, so it reads as kilos rather than "0,52 u".
+function formatQuantity(value: number | null | undefined): string {
+	if (value == null) return "1 u";
+	if (Number.isInteger(value)) return `${value} u`;
+	return `${value.toLocaleString("es-AR", { maximumFractionDigits: 3 })} kg`;
+}
+
 function buildProductsFromTicket(ticket: TicketResponse): Product[] {
 	return ticket.items.map((item) => ({
 		id: item.id ?? null,
@@ -91,6 +99,9 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 	}, [ticket, session.token]);
 
 	const isFailed = ticket?.status === "FAILED";
+	// Corrections are allowed only on the first visit after processing; once
+	// confirmed the ticket feeds savings history and stops being editable.
+	const isLocked = ticket?.reviewed === true;
 	const supermarket = ticket?.storeName?.trim();
 	const storeDisplay = supermarket || "Ticket escaneado";
 	const storeBadge = (supermarket || "TI").slice(0, 2).toUpperCase();
@@ -236,7 +247,10 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 								styles.productRow,
 								idx === products.length - 1 && styles.productRowLast,
 							]}
-							onPress={() => onSelectProduct ? onSelectProduct(p.name) : setEditing(p)}
+							onPress={() => {
+								if (onSelectProduct) onSelectProduct(p.name);
+								else if (!isLocked) setEditing(p);
+							}}
 						>
 							<View style={{ flex: 1 }}>
 								<View style={styles.productNameRow}>
@@ -251,7 +265,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 								</View>
 								<View style={styles.priceRow}>
 									<Text style={styles.productMeta}>
-										{p.quantity} u · {formatCurrency(p.unitPrice)}
+										{formatQuantity(p.quantity)} · {formatCurrency(p.unitPrice)}
 									</Text>
 									{p.discountAmount != null && p.discountAmount > 0
 										&& p.originalPrice != null && p.originalPrice > p.unitPrice && (
@@ -261,12 +275,13 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 							</View>
 							<Pressable
 								hitSlop={8}
-								onPress={(e) => { e.stopPropagation(); setEditing(p); }}
+								disabled={isLocked}
+								onPress={(e) => { e.stopPropagation(); if (!isLocked) setEditing(p); }}
 							>
 								<Ionicons
-									name="create-outline"
+									name={isLocked ? "lock-closed-outline" : "create-outline"}
 									size={18}
-									color={colors.mutedText}
+									color={isLocked ? "#C7CDD4" : colors.mutedText}
 								/>
 							</Pressable>
 						</Pressable>
@@ -274,7 +289,14 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 				</View>
 			</ScrollView>
 
-			{!isFailed && (
+			{isLocked && !isFailed && (
+				<View style={[styles.lockedBar, { paddingBottom: insets.bottom + 12 }]}>
+					<Ionicons name="lock-closed" size={15} color="#6B7280" />
+					<Text style={styles.lockedText}>Ticket confirmado — ya no se puede modificar</Text>
+				</View>
+			)}
+
+			{!isFailed && !isLocked && (
 				<View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
 					<Pressable
 						style={[styles.primaryButton, saving && { opacity: 0.6 }]}
@@ -702,6 +724,22 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: "rgba(15,23,42,0.45)",
 		justifyContent: "flex-end",
+	},
+	lockedBar: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingTop: 12,
+		paddingHorizontal: 20,
+		backgroundColor: colors.card,
+		borderTopWidth: 1,
+		borderTopColor: "#E5E7EB",
+	},
+	lockedText: {
+		color: "#6B7280",
+		fontFamily: typography.family.medium,
+		fontSize: 13,
 	},
 	forgottenBackdrop: {
 		flex: 1,

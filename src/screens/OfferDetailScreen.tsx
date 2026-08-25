@@ -10,31 +10,28 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
-
-export type OfferDetail = {
-	id: string;
-	storeBadge: string;
-	storeBadgeColor: string;
-	storeName: string;
-	title: string;
-	subtitle: string;
-	points: string;
-	validity: string;
-	products: string[];
-	conditions: string[];
-};
+import { offerBadge } from "../services";
+import type { Offer } from "../services";
 
 type Props = {
-	offer: OfferDetail;
+	offer: Offer;
 	onBack: () => void;
-	onActivate: () => void;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
 };
 
-export function OfferDetailScreen({ offer, onBack, onActivate, activeTab, onSelectTab, onScanPress }: Props) {
+function formatUntil(iso: string | null): string | null {
+	if (!iso) return null;
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return null;
+	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const { badge, color } = offerBadge(offer.retailerName);
+	const until = formatUntil(offer.activeTo);
 
 	return (
 		<View style={styles.safeArea}>
@@ -56,53 +53,76 @@ export function OfferDetailScreen({ offer, onBack, onActivate, activeTab, onSele
 				<View style={styles.hero}>
 					<View style={styles.heroTop}>
 						<View style={styles.heroStoreRow}>
-							<View
-								style={[
-									styles.storeBadge,
-									{ backgroundColor: offer.storeBadgeColor },
-								]}
-							>
-								<Text style={styles.storeBadgeText}>{offer.storeBadge}</Text>
+							<View style={[styles.storeBadge, { backgroundColor: color }]}>
+								<Text style={styles.storeBadgeText}>{badge}</Text>
 							</View>
-							<Text style={styles.heroStoreName}>{offer.storeName}</Text>
-						</View>
-						<View style={styles.pointsBadge}>
-							<Text style={styles.pointsBadgeText}>{offer.points}</Text>
+							<Text style={styles.heroStoreName}>
+								{offer.retailerName}
+								{offer.province ? ` · ${offer.province}` : ""}
+							</Text>
 						</View>
 					</View>
-					<Text style={styles.heroTitle}>{offer.title}</Text>
-					<Text style={styles.heroSubtitle}>{offer.subtitle}</Text>
-					<View style={styles.validityBanner}>
-						<Ionicons name="calendar-outline" size={13} color="#99B2CC" />
-						<Text style={styles.validityText}>{offer.validity}</Text>
-					</View>
+					<Text style={styles.heroTitle}>{offer.headline}</Text>
+					{offer.kind === "catalog" && offer.productName && (
+						<Text style={styles.heroSubtitle}>
+							{offer.productName}
+							{offer.price != null
+								? ` · $${Math.round(offer.price).toLocaleString("es-AR")}`
+								: ""}
+						</Text>
+					)}
+					{until && (
+						<View style={styles.validityBanner}>
+							<Ionicons name="calendar-outline" size={13} color="#99B2CC" />
+							<Text style={styles.validityText}>Vigente hasta el {until}</Text>
+						</View>
+					)}
 				</View>
 
 				<View style={styles.contentCard}>
-					<Text style={styles.sectionTitle}>Productos incluidos</Text>
-					{offer.products.map((p) => (
-						<View key={p} style={styles.productRow}>
-							<View style={styles.bullet} />
-							<Text style={styles.productText}>{p}</Text>
-						</View>
-					))}
+					<Text style={styles.sectionTitle}>Detalle</Text>
+					{[
+						offer.brand ? `Marca: ${offer.brand}` : null,
+						offer.category ? `Categoría: ${offer.category}` : null,
+						offer.retailerName ? `Supermercado: ${offer.retailerName}` : null,
+					]
+						.filter((line): line is string => line !== null)
+						.map((line) => (
+							<View key={line} style={styles.productRow}>
+								<View style={styles.bullet} />
+								<Text style={styles.productText}>{line}</Text>
+							</View>
+						))}
 
-					<View style={styles.divider} />
+					{offer.kind === "catalog" && offer.listPrice != null && offer.price != null && (
+						<>
+							<View style={styles.divider} />
+							<Text style={styles.sectionTitle}>Precio</Text>
+							<Text style={styles.conditionText}>
+								Precio de lista ${Math.round(offer.listPrice).toLocaleString("es-AR")} · con la
+								oferta ${Math.round(offer.price).toLocaleString("es-AR")}
+							</Text>
+							<Text style={styles.conditionText}>
+								Precio del último relevamiento del catálogo, no necesariamente de hoy.
+							</Text>
+						</>
+					)}
 
-					<Text style={styles.sectionTitle}>Condiciones</Text>
-					{offer.conditions.map((c) => (
-						<Text key={c} style={styles.conditionText}>
-							• {c}
-						</Text>
-					))}
+					{(offer.legalText || offer.percentagesUnverified) && (
+						<>
+							<View style={styles.divider} />
+							<Text style={styles.sectionTitle}>Condiciones</Text>
+							{offer.legalText && <Text style={styles.conditionText}>{offer.legalText}</Text>}
+							{offer.percentagesUnverified && (
+								<Text style={styles.conditionText}>
+									El porcentaje se leyó de la imagen de la promoción y puede no ser exacto.
+									Confirmalo en el local.
+								</Text>
+							)}
+						</>
+					)}
 				</View>
 			</ScrollView>
-
-			<View style={styles.footer}>
-				<Pressable style={styles.activateButton} onPress={onActivate}>
-					<Text style={styles.activateButtonText}>Activar oferta</Text>
-				</Pressable>
-			</View>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />

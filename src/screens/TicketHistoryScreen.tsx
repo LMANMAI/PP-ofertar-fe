@@ -60,6 +60,16 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 		loadTickets().finally(() => setLoading(false));
 	}, []);
 
+	const hasPending = tickets.some((t) => t.status === "PENDING");
+
+	// While something is still being read on the server, refresh on a timer so
+	// the row flips to "listo" on its own instead of making the user pull down.
+	useEffect(() => {
+		if (!hasPending) return;
+		const id = setInterval(loadTickets, 5000);
+		return () => clearInterval(id);
+	}, [hasPending]);
+
 	const handleRefresh = async () => {
 		setRefreshing(true);
 		await loadTickets();
@@ -123,27 +133,60 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 					{tickets.map((t) => {
 						const badge = storeBadge(t.storeName);
 						const ticketTotal = t.total;
-						const ticketSavings = t.totalDiscounts;
+						// Null while the ticket is still being processed, and the
+						// backend also leaves it null when nothing was discounted.
+						const ticketSavings = t.totalDiscounts ?? 0;
+						const isPending = t.status === "PENDING";
 						return (
-							<Pressable key={t.id} style={styles.row} onPress={() => onSelectTicket(t.id)}>
+							<Pressable
+								key={t.id}
+								// A ticket still being read has no items or totals yet, so
+								// opening it would show an empty screen.
+								style={[styles.row, isPending && styles.rowPending]}
+								onPress={() => !isPending && onSelectTicket(t.id)}
+								disabled={isPending}
+							>
 								<View style={[styles.badge, { backgroundColor: badge.color }]}>
 									<Text style={styles.badgeText}>{badge.code}</Text>
 								</View>
 								<View style={{ flex: 1 }}>
-									<Text style={styles.store}>{t.storeName || "Ticket sin nombre"}</Text>
+									<Text style={styles.store}>
+										{t.storeName || (isPending ? "Leyendo tu ticket…" : "Ticket sin nombre")}
+									</Text>
 									<Text style={styles.date}>
-										{formatDate(t.createdAt)} · {t.items.length} productos
+										{isPending
+											? "Podés seguir usando la app mientras tanto"
+											: `${formatDate(t.createdAt)} · ${t.items.length} productos`}
 									</Text>
 								</View>
 								<View style={{ alignItems: "flex-end" }}>
-									<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
+									{isPending ? (
+										<ActivityIndicator size="small" color={colors.cyan} />
+									) : (
+										<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
+									)}
 									<View style={styles.statusRow}>
-										{ticketSavings > 0 && (
+										{!isPending && ticketSavings > 0 && (
 											<Text style={styles.savings}>-{formatCurrency(ticketSavings)}</Text>
 										)}
-										<View style={[styles.statusBadge, t.status === "FAILED" ? styles.statusFailed : styles.statusOk]}>
-											<Text style={[styles.statusText, t.status === "FAILED" && { color: "#E76F51" }]}>
-												{t.status === "PROCESSED" ? "OK" : t.status === "FAILED" ? "Falló" : "Pendiente"}
+										<View
+											style={[
+												styles.statusBadge,
+												t.status === "FAILED"
+													? styles.statusFailed
+													: isPending
+														? styles.statusPending
+														: styles.statusOk,
+											]}
+										>
+											<Text
+												style={[
+													styles.statusText,
+													t.status === "FAILED" && { color: "#E76F51" },
+													isPending && { color: "#B45A14" },
+												]}
+											>
+												{t.status === "PROCESSED" ? "OK" : t.status === "FAILED" ? "Falló" : "Procesando"}
 											</Text>
 										</View>
 									</View>
@@ -189,5 +232,7 @@ const styles = StyleSheet.create({
 	statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
 	statusOk: { backgroundColor: "#E0F5EF" },
 	statusFailed: { backgroundColor: "rgba(231,111,81,0.15)" },
+	statusPending: { backgroundColor: "#FFF7ED" },
+	rowPending: { opacity: 0.75 },
 	statusText: { fontFamily: typography.family.medium, fontSize: 10, color: "#15803D" },
 });

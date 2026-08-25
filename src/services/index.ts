@@ -28,6 +28,24 @@ export type {
 	UpdateProfileData,
 } from "./authApi";
 
-export { getRecurringProducts } from "./productsApi";
+export {
+	describeCampaignDiscount,
+	getRecurringProducts,
+	offerSavings,
+	sortByOfferRelevance,
+} from "./productsApi";
 
-export type { RecurringProduct, BestOffer } from "./productsApi";
+export type { RecurringProduct, BestOffer, AlternativeOffer, CampaignOffer } from "./productsApi";
+
+export { ALL_CATEGORIES, getOffers, offerBadge, offerCategories } from "./offersApi";
+
+export type { Offer, OfferPage } from "./offersApi";
+
+export {
+	getStoreChains,
+	getNearbyStores,
+	getFavoriteStores,
+	updateFavoriteStores,
+} from "./storesApi";
+
+export type { StoreChain, NearbyStore, FavoriteStores } from "./storesApi";

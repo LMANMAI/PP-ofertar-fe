@@ -14,9 +14,70 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomNav, type TabKey } from "../components";
 import { colors, typography } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
-import { OFFERS, EXPIRED_IDS } from "../data/offers";
-import { getRecurringProducts, getSavingsReport } from "../services";
-import type { RecurringProduct, SavingsReportResponse } from "../services";
+import {
+	describeCampaignDiscount,
+	getOffers,
+	getRecurringProducts,
+	getSavingsReport,
+	offerBadge,
+	sortByOfferRelevance,
+} from "../services";
+import type { Offer, RecurringProduct, SavingsReportResponse } from "../services";
+
+function formatUntil(iso: string | null): string | null {
+	if (!iso) return null;
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return null;
+	return d.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+}
+
+/** One offer in the home carousel. Informational only: there is no activation
+ * or points behind these, so the card states what is on offer, where, until
+ * when, and which of the user's products it touches. */
+function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => void }) {
+	const { badge, color } = offerBadge(offer.retailerName);
+	const until = formatUntil(offer.activeTo);
+
+	return (
+		<Pressable onPress={onPress} style={styles.offerCard}>
+			<View style={styles.offerTop}>
+				<View style={styles.offerStoreRow}>
+					<View style={[styles.storeBadge, { backgroundColor: color }]}>
+						<Text style={styles.storeBadgeText}>{badge}</Text>
+					</View>
+					<Text style={styles.storeName} numberOfLines={1}>
+						{offer.retailerName}
+					</Text>
+				</View>
+				{until && (
+					<View style={styles.untilBadge}>
+						<Text style={styles.untilBadgeText}>hasta {until}</Text>
+					</View>
+				)}
+			</View>
+
+			<Text style={styles.offerTitle} numberOfLines={2}>
+				{offer.headline}
+			</Text>
+
+			{offer.kind === "catalog" && offer.productName ? (
+				<Text style={styles.offerSub} numberOfLines={2}>
+					{offer.productName}
+					{offer.price != null ? ` · $${Math.round(offer.price).toLocaleString("es-AR")}` : ""}
+				</Text>
+			) : (
+				<Text style={styles.offerSub} numberOfLines={2}>
+					{offer.category ?? "Promoción del súper"}
+					{offer.province ? ` · ${offer.province}` : ""}
+				</Text>
+			)}
+
+			{offer.percentagesUnverified && (
+				<Text style={styles.offerCaveat}>Porcentaje leído de la imagen</Text>
+			)}
+		</Pressable>
+	);
+}
 
 type Props = {
 	session: Session;
@@ -28,7 +89,6 @@ type Props = {
 	onOpenRecurring: () => void;
 	onOpenSmartList: () => void;
 	onOpenOffer: (offerId: string) => void;
-	onActivateOffer: (offerId: string) => void;
 };
 
 export function HomeScreen({
@@ -41,12 +101,11 @@ export function HomeScreen({
 	onOpenRecurring,
 	onOpenSmartList,
 	onOpenOffer,
-	onActivateOffer,
 }: Props) {
 	const insets = useSafeAreaInsets();
-	const activeOffers = OFFERS.filter((o) => !EXPIRED_IDS.has(o.id)).slice(0, 4);
 	const [savings, setSavings] = useState<SavingsReportResponse["summary"] | null>(null);
 	const [recurringProducts, setRecurringProducts] = useState<RecurringProduct[]>([]);
+	const [offers, setOffers] = useState<Offer[]>([]);
 
 	function formatCurrencyS(value: number | null | undefined): string {
 		if (value == null) return "$0";
@@ -61,8 +120,21 @@ export function HomeScreen({
 
 	useEffect(() => {
 		getRecurringProducts(session.token)
-			.then((products) => setRecurringProducts(products.slice(0, 3)))
+			// Same ordering as the full section, so the carousel reads left to
+			// right in the same priority the user sees after "Ver todos": own
+			// offer first, then other-brand offer, then no offer — each group by
+			// how often they buy it. The backend's own order is by frequency
+			// alone, which filled the first cards with staples nobody discounts.
+			.then((products) => setRecurringProducts(sortByOfferRelevance(products).slice(0, 10)))
 			.catch(() => {});
+	}, [session.token]);
+
+	// Everything on offer at the user's chains, not just what matches their
+	// habitual products — that is what the section below is for.
+	useEffect(() => {
+		getOffers(session.token, 1, 8)
+			.then((p) => setOffers(p.items))
+			.catch(() => setOffers([]));
 	}, [session.token]);
 
 	const savingsTickets = savings?.ticketCount ?? 0;
@@ -143,100 +215,33 @@ export function HomeScreen({
 					</View>
 				</View>
 
-				{/* Próximas ofertas */}
+				{/* Ofertas vigentes en los súper que sigue el usuario. El backend ya
+				    restringe el match a sus cadenas favoritas, así que todo lo que
+				    llega acá es de un súper que eligió. */}
 				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>TUS PRÓXIMAS OFERTAS</Text>
+					<Text style={styles.sectionTitle}>OFERTAS EN TUS SÚPER</Text>
 					<Pressable onPress={() => onSelectTab("offers")}>
 						<Text style={styles.sectionLink}>Ver todas</Text>
 					</Pressable>
 				</View>
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={styles.offersRow}
-				>
-					{activeOffers.map((o) => {
-						const dark = o.tone === "dark";
-						return (
-							<Pressable
-								key={o.id}
-								onPress={() => onOpenOffer(o.id)}
-								style={[
-									styles.offerCard,
-									dark ? styles.offerCardDark : styles.offerCardLight,
-								]}
-							>
-								<View style={styles.offerTop}>
-									<View style={styles.offerStoreRow}>
-										<View
-											style={[
-												styles.storeBadge,
-												{ backgroundColor: o.storeBadgeColor },
-											]}
-										>
-											<Text style={styles.storeBadgeText}>{o.storeBadge}</Text>
-										</View>
-										<Text
-											style={[
-												styles.storeName,
-												{ color: dark ? "#fff" : colors.navy },
-											]}
-										>
-											{o.storeName}
-										</Text>
-									</View>
-									<View
-										style={[
-											styles.ptsBadge,
-											dark
-												? { backgroundColor: colors.cyan }
-												: { backgroundColor: colors.navy },
-										]}
-									>
-										<Text
-											style={[
-												styles.ptsBadgeText,
-												{ color: dark ? colors.navy : colors.cyan },
-											]}
-										>
-											{o.points}
-										</Text>
-									</View>
-								</View>
-								<Text
-									style={[
-										styles.offerTitle,
-										{ color: dark ? "#fff" : colors.navy },
-									]}
-								>
-									{o.title}
-								</Text>
-								<Text
-									style={[
-										styles.offerSub,
-										{ color: dark ? "#99B2CC" : "#6B7280" },
-									]}
-								>
-									{o.subtitle}
-								</Text>
-								<Pressable
-									onPress={(e) => {
-										e.stopPropagation();
-										onActivateOffer(o.id);
-									}}
-									style={[
-										styles.activateBtn,
-										dark
-											? { backgroundColor: colors.orange }
-											: { backgroundColor: colors.navy },
-									]}
-								>
-									<Text style={styles.activateText}>Activar oferta</Text>
-								</Pressable>
-							</Pressable>
-						);
-					})}
-				</ScrollView>
+				{offers.length === 0 ? (
+					<View style={styles.offersEmpty}>
+						<Ionicons name="pricetags-outline" size={20} color="#9CA3A8" />
+						<Text style={styles.offersEmptyText}>
+							Todavía no hay ofertas vigentes en los súper que elegiste como favoritos.
+						</Text>
+					</View>
+				) : (
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={styles.offersRow}
+					>
+						{offers.map((o) => (
+							<OfferCarouselCard key={o.id} offer={o} onPress={() => onOpenOffer(o.id)} />
+						))}
+					</ScrollView>
+				)}
 
 				{/* Productos seguidos — full width grid */}
 				<View style={styles.sectionHeader}>
@@ -245,7 +250,11 @@ export function HomeScreen({
 						<Text style={styles.sectionLink}>Ver todos</Text>
 					</Pressable>
 				</View>
-				<View style={styles.productsGrid}>
+				<ScrollView
+					horizontal
+					showsHorizontalScrollIndicator={false}
+					contentContainerStyle={styles.productsRow}
+				>
 					{recurringProducts.map((p) => {
 						const id = p.barcode || p.description;
 						const delta = p.bestOffer?.discountPct != null ? `-${Math.round(p.bestOffer.discountPct)}%` : null;
@@ -255,6 +264,14 @@ export function HomeScreen({
 									<Ionicons name="cart-outline" size={28} color="#9CA3A8" />
 								</View>
 								<Text style={styles.productName}>{p.description}</Text>
+								{/* The price belongs to a same-brand, same-type catalog product that
+								    may be a different size, so name it here too — the card is the
+								    first place the user sees the claim. */}
+								{p.bestOffer?.productName && (
+									<Text style={styles.productOfferFor} numberOfLines={1}>
+										{p.bestOffer.productName}
+									</Text>
+								)}
 								<View style={styles.productFooter}>
 									{p.bestOffer ? (
 										<>
@@ -265,6 +282,18 @@ export function HomeScreen({
 												</View>
 											)}
 										</>
+									) : p.campaignOffers.length > 0 ? (
+										// Was missing entirely: a product whose only offer is a
+										// campaign promotion sorted to the front and then announced
+										// "Sin oferta activa" on the very card the ordering had
+										// promoted.
+										<Text style={styles.productPromo}>
+											{describeCampaignDiscount(p.campaignOffers[0]) ?? "Promoción vigente"}
+										</Text>
+									) : p.alternativeOffers.length > 0 ? (
+										// Ordering now promotes these, so the card can no longer
+										// claim there is nothing on offer.
+										<Text style={styles.productPrice}>Otra marca en oferta</Text>
 									) : (
 										<Text style={styles.productPrice}>Sin oferta activa</Text>
 									)}
@@ -272,7 +301,7 @@ export function HomeScreen({
 							</Pressable>
 						);
 					})}
-				</View>
+				</ScrollView>
 
 				{/* Quick actions */}
 				<View style={styles.quickRow}>
@@ -443,9 +472,25 @@ const styles = StyleSheet.create({
 		borderRadius: 16,
 		padding: 14,
 		gap: 6,
+		backgroundColor: "#E8F6FC",
 	},
-	offerCardLight: { backgroundColor: "#E8F6FC" },
-	offerCardDark: { backgroundColor: colors.navy },
+	offersEmpty: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+		backgroundColor: colors.card,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: "#E5E7EB",
+		padding: 14,
+	},
+	offersEmptyText: {
+		flex: 1,
+		color: "#6B7280",
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 17,
+	},
 	offerTop: {
 		flexDirection: "row",
 		justifyContent: "space-between",
@@ -464,36 +509,36 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: 10,
 	},
-	storeName: { fontFamily: typography.family.medium, fontSize: 13 },
-	ptsBadge: {
+	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
+	untilBadge: {
+		backgroundColor: colors.navy,
 		paddingHorizontal: 8,
 		paddingVertical: 4,
 		borderRadius: 14,
 	},
-	ptsBadgeText: { fontFamily: typography.family.medium, fontSize: 10 },
+	untilBadgeText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10 },
 	offerTitle: {
+		color: colors.navy,
 		fontFamily: typography.family.bold,
 		fontSize: 16,
 		marginTop: 4,
 	},
-	offerSub: { fontFamily: typography.family.regular, fontSize: 11 },
-	activateBtn: {
-		marginTop: 8,
-		paddingVertical: 9,
-		borderRadius: 8,
-		alignItems: "center",
+	offerSub: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
+	offerCaveat: {
+		color: "#9CA3A8",
+		fontFamily: typography.family.regular,
+		fontSize: 10,
+		fontStyle: "italic",
 	},
-	activateText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 12,
-	},
-	productsGrid: {
-		flexDirection: "row",
+	// Matches offersRow above, so both carousels on this screen scroll the same.
+	productsRow: {
 		gap: 10,
+		paddingRight: 20,
 	},
 	productCard: {
-		flex: 1,
+		// Fixed width now that these scroll horizontally; flex:1 only made sense
+		// while it was a static row of three.
+		width: 150,
 		backgroundColor: colors.card,
 		borderRadius: 14,
 		padding: 12,
@@ -516,6 +561,13 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		lineHeight: 17,
 	},
+	productOfferFor: {
+		color: "#9CA3A8",
+		fontFamily: typography.family.regular,
+		fontSize: 10,
+		lineHeight: 14,
+		marginTop: 1,
+	},
 	productFooter: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -526,6 +578,14 @@ const styles = StyleSheet.create({
 		color: colors.navy,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
+	},
+	// Slightly smaller than a price: a promotion headline is wordier and has to
+	// fit the narrow card without truncating.
+	productPromo: {
+		color: colors.navy,
+		fontFamily: typography.family.bold,
+		fontSize: 13,
+		lineHeight: 17,
 	},
 	productDeltaBadge: {
 		backgroundColor: "#E0F5EF",

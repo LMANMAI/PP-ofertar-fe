@@ -27,7 +27,6 @@ import {
 	LogoutConfirmScreen,
 	LoyaltyLevelsScreen,
 	MonthlyAnalysisScreen,
-	OfferCodeScreen,
 	OfferDetailScreen,
 	OffersScreen,
 	PasswordRecoveryScreen,
@@ -58,9 +57,8 @@ import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
 import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
-import { scanTicket } from "./src/services";
-import type { TicketResponse } from "./src/services";
-import { OFFERS } from "./src/data/offers";
+import { getOffers, scanTicket } from "./src/services";
+import type { Offer, TicketResponse } from "./src/services";
 import { REWARDS } from "./src/data/rewards";
 import { colors } from "./src/theme/designSystem";
 
@@ -72,7 +70,7 @@ type Screen =
 	| "main"
 	| "scanMethod" | "captureTicket" | "pdfConfirm" | "scanError" | "ticketProcessed"
 	| "compare" | "storeDetail"
-	| "offerDetail" | "offerCode"
+	| "offerDetail"
 	| "rewardDetail" | "confirmRedeem" | "redeemSuccess"
 	| "pointsHistory" | "loyaltyLevels"
 	| "personalData" | "paymentMethods" | "favoriteStores" | "helpCenter" | "logoutConfirm"
@@ -86,8 +84,10 @@ export default function App() {
 	const [compareProduct, setCompareProduct] = useState<string>("Aceite Natura girasol 1.5L");
 	const [selectedStore, setSelectedStore] = useState<string>("dia");
 	const [compareOrigin, setCompareOrigin] = useState<"main" | "ticketProcessed">("main");
-	const [activatedOfferIds, setActivatedOfferIds] = useState<Set<string>>(new Set());
 	const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+	// Ofertas reales derivadas de /products/recurring. Viven aca porque la
+	// pantalla de detalle se resuelve por id desde el router.
+	const [offers, setOffers] = useState<Offer[]>([]);
 	const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
 	const [redeemCode, setRedeemCode] = useState<string>("DIA-X4K2-9WM7");
 
@@ -120,6 +120,18 @@ export default function App() {
 		})();
 	}, []);
 
+	// The offer-detail screen is routed by id, so the list has to live above the
+	// screens rather than inside each one.
+	useEffect(() => {
+		if (!session) {
+			setOffers([]);
+			return;
+		}
+		getOffers(session.token, 1, 50)
+			.then((p) => setOffers(p.items))
+			.catch(() => setOffers([]));
+	}, [session]);
+
 	const goMain = (t: TabKey = "home") => { setTab(t); setScreen("main"); };
 	const handleScanPress = () => { setTab("scan"); setScreen("scanMethod"); };
 	const handleSelectTab = (t: TabKey) => {
@@ -128,7 +140,7 @@ export default function App() {
 		setScreen("main");
 	};
 	const handleLogout = () => {
-		setSession(null); setTab("home"); setActivatedOfferIds(new Set()); setBiometricEnabled(false); setScreen("welcome");
+		setSession(null); setTab("home"); setOffers([]); setBiometricEnabled(false); setScreen("welcome");
 		clearStoredToken();
 	};
 
@@ -146,7 +158,7 @@ export default function App() {
 		}
 	};
 
-	const findOffer = (id: string | null) => OFFERS.find((o) => o.id === id) ?? OFFERS[0];
+	const findOffer = (id: string | null) => offers.find((o) => o.id === id) ?? null;
 	const findReward = (id: string | null) => REWARDS.find((r) => r.id === id) ?? REWARDS[0];
 	const generateCode = () =>
 		`OFE-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -157,12 +169,6 @@ export default function App() {
 	};
 
 	const openOffer = (id: string) => { setSelectedOfferId(id); setScreen("offerDetail"); };
-	const activateOffer = (id: string) => {
-		setActivatedOfferIds((prev) => new Set(prev).add(id));
-		setSelectedOfferId(id);
-		setScreen("offerCode");
-	};
-	const showOfferCode = (id: string) => { setSelectedOfferId(id); setScreen("offerCode"); };
 
 	const handleChoosePdf = async () => {
 		try {
@@ -188,16 +194,18 @@ export default function App() {
 		}
 	};
 
-	const handleSendPhotos = async (photos: { id: string; uri: string; base64: string }[]) => {
+	const handleSendPhotos = async (photos: { id: string; uri: string; base64?: string }[]) => {
 		if (photos.length === 0 || !session) return;
 		setProcessingFileType("image");
 		setProcessingOcr(true);
 		try {
-			const ticket = await scanTicket(session.token, photos);
-			setScannedTicket(ticket);
-			setScreen("ticketProcessed");
+			// The upload returns as soon as the images are stored; the OCR runs
+			// on the server, so the user is free to navigate (and it finishes
+			// even if they lose connection or close the app).
+			await scanTicket(session.token, photos);
+			setScreen("ticketHistory");
 		} catch (error) {
-			setOcrErrorMsg(error instanceof Error ? error.message : "Error al procesar el ticket");
+			setOcrErrorMsg(error instanceof Error ? error.message : "Error al subir el ticket");
 			setScreen("scanError");
 		} finally {
 			setProcessingOcr(false);
@@ -210,16 +218,15 @@ export default function App() {
 		setProcessingFileType("pdf");
 		setProcessingOcr(true);
 		try {
-			const ticket = await scanTicket(
+			await scanTicket(
 				session.token,
 				[{ uri: selectedPdf.uri, base64: selectedPdf.base64 }],
 				"application/pdf",
 			);
-			setScannedTicket(ticket);
 			setSelectedPdf(null);
-			setScreen("ticketProcessed");
+			setScreen("ticketHistory");
 		} catch (error) {
-			setOcrErrorMsg(error instanceof Error ? error.message : "Error al procesar el PDF");
+			setOcrErrorMsg(error instanceof Error ? error.message : "Error al subir el PDF");
 			setScreen("scanError");
 		} finally {
 			setProcessingOcr(false);
@@ -352,6 +359,7 @@ export default function App() {
 								profilePicture: null,
 								address: null,
 								phone: null,
+								alternativeBrandsEnabled: true,
 								createdAt: "",
 							},
 						});
@@ -407,7 +415,6 @@ export default function App() {
 					onOpenRecurring={() => setScreen("recurringProducts")}
 					onOpenSmartList={() => setScreen("smartList")}
 					onOpenOffer={openOffer}
-					onActivateOffer={activateOffer}
 				/>
 			)}
 
@@ -416,10 +423,8 @@ export default function App() {
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
-					activatedIds={activatedOfferIds}
+					session={session}
 					onOpenOffer={openOffer}
-					onActivateOffer={activateOffer}
-					onShowCode={showOfferCode}
 				/>
 			)}
 
@@ -535,27 +540,9 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "offerDetail" && selectedOfferId && (
+			{screen === "offerDetail" && findOffer(selectedOfferId) && (
 				<OfferDetailScreen
-					offer={findOffer(selectedOfferId)}
-					onBack={() => goMain("offers")}
-					onActivate={() => {
-						const id = selectedOfferId;
-						if (id) setActivatedOfferIds((prev) => new Set(prev).add(id));
-						setScreen("offerCode");
-					}}
-					activeTab={tab}
-					onSelectTab={handleSelectTab}
-					onScanPress={handleScanPress}
-				/>
-			)}
-
-			{screen === "offerCode" && selectedOfferId && (
-				<OfferCodeScreen
-					offer={{
-						...findOffer(selectedOfferId),
-						expiresAt: findOffer(selectedOfferId).expiresAtLabel,
-					}}
+					offer={findOffer(selectedOfferId)!}
 					onBack={() => goMain("offers")}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
@@ -631,9 +618,10 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "favoriteStores" && (
+			{screen === "favoriteStores" && session && (
 				<FavoriteStoresScreen
 					onBack={() => goMain("profile")}
+					session={session}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
