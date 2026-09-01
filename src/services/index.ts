@@ -37,9 +37,16 @@ export {
 
 export type { RecurringProduct, BestOffer, AlternativeOffer, CampaignOffer } from "./productsApi";
 
-export { ALL_CATEGORIES, getOffers, offerBadge, offerCategories } from "./offersApi";
+export {
+	ALL_CATEGORIES,
+	describePromo,
+	getOffers,
+	offerBadge,
+	offerCategories,
+	offerPromo,
+} from "./offersApi";
 
-export type { Offer, OfferPage } from "./offersApi";
+export type { Offer, OfferPage, PromoIcon, PromoMechanic, PromoWording } from "./offersApi";
 
 export {
 	getStoreChains,

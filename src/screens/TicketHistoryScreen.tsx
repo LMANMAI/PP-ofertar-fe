@@ -4,10 +4,11 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { getTickets } from "../services";
-import type { TicketResponse } from "../services";
+import { getRecurringProducts, getTickets } from "../services";
+import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
+import { hasBeenAnnounced, markAnnounced } from "../store/announcedTickets";
 
 function formatCurrency(value: number | null | undefined): string {
 	if (value == null) return "$0";
@@ -36,11 +37,28 @@ type Props = {
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
+	/** Tickets uploaded in this session that have not been announced yet. Held
+	 * by App so it survives leaving this screen and coming back: the polling
+	 * only runs while the history is mounted, so a ticket that finished while
+	 * the user was elsewhere has to still be waiting when they return. */
+	awaitingTicketIds: number[];
+	onTicketAnnounced: (ticketId: number) => void;
 };
 
-export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab, onSelectTab, onScanPress }: Props) {
+export function TicketHistoryScreen({
+	onBack,
+	onSelectTicket,
+	session,
+	activeTab,
+	onSelectTab,
+	onScanPress,
+	awaitingTicketIds,
+	onTicketAnnounced,
+}: Props) {
 	const insets = useSafeAreaInsets();
 	const [tickets, setTickets] = useState<TicketResponse[]>([]);
+	const [forgotten, setForgotten] = useState<RecurringProduct[]>([]);
+	const [forgottenVisible, setForgottenVisible] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [refreshing, setRefreshing] = useState(false);
@@ -50,8 +68,47 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 			const data = await getTickets(session.token);
 			setTickets(data);
 			setError(null);
+			await maybeAnnounceForgotten(data);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Error al cargar tickets");
+		}
+	};
+
+	/**
+	 * Raises the "did you forget something" sheet for a ticket that has just
+	 * finished being read on the server.
+	 *
+	 * Driven by the uploaded-ticket list rather than by watching a PENDING row
+	 * flip: the OCR can finish before the first refresh, and the user can walk
+	 * away and come back, so there is no transition to catch reliably.
+	 */
+	const maybeAnnounceForgotten = async (all: TicketResponse[]) => {
+		if (forgottenVisible || awaitingTicketIds.length === 0) return;
+
+		// Newest first, as the endpoint returns them: only the most recent one
+		// gets announced, so two tickets finishing together do not stack modals.
+		const ready = all.find(
+			(t) => awaitingTicketIds.includes(t.id) && t.status !== "PENDING",
+		);
+		if (!ready) return;
+
+		// Claimed before the request so a refresh landing meanwhile cannot
+		// announce the same ticket twice.
+		onTicketAnnounced(ready.id);
+		if (ready.status !== "PROCESSED") return;
+		// Persisted too, so opening the ticket later does not repeat the notice.
+		if (await hasBeenAnnounced(ready.id)) return;
+		await markAnnounced(ready.id);
+
+		try {
+			const products = await getRecurringProducts(session.token, ready.id);
+			const missing = forgottenIn(products);
+			if (missing.length > 0) {
+				setForgotten(missing);
+				setForgottenVisible(true);
+			}
+		} catch {
+			// An enrichment: never let it break the history listing.
 		}
 	};
 
@@ -196,6 +253,12 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 					})}
 				</ScrollView>
 			)}
+
+			<ForgottenProductsSheet
+				products={forgotten}
+				visible={forgottenVisible}
+				onClose={() => setForgottenVisible(false)}
+			/>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />

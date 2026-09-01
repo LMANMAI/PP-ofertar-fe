@@ -20,9 +20,10 @@ import {
 	getRecurringProducts,
 	getSavingsReport,
 	offerBadge,
+	offerPromo,
 	sortByOfferRelevance,
 } from "../services";
-import type { Offer, RecurringProduct, SavingsReportResponse } from "../services";
+import type { Offer, PromoIcon, RecurringProduct, SavingsReportResponse } from "../services";
 
 function formatUntil(iso: string | null): string | null {
 	if (!iso) return null;
@@ -33,10 +34,31 @@ function formatUntil(iso: string | null): string | null {
 
 /** One offer in the home carousel. Informational only: there is no activation
  * or points behind these, so the card states what is on offer, where, until
- * when, and which of the user's products it touches. */
+ * when, and which of the user's products it touches.
+ *
+ * The number gets a tile of its own with an icon, because a percentage buried
+ * in a sentence is exactly what made these cards read as flat text. The chip
+ * under it answers "¿sobre qué se aplica?" — a card that says 50% without
+ * saying whether that is the unit or the second unit is worse than no card.
+ */
 function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => void }) {
 	const { badge, color } = offerBadge(offer.retailerName);
 	const until = formatUntil(offer.activeTo);
+	// Campaigns are worded here from the structured mechanic + percentages.
+	// A backend that predates those fields returns null and the card falls
+	// back to the headline string it already sent.
+	const promo = offerPromo(offer);
+	const catalogPct =
+		offer.kind === "catalog" && offer.discountPct != null && offer.discountPct >= 1
+			? `${Math.round(offer.discountPct)}%`
+			: null;
+
+	const amount = promo ? promo.amount : catalogPct;
+	const capped = promo ? promo.capped : false;
+	const icon: PromoIcon = promo ? promo.icon : "pricetag-outline";
+	// Conditional promotions are the ones a shopper misreads as a flat
+	// discount, so their cue is warm rather than navy.
+	const conditional = promo?.conditional ?? false;
 
 	return (
 		<Pressable onPress={onPress} style={styles.offerCard}>
@@ -51,29 +73,81 @@ function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => vo
 				</View>
 				{until && (
 					<View style={styles.untilBadge}>
-						<Text style={styles.untilBadgeText}>hasta {until}</Text>
+						<Ionicons name="time-outline" size={10} color={colors.cyan} />
+						<Text style={styles.untilBadgeText}>{until}</Text>
 					</View>
 				)}
 			</View>
 
-			<Text style={styles.offerTitle} numberOfLines={2}>
-				{offer.headline}
-			</Text>
+			<View style={styles.offerBody}>
+				{amount ? (
+					<View style={styles.amountTile}>
+						<View style={styles.amountKickerRow}>
+							<Ionicons name={icon} size={11} color={colors.cyan} />
+							{capped && <Text style={styles.amountKicker}>HASTA</Text>}
+						</View>
+						<Text
+							style={styles.amountValue}
+							numberOfLines={1}
+							adjustsFontSizeToFit
+							minimumFontScale={0.6}
+						>
+							{amount}
+						</Text>
+					</View>
+				) : (
+					<View style={[styles.amountTile, styles.amountTileFlat]}>
+						<Ionicons name={icon} size={22} color={colors.cyan} />
+					</View>
+				)}
 
-			{offer.kind === "catalog" && offer.productName ? (
-				<Text style={styles.offerSub} numberOfLines={2}>
-					{offer.productName}
-					{offer.price != null ? ` · $${Math.round(offer.price).toLocaleString("es-AR")}` : ""}
-				</Text>
-			) : (
-				<Text style={styles.offerSub} numberOfLines={2}>
-					{offer.category ?? "Promoción del súper"}
-					{offer.province ? ` · ${offer.province}` : ""}
-				</Text>
-			)}
+				<View style={styles.offerBodyRight}>
+					{offer.kind === "catalog" ? (
+						<>
+							<Text style={styles.offerProduct} numberOfLines={2}>
+								{offer.productName ?? offer.headline}
+							</Text>
+							{offer.price != null && (
+								<View style={styles.priceRow}>
+									<Text style={styles.priceNow}>
+										${Math.round(offer.price).toLocaleString("es-AR")}
+									</Text>
+									{offer.listPrice != null && offer.listPrice > offer.price && (
+										<Text style={styles.priceWas}>
+											${Math.round(offer.listPrice).toLocaleString("es-AR")}
+										</Text>
+									)}
+								</View>
+							)}
+						</>
+					) : (
+						<>
+							<View style={[styles.appliesChip, conditional && styles.appliesChipWarm]}>
+								<Text
+									style={[styles.appliesText, conditional && styles.appliesTextWarm]}
+									numberOfLines={2}
+								>
+									{promo ? promo.applies : offer.headline}
+								</Text>
+							</View>
+							<Text style={styles.offerSub} numberOfLines={2}>
+								{/* `||`, not `??`: the scraper stores an unknown category as an
+							    empty string, not null, and `??` would render a blank line. */}
+							{offer.category || "Promoción del súper"}
+								{offer.province ? ` · ${offer.province}` : ""}
+							</Text>
+						</>
+					)}
+				</View>
+			</View>
 
 			{offer.percentagesUnverified && (
-				<Text style={styles.offerCaveat}>Porcentaje leído de la imagen</Text>
+				<View style={styles.offerCaveatRow}>
+					<Ionicons name="alert-circle-outline" size={11} color="#9CA3A8" />
+					<Text style={styles.offerCaveat} numberOfLines={1}>
+						Porcentaje leído de la imagen
+					</Text>
+				</View>
 			)}
 		</Pressable>
 	);
@@ -468,11 +542,21 @@ const styles = StyleSheet.create({
 	},
 	offersRow: { gap: 12, paddingRight: 20 },
 	offerCard: {
-		width: 240,
-		borderRadius: 16,
+		// Wider than the old 240: the number now sits in a tile beside the
+		// text instead of above it, and the "En la 2da unidad" chip needs room
+		// to read on one line.
+		width: 262,
+		borderRadius: 18,
 		padding: 14,
-		gap: 6,
-		backgroundColor: "#E8F6FC",
+		gap: 10,
+		backgroundColor: colors.card,
+		borderWidth: 1,
+		borderColor: colors.border,
+		shadowColor: colors.navy,
+		shadowOpacity: 0.06,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 3 },
+		elevation: 2,
 	},
 	offersEmpty: {
 		flexDirection: "row",
@@ -511,20 +595,73 @@ const styles = StyleSheet.create({
 	},
 	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
 	untilBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
 		backgroundColor: colors.navy,
 		paddingHorizontal: 8,
 		paddingVertical: 4,
 		borderRadius: 14,
 	},
 	untilBadgeText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10 },
-	offerTitle: {
-		color: colors.navy,
+	offerBody: { flexDirection: "row", alignItems: "stretch", gap: 12 },
+	// The percentage gets its own block instead of being one more line of
+	// text — this is the visual cue the cards were missing.
+	amountTile: {
+		width: 78,
+		borderRadius: 14,
+		paddingVertical: 8,
+		paddingHorizontal: 6,
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 2,
+		backgroundColor: colors.navy,
+	},
+	amountTileFlat: { paddingVertical: 16 },
+	amountKickerRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+	amountKicker: {
+		color: colors.cyan,
+		fontFamily: typography.family.medium,
+		fontSize: 9,
+		letterSpacing: 0.8,
+	},
+	amountValue: {
+		color: colors.buttonText,
 		fontFamily: typography.family.bold,
-		fontSize: 16,
-		marginTop: 4,
+		fontSize: 24,
+	},
+	offerBodyRight: { flex: 1, justifyContent: "center", gap: 6 },
+	appliesChip: {
+		alignSelf: "flex-start",
+		maxWidth: "100%",
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 8,
+		backgroundColor: colors.softNavy,
+	},
+	// Warm for anything that is not simply taken off the price, so a
+	// "50% en la 2da unidad" never looks like a plain 50% off.
+	appliesChipWarm: { backgroundColor: "#FDECE6" },
+	appliesText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 11, lineHeight: 15 },
+	appliesTextWarm: { color: "#B44A2E" },
+	offerProduct: {
+		color: colors.navy,
+		fontFamily: typography.family.medium,
+		fontSize: 12,
+		lineHeight: 16,
+	},
+	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+	priceNow: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
+	priceWas: {
+		color: "#9CA3A8",
+		fontFamily: typography.family.regular,
+		fontSize: 11,
+		textDecorationLine: "line-through",
 	},
 	offerSub: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
+	offerCaveatRow: { flexDirection: "row", alignItems: "center", gap: 4 },
 	offerCaveat: {
+		flex: 1,
 		color: "#9CA3A8",
 		fontFamily: typography.family.regular,
 		fontSize: 10,

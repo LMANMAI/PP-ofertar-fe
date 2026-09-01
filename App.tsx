@@ -101,6 +101,10 @@ export default function App() {
 	const [booted, setBooted] = useState(false);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 	const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+	// Tickets subidos en esta sesion que todavia no avisaron si faltó algo.
+	// Viven aca y no en el historial para que el aviso siga pendiente si el
+	// usuario se va a otra pantalla mientras el OCR corre en el servidor.
+	const [awaitingTicketIds, setAwaitingTicketIds] = useState<number[]>([]);
 
 	useEffect(() => {
 		(async () => {
@@ -140,7 +144,7 @@ export default function App() {
 		setScreen("main");
 	};
 	const handleLogout = () => {
-		setSession(null); setTab("home"); setOffers([]); setBiometricEnabled(false); setScreen("welcome");
+		setSession(null); setTab("home"); setOffers([]); setAwaitingTicketIds([]); setBiometricEnabled(false); setScreen("welcome");
 		clearStoredToken();
 	};
 
@@ -202,7 +206,8 @@ export default function App() {
 			// The upload returns as soon as the images are stored; the OCR runs
 			// on the server, so the user is free to navigate (and it finishes
 			// even if they lose connection or close the app).
-			await scanTicket(session.token, photos);
+			const uploaded = await scanTicket(session.token, photos);
+			setAwaitingTicketIds((prev) => [uploaded.id, ...prev]);
 			setScreen("ticketHistory");
 		} catch (error) {
 			setOcrErrorMsg(error instanceof Error ? error.message : "Error al subir el ticket");
@@ -218,11 +223,12 @@ export default function App() {
 		setProcessingFileType("pdf");
 		setProcessingOcr(true);
 		try {
-			await scanTicket(
+			const uploaded = await scanTicket(
 				session.token,
 				[{ uri: selectedPdf.uri, base64: selectedPdf.base64 }],
 				"application/pdf",
 			);
+			setAwaitingTicketIds((prev) => [uploaded.id, ...prev]);
 			setSelectedPdf(null);
 			setScreen("ticketHistory");
 		} catch (error) {
@@ -652,6 +658,10 @@ export default function App() {
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
+					awaitingTicketIds={awaitingTicketIds}
+					onTicketAnnounced={(id) =>
+						setAwaitingTicketIds((prev) => prev.filter((x) => x !== id))
+					}
 				/>
 			)}
 

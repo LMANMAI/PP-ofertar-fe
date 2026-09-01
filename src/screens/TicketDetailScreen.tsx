@@ -4,10 +4,11 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { getTicket } from "../services";
-import type { TicketResponse } from "../services";
+import { getRecurringProducts, getTicket } from "../services";
+import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
+import { hasBeenAnnounced, markAnnounced } from "../store/announcedTickets";
 
 function formatCurrency(value: number | null | undefined): string {
 	if (value == null) return "$0,00";
@@ -43,6 +44,8 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 	const [ticket, setTicket] = useState<TicketResponse | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [forgotten, setForgotten] = useState<RecurringProduct[]>([]);
+	const [forgottenVisible, setForgottenVisible] = useState(false);
 
 	useEffect(() => {
 		setLoading(true);
@@ -51,6 +54,40 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 			.catch((err) => setError(err instanceof Error ? err.message : "Error al cargar el ticket"))
 			.finally(() => setLoading(false));
 	}, [ticketId, session.token]);
+
+	/**
+	 * Backstop for the notice the history raises when processing finishes: that
+	 * one only fires with the app open. If the user closed it while the OCR was
+	 * running, this is where they find out — the first time they open the
+	 * ticket, and only that time.
+	 */
+	useEffect(() => {
+		if (!ticket || ticket.status !== "PROCESSED") return;
+		let cancelled = false;
+
+		(async () => {
+			if (await hasBeenAnnounced(ticket.id)) return;
+			try {
+				const products = await getRecurringProducts(session.token, ticket.id);
+				if (cancelled) return;
+				const missing = forgottenIn(products);
+				// Marked either way: the user opened the ticket and this is their
+				// one chance to be told, so a ticket with nothing missing must not
+				// come back asking later.
+				await markAnnounced(ticket.id);
+				if (missing.length > 0 && !cancelled) {
+					setForgotten(missing);
+					setForgottenVisible(true);
+				}
+			} catch {
+				// Enrichment only: never block reading the ticket.
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ticket, session.token]);
 
 	const storeName = ticket?.storeName?.trim();
 	const storeDisplay = storeName || "Ticket escaneado";
@@ -171,6 +208,12 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 					</View>
 				</ScrollView>
 			)}
+
+			<ForgottenProductsSheet
+				products={forgotten}
+				visible={forgottenVisible}
+				onClose={() => setForgottenVisible(false)}
+			/>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />

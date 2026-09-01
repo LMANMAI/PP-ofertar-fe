@@ -13,8 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomNav, type TabKey } from "../components";
 import { colors, typography } from "../theme/designSystem";
-import { ALL_CATEGORIES, getOffers, offerBadge, offerCategories } from "../services";
-import type { Offer } from "../services";
+import { ALL_CATEGORIES, getOffers, offerBadge, offerCategories, offerPromo } from "../services";
+import type { Offer, PromoIcon } from "../services";
 import type { Session } from "../auth/session";
 
 type Props = {
@@ -141,9 +141,29 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 	);
 }
 
+/** Same anatomy as the home carousel card, one size up: the number in its own
+ * tile with an icon, and right beside it the thing the list never used to say —
+ * whether the percentage comes off the price or off a second unit. */
 function OfferCard({ offer, onOpen }: { offer: Offer; onOpen: () => void }) {
 	const { badge, color } = offerBadge(offer.retailerName);
 	const until = formatUntil(offer.activeTo);
+	const promo = offerPromo(offer);
+	const catalogPct =
+		offer.kind === "catalog" && offer.discountPct != null && offer.discountPct >= 1
+			? `${Math.round(offer.discountPct)}%`
+			: null;
+
+	const amount = promo ? promo.amount : catalogPct;
+	const capped = promo?.capped ?? false;
+	const conditional = promo?.conditional ?? false;
+	const icon: PromoIcon = promo ? promo.icon : "pricetag-outline";
+	// The percentages we collapsed into "hasta". Named in full here, where
+	// there is room for it, so the ceiling is never mistaken for the only
+	// number the promotion advertises. Same filter as describePromo, so the
+	// list can never contradict the tile.
+	const everyPct = [
+		...new Set((offer.discountPercentages ?? []).filter((n) => n > 0 && n <= 100)),
+	];
 
 	return (
 		<Pressable onPress={onOpen} style={styles.offerCard}>
@@ -160,14 +180,59 @@ function OfferCard({ offer, onOpen }: { offer: Offer; onOpen: () => void }) {
 				<Ionicons name="chevron-forward" size={16} color="#9CA3A8" />
 			</View>
 
-			<Text style={styles.offerTitle}>{offer.headline}</Text>
+			<View style={styles.offerBody}>
+				{amount ? (
+					<View style={styles.amountTile}>
+						<View style={styles.amountKickerRow}>
+							<Ionicons name={icon} size={12} color={colors.cyan} />
+							{capped && <Text style={styles.amountKicker}>HASTA</Text>}
+						</View>
+						<Text
+							style={styles.amountValue}
+							numberOfLines={1}
+							adjustsFontSizeToFit
+							minimumFontScale={0.6}
+						>
+							{amount}
+						</Text>
+					</View>
+				) : (
+					<View style={[styles.amountTile, styles.amountTileFlat]}>
+						<Ionicons name={icon} size={26} color={colors.cyan} />
+					</View>
+				)}
 
-			{offer.kind === "catalog" && offer.productName && (
-				<Text style={styles.offerSubtitle}>
-					{offer.productName}
-					{offer.price != null ? ` · $${Math.round(offer.price).toLocaleString("es-AR")}` : ""}
-				</Text>
-			)}
+				<View style={styles.offerBodyRight}>
+					{offer.kind === "catalog" ? (
+						<>
+							<Text style={styles.offerProduct} numberOfLines={2}>
+								{offer.productName ?? offer.headline}
+							</Text>
+							{offer.price != null && (
+								<View style={styles.priceRow}>
+									<Text style={styles.priceNow}>
+										${Math.round(offer.price).toLocaleString("es-AR")}
+									</Text>
+									{offer.listPrice != null && offer.listPrice > offer.price && (
+										<Text style={styles.priceWas}>
+											${Math.round(offer.listPrice).toLocaleString("es-AR")}
+										</Text>
+									)}
+								</View>
+							)}
+						</>
+					) : (
+						<>
+							<View style={[styles.appliesChip, conditional && styles.appliesChipWarm]}>
+								<Text style={[styles.appliesText, conditional && styles.appliesTextWarm]}>
+									{promo ? promo.applies : offer.headline}
+								</Text>
+							</View>
+							{promo && <Text style={styles.offerDetail}>{promo.detail}</Text>}
+						</>
+					)}
+				</View>
+			</View>
 
 			{until && <Text style={styles.offerValidity}>Vigente hasta el {until}</Text>}
 
@@ -175,6 +240,13 @@ function OfferCard({ offer, onOpen }: { offer: Offer; onOpen: () => void }) {
 				<Text style={styles.offerApplies} numberOfLines={1}>
 					{offer.brand}
 					{offer.category ? ` · ${offer.category}` : ""}
+				</Text>
+			)}
+
+			{capped && everyPct.length > 1 && (
+				<Text style={styles.offerCaveat}>
+					El aviso muestra más de un porcentaje ({everyPct.map((p) => `${p}%`).join(", ")}) y no
+					dice a qué producto va cada uno, así que mostramos el mayor.
 				</Text>
 			)}
 
@@ -253,19 +325,80 @@ const styles = StyleSheet.create({
 	},
 	chipTextActive: { color: colors.buttonText },
 	offerCard: {
-		borderRadius: 16,
+		borderRadius: 18,
 		paddingHorizontal: 16,
 		paddingVertical: 14,
-		gap: 7,
-		backgroundColor: "#E8F6FC",
+		gap: 10,
+		backgroundColor: colors.card,
+		borderWidth: 1,
+		borderColor: colors.border,
+		shadowColor: colors.navy,
+		shadowOpacity: 0.06,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 3 },
+		elevation: 2,
+	},
+	offerBody: { flexDirection: "row", alignItems: "stretch", gap: 14 },
+	// The number gets a block of its own instead of being one more line of
+	// text. Same anatomy as the home carousel so the two read as one system.
+	amountTile: {
+		width: 88,
+		borderRadius: 14,
+		paddingVertical: 10,
+		paddingHorizontal: 6,
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 2,
+		backgroundColor: colors.navy,
+	},
+	amountTileFlat: { paddingVertical: 18 },
+	amountKickerRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+	amountKicker: {
+		color: colors.cyan,
+		fontFamily: typography.family.medium,
+		fontSize: 10,
+		letterSpacing: 0.8,
+	},
+	amountValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 27 },
+	offerBodyRight: { flex: 1, justifyContent: "center", gap: 6 },
+	appliesChip: {
+		alignSelf: "flex-start",
+		maxWidth: "100%",
+		paddingHorizontal: 9,
+		paddingVertical: 5,
+		borderRadius: 8,
+		backgroundColor: colors.softNavy,
+	},
+	// Warm for anything not simply taken off the price, so a "50% en la 2da
+	// unidad" never looks like a plain 50% off.
+	appliesChipWarm: { backgroundColor: "#FDECE6" },
+	appliesText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 13, lineHeight: 17 },
+	appliesTextWarm: { color: "#B44A2E" },
+	offerDetail: {
+		color: "#6B7280",
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 16,
+	},
+	offerProduct: {
+		color: colors.navy,
+		fontFamily: typography.family.medium,
+		fontSize: 13,
+		lineHeight: 18,
+	},
+	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+	priceNow: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
+	priceWas: {
+		color: "#9CA3A8",
+		fontFamily: typography.family.regular,
+		fontSize: 13,
+		textDecorationLine: "line-through",
 	},
 	offerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	offerStoreRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
 	storeBadge: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
 	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 10 },
 	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	offerTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 17 },
-	offerSubtitle: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
 	offerValidity: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
 	offerApplies: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
 	offerCaveat: {

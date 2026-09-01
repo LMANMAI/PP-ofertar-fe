@@ -4,3 +4,5 @@ export { LoadingOverlay } from "./ui/LoadingOverlay";
 export { PasswordStrengthBar } from "./ui/PasswordStrengthBar";
 export { Toast } from "./ui/Toast";
 export type { TabKey } from "./ui/BottomNav";
+export { ForgottenProductsSheet } from "./ForgottenProductsSheet";
+export { forgottenIn, MIN_TRIPS_TO_BE_HABITUAL, MAX_FORGOTTEN_SHOWN } from "./forgottenProducts";

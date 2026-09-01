@@ -12,15 +12,13 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { InputField, BottomNav, type TabKey } from "../components";
+import { InputField, BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
 import { updateTicket, deleteTicket, getRecurringProducts } from "../services";
 
 /** Only nag about products bought on at least this many separate shopping
  * trips — one-off purchases aren't a habit worth reminding about. */
-const MIN_TRIPS_TO_BE_HABITUAL = 2;
-const MAX_FORGOTTEN_SHOWN = 5;
 
 type Product = {
 	id: number | null;
@@ -89,11 +87,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 		setForgottenDismissed(false);
 		getRecurringProducts(session.token, ticket.id)
 			.then((all) => {
-				setForgotten(
-					all
-						.filter((p) => !p.inReferenceTicket && p.ticketCount >= MIN_TRIPS_TO_BE_HABITUAL)
-						.slice(0, MAX_FORGOTTEN_SHOWN),
-				);
+				setForgotten(forgottenIn(all));
 			})
 			.catch(() => setForgotten([]));
 	}, [ticket, session.token]);
@@ -339,57 +333,6 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
 		</View>
-	);
-}
-
-function ForgottenProductsSheet({
-	products,
-	visible,
-	onClose,
-}: {
-	products: RecurringProduct[];
-	visible: boolean;
-	onClose: () => void;
-}) {
-	return (
-		<Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-			<View style={styles.forgottenBackdrop}>
-				<View style={styles.forgottenCard}>
-					<View style={styles.forgottenIconWrap}>
-						<Ionicons name="bulb-outline" size={26} color={colors.cyan} />
-					</View>
-					<Text style={styles.forgottenTitle}>
-						{products.length === 1 ? "¿Olvidaste comprar esto?" : "¿Olvidaste comprar algo?"}
-					</Text>
-					<Text style={styles.forgottenSubtitle}>
-						{products.length === 1
-							? "Solés comprarlo seguido, pero no aparece en este ticket."
-							: "Solés comprarlos seguido, pero no aparecen en este ticket."}
-					</Text>
-
-					<View style={styles.forgottenList}>
-						{products.map((p, idx) => (
-							<View key={p.barcode || p.description}>
-								<View style={styles.forgottenRow}>
-									<Ionicons name="cart-outline" size={18} color="#9CA3A8" />
-									<View style={{ flex: 1 }}>
-										<Text style={styles.forgottenName}>{p.description}</Text>
-										<Text style={styles.forgottenMeta}>
-											En {p.ticketCount} de tus compras
-										</Text>
-									</View>
-								</View>
-								{idx < products.length - 1 && <View style={styles.forgottenDivider} />}
-							</View>
-						))}
-					</View>
-
-					<Pressable style={styles.forgottenButton} onPress={onClose}>
-						<Text style={styles.forgottenButtonText}>Entendido</Text>
-					</Pressable>
-				</View>
-			</View>
-		</Modal>
 	);
 }
 
@@ -740,84 +683,6 @@ const styles = StyleSheet.create({
 		color: "#6B7280",
 		fontFamily: typography.family.medium,
 		fontSize: 13,
-	},
-	forgottenBackdrop: {
-		flex: 1,
-		backgroundColor: "rgba(15,23,42,0.55)",
-		justifyContent: "center",
-		paddingHorizontal: 24,
-	},
-	forgottenCard: {
-		backgroundColor: colors.card,
-		borderRadius: 18,
-		padding: 22,
-		alignItems: "center",
-		gap: 10,
-	},
-	forgottenIconWrap: {
-		width: 52,
-		height: 52,
-		borderRadius: 26,
-		backgroundColor: "#E8F6FC",
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	forgottenTitle: {
-		color: colors.navy,
-		fontFamily: typography.family.bold,
-		fontSize: 18,
-		textAlign: "center",
-	},
-	forgottenSubtitle: {
-		color: "#6B7280",
-		fontFamily: typography.family.regular,
-		fontSize: 13,
-		textAlign: "center",
-		lineHeight: 18,
-	},
-	forgottenList: {
-		alignSelf: "stretch",
-		backgroundColor: "#F8FAFC",
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		marginTop: 4,
-	},
-	forgottenRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 10,
-		paddingHorizontal: 12,
-		paddingVertical: 10,
-	},
-	forgottenName: {
-		color: colors.navy,
-		fontFamily: typography.family.medium,
-		fontSize: 14,
-	},
-	forgottenMeta: {
-		color: "#6B7280",
-		fontFamily: typography.family.regular,
-		fontSize: 11,
-		marginTop: 2,
-	},
-	forgottenDivider: {
-		height: 1,
-		backgroundColor: "#E5E7EB",
-		marginLeft: 40,
-	},
-	forgottenButton: {
-		alignSelf: "stretch",
-		backgroundColor: colors.navy,
-		borderRadius: 10,
-		paddingVertical: 13,
-		alignItems: "center",
-		marginTop: 6,
-	},
-	forgottenButtonText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 15,
 	},
 	modalSheet: {
 		backgroundColor: colors.card,

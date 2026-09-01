@@ -1,3 +1,5 @@
+import { describePromo, type PromoMechanic } from "./offersApi";
+
 const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
 export interface BestOffer {
@@ -37,7 +39,7 @@ export interface CampaignOffer {
 	/** How the discount applies. A conditional mechanic makes the headline
 	 * percentage far less valuable than it looks: "70% en la 2da unidad" is not
 	 * 70% off what you pay. */
-	mechanic: "second_unit" | "3x2" | "2x1" | "percentage_off" | null;
+	mechanic: PromoMechanic | null;
 	/** The percentage rests on OCR of the promo image alone, with no campaign
 	 * metadata behind it. Checked against the real creatives, the metadata is
 	 * accurate and the OCR is the one that misreads digits — so this, and not
@@ -46,24 +48,15 @@ export interface CampaignOffer {
 }
 
 /** How to word a campaign promotion so the percentage is never read as a
- * straight discount. Returns null when there is nothing quantified to show. */
+ * straight discount. Returns null when there is nothing quantified to show.
+ *
+ * The rules themselves live in `describePromo` (offersApi), shared with the
+ * offers feed — a promotion has to read the same on a product card as it does
+ * in the carousel, and it used to be possible to change one and not the other.
+ */
 export function describeCampaignDiscount(offer: CampaignOffer): string | null {
-	const list = offer.discountPercentages.map((n) => `${n}%`).join(" / ");
-	switch (offer.mechanic) {
-		case "second_unit":
-			return list ? `${list} en la 2da unidad` : "Descuento en la 2da unidad";
-		case "3x2":
-			return "3x2";
-		case "2x1":
-			return "2x1";
-		case "percentage_off":
-			return list ? `${list} de descuento` : null;
-		default:
-			// Unknown or absent mechanic. Never word it as a straight discount:
-			// if the scraper starts emitting a new conditional mechanic, failing
-			// open here would undo the whole point of this field.
-			return list ? `Promoción de hasta ${list}` : null;
-	}
+	const promo = describePromo(offer.discountPercentages, offer.mechanic);
+	return promo.generic ? null : promo.headline;
 }
 
 /** The percentage a campaign actually saves you, used for ranking only.
