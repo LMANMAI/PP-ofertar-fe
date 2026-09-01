@@ -43,6 +43,7 @@ import {
 	RegisterStep1,
 	RegisterStep2,
 	RewardDetailScreen,
+	ScanBarcodeScreen,
 	ScanErrorScreen,
 	ScanMethodScreen,
 	SmartShoppingListScreen,
@@ -71,6 +72,7 @@ type Screen =
 	| "passwordRecovery" | "checkEmail" | "changePassword" | "passwordSuccess" | "changePasswordAuth"
 	| "main"
 	| "scanMethod" | "captureTicket" | "pdfConfirm" | "scanError" | "ticketProcessed"
+	| "scanBarcode"
 	| "compare" | "storeDetail"
 	| "offerDetail" | "offerCode"
 	| "rewardDetail" | "confirmRedeem" | "redeemSuccess"
@@ -465,8 +467,13 @@ export default function App() {
 				<ScanMethodScreen
 					onChoosePhotos={() => setScreen("captureTicket")}
 					onChoosePdf={handleChoosePdf}
+					onChooseBarcode={() => setScreen("scanBarcode")}
 					onBack={() => goMain("home")}
 				/>
+			)}
+
+			{screen === "scanBarcode" && (
+				<ScanBarcodeScreen onBack={() => setScreen("scanMethod")} />
 			)}
 
 			{screen === "captureTicket" && (

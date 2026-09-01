@@ -7,12 +7,14 @@ import { colors, typography } from "../theme/designSystem";
 type Props = {
 	onChoosePhotos: () => void;
 	onChoosePdf: () => void;
+	onChooseBarcode: () => void;
 	onBack: () => void;
 };
 
 export function ScanMethodScreen({
 	onChoosePhotos,
 	onChoosePdf,
+	onChooseBarcode,
 	onBack,
 }: Props) {
 	const insets = useSafeAreaInsets();
@@ -26,14 +28,15 @@ export function ScanMethodScreen({
 				<Pressable onPress={onBack} style={styles.backButton}>
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
-				<Text style={styles.headerTitle}>Procesar ticket</Text>
+				<Text style={styles.headerTitle}>Escanear</Text>
 				<View style={{ width: 32 }} />
 			</View>
 
 			<View style={styles.content}>
-				<Text style={styles.title}>¿Cómo querés cargar el ticket?</Text>
+				<Text style={styles.title}>¿Qué querés hacer?</Text>
 				<Text style={styles.subtitle}>
-					Elegí sacarle fotos directamente o adjuntar el PDF que te bajaste.
+					Cargá un ticket para registrar tu compra, o escaneá un producto
+					para ver dónde está más barato.
 				</Text>
 
 				<View style={styles.cards}>
@@ -52,6 +55,14 @@ export function ScanMethodScreen({
 						onPress={onChoosePdf}
 						accent={colors.orange}
 						badge="Más rápido"
+					/>
+
+					<OptionCard
+						icon="barcode"
+						title="Escanear producto"
+						description="Apuntá al código de barras y mirá el precio en cada supermercado."
+						onPress={onChooseBarcode}
+						accent={colors.softNavy}
 					/>
 				</View>
 

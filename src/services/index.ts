@@ -26,3 +26,9 @@ export type {
 	AuthResponse,
 	UpdateProfileData,
 } from "./authApi";
+
+export { getProductoPorEan } from "./sepaApi";
+
+	ProductoDetalleResponse,
+	ComercioPrecioResponse,
+} from "./sepaApi";
