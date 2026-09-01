@@ -75,10 +75,12 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 	const [deleting, setDeleting] = useState(false);
 	const [forgotten, setForgotten] = useState<RecurringProduct[]>([]);
 	const [forgottenDismissed, setForgottenDismissed] = useState(false);
+	const [edited, setEdited] = useState(false);
 
 	useEffect(() => {
 		if (ticket) {
 			setProducts(buildProductsFromTicket(ticket));
+			setEdited(false);
 		}
 	}, [ticket]);
 
@@ -110,19 +112,39 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 		? new Set(ticket.items.map((i) => i.category).filter(Boolean)).size
 		: 0;
 
+	// Discounts are stored with the sign the receipt printed them with, so the
+	// backend sums them as absolute values; mirror that or a ticket full of
+	// "MERCADOPAGO 10% OF -162,49" lines reports negative savings.
 	const computedSavings = products.reduce(
-		(sum, p) => sum + (p.discountAmount ?? 0),
+		(sum, p) => sum + Math.abs(p.discountAmount ?? 0),
 		0,
 	);
-	const computedTotal = products.reduce(
+	/** What the receipt lists per line, before its discounts. */
+	const computedGross = products.reduce(
 		(sum, p) => sum + p.unitPrice * p.quantity,
 		0,
 	);
+	// The label is GASTO: what the shopper actually paid, which is the printed
+	// TOTAL — gross minus the discounts below it, not the sum of the lines.
+	const computedTotal = computedGross - computedSavings;
+	// Until something is corrected, show the figures the backend stored: those
+	// come from the TOTAL printed on the receipt, which the item sum does not
+	// reproduce while the OCR reads some lines gross and others net. Showing
+	// the sum here would contradict the same ticket's detail screen.
+	const showStored = !edited && ticket?.total != null;
+	const displayTotal = showStored ? (ticket?.total as number) : computedTotal;
+	const displaySavings = showStored && ticket?.totalDiscounts != null
+		? ticket.totalDiscounts
+		: computedSavings;
+	const displayGross = showStored && ticket?.subtotal != null
+		? ticket.subtotal
+		: computedGross;
 
 	const handleSave = (updated: Product) => {
 		setProducts((curr) =>
 			curr.map((p) => (p.id === updated.id ? updated : p)),
 		);
+		setEdited(true);
 		setEditing(null);
 	};
 
@@ -218,14 +240,14 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 					</View>
 					<Text style={styles.totalLabel}>GASTO</Text>
 					<Text style={styles.totalValue}>
-						{formatCurrency(computedTotal)}
+						{formatCurrency(displayTotal)}
 					</Text>
 					<View style={styles.tagsRow}>
 						<Tag text={`Productos ${products.length}`} />
 						<Tag text={`Categorías ${categoriesCount}`} />
-						{computedSavings > 0 && computedTotal > 0 && (
+						{displaySavings > 0 && displayGross > 0 && (
 							<Tag
-								text={`${((computedSavings / (computedTotal + computedSavings)) * 100).toFixed(1).replace(".", ",")}% ahorrado`}
+								text={`${((displaySavings / displayGross) * 100).toFixed(1).replace(".", ",")}% ahorrado`}
 								tone="cyan"
 							/>
 						)}

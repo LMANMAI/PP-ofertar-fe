@@ -4,9 +4,10 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { describeCampaignDiscount, getRecurringProducts, offerSavings, sortByOfferRelevance } from "../services";
+import { campaignOfferToOffer, describeCampaignDiscount, getRecurringProducts, offerSavings, sortByOfferRelevance } from "../services";
 import type { CampaignOffer, RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
+import type { Offer } from "../services";
 import { BottomNav, type TabKey } from "../components";
 
 function formatCurrency(value: number | null | undefined): string {
@@ -52,9 +53,13 @@ type Props = {
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
+	/** Opens a promotion in the offers detail, where the legal text is shown in
+	 * full instead of clipped to three lines. The second argument carries the
+	 * rebuilt offer because the feed may not contain this promotion. */
+	onOpenOffer?: (id: string, fallback?: Offer | null) => void;
 };
 
-export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
+export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTab, onScanPress, onOpenOffer }: Props) {
 	const insets = useSafeAreaInsets();
 	const [products, setProducts] = useState<RecurringProduct[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -291,8 +296,15 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 													const until = formatDate(c.activeTo);
 													const days = daysUntil(c.activeTo);
 													const discount = describeCampaignDiscount(c);
+													const full = campaignOfferToOffer(c);
+													const openable = full != null && onOpenOffer != null;
 													return (
-														<View key={`${c.retailerName}-${i}`} style={styles.campaignRow}>
+														<Pressable
+															key={`${c.retailerName}-${i}`}
+															style={styles.campaignRow}
+															disabled={!openable}
+															onPress={() => full && onOpenOffer?.(full.id, full)}
+														>
 															<Ionicons name="time-outline" size={13} color={colors.navy} />
 															<View style={{ flex: 1 }}>
 																<Text style={styles.campaignHeadline}>
@@ -315,10 +327,21 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 																		{c.legalText}
 																	</Text>
 																)}
+																{openable && (
+																	<Text style={styles.campaignLink}>Ver la promoción completa</Text>
+																)}
 															</View>
-														</View>
+															{openable && (
+																<Ionicons name="chevron-forward" size={14} color={colors.navy} />
+															)}
+														</Pressable>
 													);
 												})}
+												<Text style={styles.campaignDisclaimer}>
+													Las promociones las publica el súper y pueden cambiar sin aviso. Verificá la
+													vigencia y consultá el stock en la sucursal: no garantizamos que el producto
+													esté disponible en la que elijas.
+												</Text>
 												{hasGuessedPercentages(campaigns) && (
 													<Text style={styles.campaignDisclaimer}>
 														Algún porcentaje se leyó de la imagen de la promoción y puede no ser exacto,
@@ -426,6 +449,7 @@ const styles = StyleSheet.create({
 	campaignHeadline: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
 	campaignUntil: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
 	campaignLegal: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, marginTop: 3 },
+	campaignLink: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 11, marginTop: 4, textDecorationLine: "underline" },
 	campaignDisclaimer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, fontStyle: "italic" },
 	historyRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
 	historyText: { flex: 1, color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },

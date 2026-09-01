@@ -29,6 +29,7 @@ export type {
 } from "./authApi";
 
 export {
+	campaignOfferToOffer,
 	describeCampaignDiscount,
 	getRecurringProducts,
 	offerSavings,

@@ -5,7 +5,6 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 
 import {
-	AccountCreatedScreen,
 	AuthLoginScreen,
 	AuthWelcomeScreen,
 	BiometricLockScreen,
@@ -58,7 +57,7 @@ import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
 import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
-import { getOffers, scanTicket } from "./src/services";
+import { getOffers, getTicket, scanTicket } from "./src/services";
 import type { Offer, TicketResponse } from "./src/services";
 import { REWARDS } from "./src/data/rewards";
 import { colors } from "./src/theme/designSystem";
@@ -87,6 +86,10 @@ export default function App() {
 	const [selectedStore, setSelectedStore] = useState<string>("dia");
 	const [compareOrigin, setCompareOrigin] = useState<"main" | "ticketProcessed">("main");
 	const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+	/** An offer opened from somewhere other than the feed — the feed is paged
+	 * and filtered by favourite chains, so the promotion a product matched is
+	 * often not in it. */
+	const [fallbackOffer, setFallbackOffer] = useState<Offer | null>(null);
 	// Ofertas reales derivadas de /products/recurring. Viven aca porque la
 	// pantalla de detalle se resuelve por id desde el router.
 	const [offers, setOffers] = useState<Offer[]>([]);
@@ -139,6 +142,29 @@ export default function App() {
 	}, [session]);
 
 	const goMain = (t: TabKey = "home") => { setTab(t); setScreen("main"); };
+
+	/**
+	 * A ticket scanned while the app was closed finishes processing without the
+	 * user ever reaching TicketProcessedScreen, so the one editable pass over
+	 * the OCR output has to be reachable from the history too. Reviewed tickets
+	 * are already closed for edits and go to the read-only detail.
+	 */
+	const handleSelectTicket = async (t: TicketResponse) => {
+		if (t.status !== "PROCESSED" || t.reviewed || !session) {
+			setSelectedTicketId(t.id);
+			setScreen("ticketDetail");
+			return;
+		}
+		try {
+			const full = await getTicket(session.token, t.id);
+			setScannedTicket(full);
+			setScreen("ticketProcessed");
+		} catch {
+			// Showing it read-only beats showing nothing.
+			setSelectedTicketId(t.id);
+			setScreen("ticketDetail");
+		}
+	};
 	const handleScanPress = () => { setTab("scan"); setScreen("scanMethod"); };
 	const handleSelectTab = (t: TabKey) => {
 		if (t === "scan") return handleScanPress();
@@ -164,7 +190,8 @@ export default function App() {
 		}
 	};
 
-	const findOffer = (id: string | null) => offers.find((o) => o.id === id) ?? null;
+	const findOffer = (id: string | null) =>
+		offers.find((o) => o.id === id) ?? (fallbackOffer?.id === id ? fallbackOffer : null);
 	const findReward = (id: string | null) => REWARDS.find((r) => r.id === id) ?? REWARDS[0];
 	const generateCode = () =>
 		`OFE-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -174,7 +201,11 @@ export default function App() {
 		goMain("home");
 	};
 
-	const openOffer = (id: string) => { setSelectedOfferId(id); setScreen("offerDetail"); };
+	const openOffer = (id: string, fallback?: Offer | null) => {
+		setSelectedOfferId(id);
+		setFallbackOffer(fallback ?? null);
+		setScreen("offerDetail");
+	};
 
 	const handleChoosePdf = async () => {
 		try {
@@ -325,14 +356,7 @@ export default function App() {
 					email={registerData.email}
 					phone={registerData.phone}
 					onBack={() => setScreen("register1")}
-					onNext={(s) => { setSession(s); setScreen("accountCreated"); }}
-				/>
-			)}
-
-			{screen === "accountCreated" && session && (
-				<AccountCreatedScreen
-					name={splitName(session.user.name).firstName}
-					onStart={() => setScreen("locationPermission")}
+					onNext={(s) => { setSession(s); setScreen("locationPermission"); }}
 				/>
 			)}
 
@@ -457,6 +481,7 @@ export default function App() {
 
 			{screen === "main" && session && tab === "profile" && (
 				<ProfileScreen
+					onSessionUpdate={setSession}
 					session={session}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
@@ -514,8 +539,8 @@ export default function App() {
 				<TicketProcessedScreen
 					ticket={scannedTicket}
 					session={session}
-					onBack={() => goMain("home")}
-					onFinish={() => goMain("home")}
+					onBack={() => setScreen("ticketHistory")}
+					onFinish={() => setScreen("ticketHistory")}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
@@ -668,7 +693,7 @@ export default function App() {
 			{screen === "ticketHistory" && session && (
 				<TicketHistoryScreen
 					onBack={() => goMain("home")}
-					onSelectTicket={(id: number) => { setSelectedTicketId(id); setScreen("ticketDetail"); }}
+					onSelectTicket={handleSelectTicket}
 					session={session}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
@@ -703,6 +728,7 @@ export default function App() {
 
 			{screen === "recurringProducts" && session && (
 				<RecurringProductsScreen
+					onOpenOffer={openOffer}
 					onBack={() => goMain("home")}
 					session={session}
 					activeTab={tab}

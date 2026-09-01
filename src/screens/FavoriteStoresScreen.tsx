@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView, { Circle, Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import * as Location from "expo-location";
+import { ensureLocationPermission } from "../location/permission";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -52,8 +53,11 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 	useEffect(() => {
 		(async () => {
 			try {
-				const { status } = await Location.requestForegroundPermissionsAsync();
-				if (status === "granted") {
+				// Only prompts when the permission was not already granted during
+				// registration; a user who denied it there is asked again here,
+				// where the radius search genuinely depends on it.
+				const { granted } = await ensureLocationPermission();
+				if (granted) {
 					const pos = await Location.getCurrentPositionAsync({});
 					setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
 				} else {

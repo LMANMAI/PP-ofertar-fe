@@ -1,4 +1,4 @@
-import { describePromo, type PromoMechanic } from "./offersApi";
+import { describePromo, type Offer, type PromoMechanic } from "./offersApi";
 
 const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
@@ -28,6 +28,10 @@ export interface AlternativeOffer {
 /** A regional campaign promotion. Unlike `BestOffer`, which is just today's
  * shelf price, these carry a validity window and the legal terms. */
 export interface CampaignOffer {
+	/** Id of the same promotion in the offers feed ("campaign:<externalId>"),
+	 * or null on a backend that predates the field. Null simply means the row
+	 * is not tappable. */
+	offerId: string | null;
 	retailerName: string | null;
 	province: string | null;
 	legalText: string | null;
@@ -210,4 +214,38 @@ export async function getRecurringProducts(
 		campaignOffers: p.campaignOffers ?? [],
 		alternativeOffers: p.alternativeOffers ?? [],
 	}));
+}
+
+/**
+ * The feed entry for a campaign the product matched.
+ *
+ * The offers screen shows a promotion in full — untruncated legal text and
+ * all — so tapping one here should land there rather than retell it. The feed
+ * is paged, though, and a promotion from a chain outside the user's
+ * favourites may never appear in it, so this rebuilds the same offer from
+ * what the match already carries and hands it over as a fallback.
+ */
+export function campaignOfferToOffer(campaign: CampaignOffer): Offer | null {
+	if (!campaign.offerId) return null;
+	return {
+		id: campaign.offerId,
+		kind: "campaign",
+		retailerSlug: null,
+		retailerName: campaign.retailerName,
+		headline: describeCampaignDiscount(campaign) ?? "Promoción vigente",
+		productName: null,
+		brand: null,
+		category: null,
+		price: null,
+		listPrice: null,
+		discountPct: null,
+		imageUrl: campaign.imageUrl,
+		url: null,
+		province: campaign.province,
+		activeTo: campaign.activeTo,
+		legalText: campaign.legalText,
+		percentagesUnverified: campaign.percentagesUnverified,
+		mechanic: campaign.mechanic,
+		discountPercentages: campaign.discountPercentages,
+	};
 }

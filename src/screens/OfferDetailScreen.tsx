@@ -108,19 +108,21 @@ export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onSca
 						</>
 					)}
 
-					{(offer.legalText || offer.percentagesUnverified) && (
-						<>
-							<View style={styles.divider} />
-							<Text style={styles.sectionTitle}>Condiciones</Text>
-							{offer.legalText && <Text style={styles.conditionText}>{offer.legalText}</Text>}
-							{offer.percentagesUnverified && (
-								<Text style={styles.conditionText}>
-									El porcentaje se leyó de la imagen de la promoción y puede no ser exacto.
-									Confirmalo en el local.
-								</Text>
-							)}
-						</>
+					{/* Always shown: the stock caveat below applies to every offer, not
+					    just the ones the retailer published legal text for. */}
+					<View style={styles.divider} />
+					<Text style={styles.sectionTitle}>Condiciones</Text>
+					{offer.legalText && <Text style={styles.conditionText}>{offer.legalText}</Text>}
+					{offer.percentagesUnverified && (
+						<Text style={styles.conditionText}>
+							El porcentaje se leyó de la imagen de la promoción y puede no ser exacto.
+							Confirmalo en el local.
+						</Text>
 					)}
+					<Text style={styles.conditionText}>
+						Verificá siempre la vigencia antes de ir y consultá el stock en la sucursal: no
+						garantizamos que el producto esté disponible en la que elijas.
+					</Text>
 				</View>
 			</ScrollView>
 

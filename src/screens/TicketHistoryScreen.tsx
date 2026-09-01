@@ -32,7 +32,7 @@ function storeBadge(name: string | null): { code: string; color: string } {
 
 type Props = {
 	onBack: () => void;
-	onSelectTicket: (id: number) => void;
+	onSelectTicket: (ticket: TicketResponse) => void;
 	session: Session;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
@@ -200,7 +200,7 @@ export function TicketHistoryScreen({
 								// A ticket still being read has no items or totals yet, so
 								// opening it would show an empty screen.
 								style={[styles.row, isPending && styles.rowPending]}
-								onPress={() => !isPending && onSelectTicket(t.id)}
+								onPress={() => !isPending && onSelectTicket(t)}
 								disabled={isPending}
 							>
 								<View style={[styles.badge, { backgroundColor: badge.color }]}>

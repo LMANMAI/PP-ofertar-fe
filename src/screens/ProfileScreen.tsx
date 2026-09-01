@@ -35,6 +35,10 @@ type Props = {
 	onChangePassword?: () => void;
 	biometricEnabled?: boolean;
 	onToggleBiometric?: (enabled: boolean) => void;
+	/** The switch below writes to the profile; without lifting the result
+	 * back up, `session.user` keeps the old value and the screen re-reads it
+	 * on the next visit, showing the preference the user just turned off. */
+	onSessionUpdate?: (session: Session) => void;
 };
 
 type LinkItem = {
@@ -67,6 +71,7 @@ export function ProfileScreen({
 	onChangePassword,
 	biometricEnabled = false,
 	onToggleBiometric,
+	onSessionUpdate,
 }: Props) {
 	const insets = useSafeAreaInsets();
 	const [alertsEnabled, setAlertsEnabled] = useState(true);
@@ -87,7 +92,9 @@ export function ProfileScreen({
 		setAlternativeBrands(value);
 		setSavingPreference(true);
 		try {
-			await updateProfile(session.token, { alternativeBrandsEnabled: value });
+			const updated = await updateProfile(session.token, { alternativeBrandsEnabled: value });
+			// The PUT may answer without re-issuing a token; keep the current one.
+			onSessionUpdate?.({ token: updated.token || session.token, user: updated.user });
 		} catch {
 			setAlternativeBrands(!value);
 		} finally {
