@@ -209,7 +209,9 @@ export function offerBadge(retailerName: string | null): { badge: string; color:
 	const clean = (retailerName ?? "Súper").replace(/\s+argentina$/i, "").trim();
 	let hash = 0;
 	for (let i = 0; i < clean.length; i++) hash = (hash * 31 + clean.charCodeAt(i)) >>> 0;
-	const palette = ["#0D80CC", "#E8613C", "#1F9D55", "#7C3AED", "#D97706", "#0F766E"];
+	// Darker than the brand colors they derive from: the two letters sit on
+	// the badge in white 10px bold, which needs ≥4.5:1 against these fills.
+	const palette = ["#0369A1", "#C2410C", "#15803D", "#6D28D9", "#B45309", "#0F766E"];
 	return { badge: clean.slice(0, 2).toUpperCase(), color: palette[hash % palette.length] };
 }
 

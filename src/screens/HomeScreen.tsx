@@ -29,7 +29,7 @@ function formatUntil(iso: string | null): string | null {
 	if (!iso) return null;
 	const d = new Date(iso);
 	if (Number.isNaN(d.getTime())) return null;
-	return d.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
 }
 
 /** One offer in the home carousel. Informational only: there is no activation
@@ -61,7 +61,10 @@ function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => vo
 	const conditional = promo?.conditional ?? false;
 
 	return (
-		<Pressable onPress={onPress} style={styles.offerCard}>
+		<Pressable
+			onPress={onPress}
+			style={({ pressed }) => [styles.offerCard, pressed && styles.offerCardPressed]}
+		>
 			<View style={styles.offerTop}>
 				<View style={styles.offerStoreRow}>
 					<View style={[styles.storeBadge, { backgroundColor: color }]}>
@@ -71,12 +74,6 @@ function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => vo
 						{offer.retailerName}
 					</Text>
 				</View>
-				{until && (
-					<View style={styles.untilBadge}>
-						<Ionicons name="time-outline" size={10} color={colors.cyan} />
-						<Text style={styles.untilBadgeText}>{until}</Text>
-					</View>
-				)}
 			</View>
 
 			<View style={styles.offerBody}>
@@ -140,6 +137,10 @@ function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => vo
 					)}
 				</View>
 			</View>
+
+			{until && (
+				<Text style={styles.offerValidity}>Vigente hasta el {until}</Text>
+			)}
 
 			{offer.percentagesUnverified && (
 				<View style={styles.offerCaveatRow}>
@@ -560,6 +561,7 @@ const styles = StyleSheet.create({
 		shadowOffset: { width: 0, height: 3 },
 		elevation: 2,
 	},
+	offerCardPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
 	offersEmpty: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -596,16 +598,7 @@ const styles = StyleSheet.create({
 		fontSize: 10,
 	},
 	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	untilBadge: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 4,
-		backgroundColor: colors.navy,
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 14,
-	},
-	untilBadgeText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10 },
+	offerValidity: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
 	offerBody: { flexDirection: "row", alignItems: "stretch", gap: 12 },
 	// The percentage gets its own block instead of being one more line of
 	// text — this is the visual cue the cards were missing.
@@ -624,7 +617,7 @@ const styles = StyleSheet.create({
 	amountKicker: {
 		color: colors.cyan,
 		fontFamily: typography.family.medium,
-		fontSize: 9,
+		fontSize: 11,
 		letterSpacing: 0.8,
 	},
 	amountValue: {
@@ -664,9 +657,9 @@ const styles = StyleSheet.create({
 	offerCaveatRow: { flexDirection: "row", alignItems: "center", gap: 4 },
 	offerCaveat: {
 		flex: 1,
-		color: "#9CA3A8",
+		color: "#64748B",
 		fontFamily: typography.family.regular,
-		fontSize: 10,
+		fontSize: 11,
 		fontStyle: "italic",
 	},
 	// Matches offersRow above, so both carousels on this screen scroll the same.

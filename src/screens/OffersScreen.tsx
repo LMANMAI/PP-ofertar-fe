@@ -166,7 +166,10 @@ function OfferCard({ offer, onOpen }: { offer: Offer; onOpen: () => void }) {
 	];
 
 	return (
-		<Pressable onPress={onOpen} style={styles.offerCard}>
+		<Pressable
+			onPress={onOpen}
+			style={({ pressed }) => [styles.offerCard, pressed && styles.offerCardPressed]}
+		>
 			<View style={styles.offerHeader}>
 				<View style={styles.offerStoreRow}>
 					<View style={[styles.storeBadge, { backgroundColor: color }]}>
@@ -338,6 +341,7 @@ const styles = StyleSheet.create({
 		shadowOffset: { width: 0, height: 3 },
 		elevation: 2,
 	},
+	offerCardPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
 	offerBody: { flexDirection: "row", alignItems: "stretch", gap: 14 },
 	// The number gets a block of its own instead of being one more line of
 	// text. Same anatomy as the home carousel so the two read as one system.
@@ -356,7 +360,7 @@ const styles = StyleSheet.create({
 	amountKicker: {
 		color: colors.cyan,
 		fontFamily: typography.family.medium,
-		fontSize: 10,
+		fontSize: 11,
 		letterSpacing: 0.8,
 	},
 	amountValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 27 },
@@ -402,7 +406,7 @@ const styles = StyleSheet.create({
 	offerValidity: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
 	offerApplies: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
 	offerCaveat: {
-		color: "#9CA3A8",
+		color: "#64748B",
 		fontFamily: typography.family.regular,
 		fontSize: 11,
 		lineHeight: 15,
