@@ -33,6 +33,7 @@ export { FavoriteStoresScreen } from "./FavoriteStoresScreen";
 export { HelpCenterScreen } from "./HelpCenterScreen";
 export { LogoutConfirmScreen } from "./LogoutConfirmScreen";
 export { ScanMethodScreen } from "./ScanMethodScreen";
+export { ScanBarcodeScreen } from "./ScanBarcodeScreen";
 export { CaptureTicketScreen } from "./CaptureTicketScreen";
 export { PdfConfirmScreen } from "./PdfConfirmScreen";
 export { ScanTicketScreen } from "./ScanTicketScreen";

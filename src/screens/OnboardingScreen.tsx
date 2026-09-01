@@ -44,6 +44,7 @@ const STEPS: Step[] = [
 			<ScanMethodScreen
 				onChoosePhotos={noop}
 				onChoosePdf={noop}
+				onChooseBarcode={noop}
 				onBack={noop}
 			/>
 		),

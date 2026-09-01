@@ -43,6 +43,7 @@ import {
 	RegisterStep1,
 	RegisterStep2,
 	RewardDetailScreen,
+	ScanBarcodeScreen,
 	ScanErrorScreen,
 	ScanMethodScreen,
 	SmartShoppingListScreen,
@@ -98,6 +99,7 @@ type Screen =
 	| "pdfConfirm"
 	| "scanError"
 	| "ticketProcessed"
+	| "scanBarcode"
 	| "compare"
 	| "storeDetail"
 	| "offerDetail"
@@ -369,7 +371,7 @@ export default function App() {
 					/>
 				)}
 
-				{screen === "biometricPrompt" && session && (
+{screen === "biometricPrompt" && session && (
 					<BiometricPromptScreen
 						session={session}
 						onEnable={() => {
@@ -600,8 +602,13 @@ export default function App() {
 					<ScanMethodScreen
 						onChoosePhotos={() => setScreen("captureTicket")}
 						onChoosePdf={handleChoosePdf}
+						onChooseBarcode={() => setScreen("scanBarcode")}
 						onBack={() => goMain("home")}
 					/>
+				)}
+
+				{screen === "scanBarcode" && (
+					<ScanBarcodeScreen onBack={() => setScreen("scanMethod")} />
 				)}
 
 				{screen === "captureTicket" && (
