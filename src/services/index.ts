@@ -29,6 +29,7 @@ export type {
 
 export { getProductoPorEan } from "./sepaApi";
 
+export type {
 	ProductoDetalleResponse,
 	ComercioPrecioResponse,
 } from "./sepaApi";

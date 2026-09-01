@@ -138,7 +138,7 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 								<View style={{ alignItems: "flex-end" }}>
 									<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
 									<View style={styles.statusRow}>
-										{ticketSavings > 0 && (
+										{ticketSavings != null && ticketSavings > 0 && (
 											<Text style={styles.savings}>-{formatCurrency(ticketSavings)}</Text>
 										)}
 										<View style={[styles.statusBadge, t.status === "FAILED" ? styles.statusFailed : styles.statusOk]}>

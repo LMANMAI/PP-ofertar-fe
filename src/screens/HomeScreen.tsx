@@ -11,9 +11,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, type TabKey, useOnboardingTarget } from "../components";
 import { colors, typography } from "../theme/designSystem";
-import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
+import {
+	type Session,
+	getInitials,
+	getAvatarUri,
+	splitName,
+} from "../auth/session";
 import { OFFERS, EXPIRED_IDS } from "../data/offers";
 import { TRACKED_PRODUCTS } from "../data/tracked";
 import { getSavingsReport } from "../services";
@@ -45,8 +50,12 @@ export function HomeScreen({
 	onActivateOffer,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const offersTarget = useOnboardingTarget("offers");
+	const historyTarget = useOnboardingTarget("history");
 	const activeOffers = OFFERS.filter((o) => !EXPIRED_IDS.has(o.id)).slice(0, 4);
-	const [savings, setSavings] = useState<SavingsReportResponse["summary"] | null>(null);
+	const [savings, setSavings] = useState<
+		SavingsReportResponse["summary"] | null
+	>(null);
 
 	function formatCurrencyS(value: number | null | undefined): string {
 		if (value == null) return "$0";
@@ -94,7 +103,9 @@ export function HomeScreen({
 							style={styles.avatarImage}
 						/>
 					) : (
-						<Text style={styles.avatarText}>{getInitials(session.user.name)}</Text>
+						<Text style={styles.avatarText}>
+							{getInitials(session.user.name)}
+						</Text>
 					)}
 				</Pressable>
 			</View>
@@ -131,106 +142,115 @@ export function HomeScreen({
 								</Text>
 							</View>
 						</View>
-						<Pressable style={styles.savingsCta} onPress={onOpenHistory}>
+						<Pressable
+							ref={historyTarget.ref}
+							onLayout={historyTarget.onLayout}
+							style={styles.savingsCta}
+							onPress={onOpenHistory}
+						>
 							<Text style={styles.savingsCtaText}>Ver mis tickets</Text>
 						</Pressable>
 					</View>
 				</View>
 
 				{/* Próximas ofertas */}
-				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>TUS PRÓXIMAS OFERTAS</Text>
-					<Pressable onPress={() => onSelectTab("offers")}>
-						<Text style={styles.sectionLink}>Ver todas</Text>
-					</Pressable>
-				</View>
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={styles.offersRow}
-				>
-					{activeOffers.map((o) => {
-						const dark = o.tone === "dark";
-						return (
-							<Pressable
-								key={o.id}
-								onPress={() => onOpenOffer(o.id)}
-								style={[
-									styles.offerCard,
-									dark ? styles.offerCardDark : styles.offerCardLight,
-								]}
-							>
-								<View style={styles.offerTop}>
-									<View style={styles.offerStoreRow}>
+				<View ref={offersTarget.ref} onLayout={offersTarget.onLayout}>
+					<View style={styles.sectionHeader}>
+						<Text style={styles.sectionTitle}>TUS PRÓXIMAS OFERTAS</Text>
+						<Pressable onPress={() => onSelectTab("offers")}>
+							<Text style={styles.sectionLink}>Ver todas</Text>
+						</Pressable>
+					</View>
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={styles.offersRow}
+					>
+						{activeOffers.map((o) => {
+							const dark = o.tone === "dark";
+							return (
+								<Pressable
+									key={o.id}
+									onPress={() => onOpenOffer(o.id)}
+									style={[
+										styles.offerCard,
+										dark ? styles.offerCardDark : styles.offerCardLight,
+									]}
+								>
+									<View style={styles.offerTop}>
+										<View style={styles.offerStoreRow}>
+											<View
+												style={[
+													styles.storeBadge,
+													{ backgroundColor: o.storeBadgeColor },
+												]}
+											>
+												<Text style={styles.storeBadgeText}>
+													{o.storeBadge}
+												</Text>
+											</View>
+											<Text
+												style={[
+													styles.storeName,
+													{ color: dark ? "#fff" : colors.navy },
+												]}
+											>
+												{o.storeName}
+											</Text>
+										</View>
 										<View
 											style={[
-												styles.storeBadge,
-												{ backgroundColor: o.storeBadgeColor },
+												styles.ptsBadge,
+												dark
+													? { backgroundColor: colors.cyan }
+													: { backgroundColor: colors.navy },
 											]}
 										>
-											<Text style={styles.storeBadgeText}>{o.storeBadge}</Text>
+											<Text
+												style={[
+													styles.ptsBadgeText,
+													{ color: dark ? colors.navy : colors.cyan },
+												]}
+											>
+												{o.points}
+											</Text>
 										</View>
-										<Text
-											style={[
-												styles.storeName,
-												{ color: dark ? "#fff" : colors.navy },
-											]}
-										>
-											{o.storeName}
-										</Text>
 									</View>
-									<View
+									<Text
 										style={[
-											styles.ptsBadge,
+											styles.offerTitle,
+											{ color: dark ? "#fff" : colors.navy },
+										]}
+									>
+										{o.title}
+									</Text>
+									<Text
+										style={[
+											styles.offerSub,
+											{ color: dark ? "#99B2CC" : "#6B7280" },
+										]}
+									>
+										{o.subtitle}
+									</Text>
+									<Pressable
+										onPress={(e) => {
+											e.stopPropagation();
+											onActivateOffer(o.id);
+										}}
+										style={[
+											styles.activateBtn,
 											dark
-												? { backgroundColor: colors.cyan }
+												? { backgroundColor: colors.orange }
 												: { backgroundColor: colors.navy },
 										]}
 									>
-										<Text
-											style={[
-												styles.ptsBadgeText,
-												{ color: dark ? colors.navy : colors.cyan },
-											]}
-										>
-											{o.points}
-										</Text>
-									</View>
-								</View>
-								<Text
-									style={[
-										styles.offerTitle,
-										{ color: dark ? "#fff" : colors.navy },
-									]}
-								>
-									{o.title}
-								</Text>
-								<Text
-									style={[
-										styles.offerSub,
-										{ color: dark ? "#99B2CC" : "#6B7280" },
-									]}
-								>
-									{o.subtitle}
-								</Text>
-								<Pressable
-									onPress={(e) => {
-										e.stopPropagation();
-										onActivateOffer(o.id);
-									}}
-									style={[
-										styles.activateBtn,
-										dark
-											? { backgroundColor: colors.orange }
-											: { backgroundColor: colors.navy },
-									]}
-								>
-									<Text style={styles.activateText}>Activar oferta</Text>
+										<Text style={styles.activateText}>Activar oferta</Text>
+									</Pressable>
 								</Pressable>
-							</Pressable>
-						);
-					})}
-				</ScrollView>
+							);
+						})}
+					</ScrollView>
+				</View>
 
 				{/* Productos seguidos — full width grid */}
 				<View style={styles.sectionHeader}>
