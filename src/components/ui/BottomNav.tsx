@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../../theme/designSystem";
+import { useOnboardingTarget } from "../onboarding/OnboardingProvider";
 
 export type TabKey = "home" | "offers" | "scan" | "points" | "profile";
 
@@ -41,8 +42,14 @@ const ITEMS: Item[] = [
 ];
 
 export function BottomNav({ active, onSelect, onScanPress }: Props) {
+	const navigationTarget = useOnboardingTarget("main-navigation");
+	const scanTarget = useOnboardingTarget("scan-ticket");
 	return (
-		<View style={styles.wrap}>
+		<View
+			ref={navigationTarget.ref}
+			onLayout={navigationTarget.onLayout}
+			style={styles.wrap}
+		>
 			<View style={styles.row}>
 				{ITEMS.slice(0, 2).map((it) => (
 					<NavItem
@@ -56,12 +63,18 @@ export function BottomNav({ active, onSelect, onScanPress }: Props) {
 
 				<Pressable style={styles.scanWrap} onPress={onScanPress}>
 					<View
+						ref={scanTarget.ref}
+						onLayout={scanTarget.onLayout}
 						style={[
 							styles.scanButton,
 							active === "scan" && styles.scanButtonActive,
 						]}
 					>
-						<Ionicons name="receipt-outline" size={24} color={colors.buttonText} />
+						<Ionicons
+							name="receipt-outline"
+							size={24}
+							color={colors.buttonText}
+						/>
 					</View>
 				</Pressable>
 

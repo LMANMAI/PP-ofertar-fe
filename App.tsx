@@ -42,6 +42,7 @@ import {
 	RegisterStep1,
 	RegisterStep2,
 	RewardDetailScreen,
+	ScanBarcodeScreen,
 	ScanErrorScreen,
 	ScanMethodScreen,
 	SmartShoppingListScreen,
@@ -52,7 +53,7 @@ import {
 	WelcomeTransitionScreen,
 } from "./src/screens";
 import type { TabKey } from "./src/components";
-import { LoadingOverlay, Toast } from "./src/components";
+import { LoadingOverlay, OnboardingProvider, Toast } from "./src/components";
 import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
@@ -69,6 +70,7 @@ type Screen =
 	| "passwordRecovery" | "checkEmail" | "changePassword" | "passwordSuccess" | "changePasswordAuth"
 	| "main"
 	| "scanMethod" | "captureTicket" | "pdfConfirm" | "scanError" | "ticketProcessed"
+	| "scanBarcode"
 	| "compare" | "storeDetail"
 	| "offerDetail"
 	| "rewardDetail" | "confirmRedeem" | "redeemSuccess"
@@ -250,11 +252,19 @@ export default function App() {
 
 	return (
 		<SafeAreaProvider>
-			{!booted && (
+			<OnboardingProvider
+				eligible={Boolean(session && screen === "main" && tab === "home")}
+				userKey={
+					session
+						? `${session.user.id}:${session.user.email.trim().toLowerCase()}`
+						: null
+				}
+			>
+				{!booted && (
 				<View style={{ flex: 1, backgroundColor: colors.navy, alignItems: "center", justifyContent: "center" }}>
 					<ActivityIndicator size="small" color={colors.cyan} />
 				</View>
-			)}
+				)}
 
 			{screen === "biometricLock" && (
 				<BiometricLockScreen
@@ -476,8 +486,13 @@ export default function App() {
 				<ScanMethodScreen
 					onChoosePhotos={() => setScreen("captureTicket")}
 					onChoosePdf={handleChoosePdf}
+					onChooseBarcode={() => setScreen("scanBarcode")}
 					onBack={() => goMain("home")}
 				/>
+			)}
+
+			{screen === "scanBarcode" && (
+				<ScanBarcodeScreen onBack={() => setScreen("scanMethod")} />
 			)}
 
 			{screen === "captureTicket" && (
@@ -713,6 +728,7 @@ export default function App() {
 			{toastMessage && (
 				<Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
 			)}
+			</OnboardingProvider>
 		</SafeAreaProvider>
 	);
 }

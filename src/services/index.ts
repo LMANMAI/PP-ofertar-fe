@@ -56,3 +56,10 @@ export {
 } from "./storesApi";
 
 export type { StoreChain, NearbyStore, FavoriteStores } from "./storesApi";
+
+export { getProductoPorEan } from "./sepaApi";
+
+export type {
+	ProductoDetalleResponse,
+	ComercioPrecioResponse,
+} from "./sepaApi";

@@ -223,7 +223,7 @@ export function TicketHistoryScreen({
 										<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
 									)}
 									<View style={styles.statusRow}>
-										{!isPending && ticketSavings > 0 && (
+{!isPending && ticketSavings != null && ticketSavings > 0 && (
 											<Text style={styles.savings}>-{formatCurrency(ticketSavings)}</Text>
 										)}
 										<View

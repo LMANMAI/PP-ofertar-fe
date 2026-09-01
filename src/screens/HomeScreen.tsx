@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, type TabKey, useOnboardingTarget } from "../components";
 import { colors, typography } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
@@ -180,6 +180,8 @@ export function HomeScreen({
 	const [savings, setSavings] = useState<SavingsReportResponse["summary"] | null>(null);
 	const [recurringProducts, setRecurringProducts] = useState<RecurringProduct[]>([]);
 	const [offers, setOffers] = useState<Offer[]>([]);
+	const offersTarget = useOnboardingTarget("offers");
+	const historyTarget = useOnboardingTarget("history");
 
 	function formatCurrencyS(value: number | null | undefined): string {
 		if (value == null) return "$0";
@@ -258,7 +260,7 @@ export function HomeScreen({
 				showsVerticalScrollIndicator={false}
 			>
 				{/* Savings card */}
-				<View style={styles.savingsCard}>
+				<View ref={historyTarget.ref} onLayout={historyTarget.onLayout} style={styles.savingsCard}>
 					<Text style={styles.savingsOverline}>AHORRO DEL MES</Text>
 					{savings ? (
 						<Text style={styles.savingsAmount}>
@@ -292,7 +294,7 @@ export function HomeScreen({
 				{/* Ofertas vigentes en los súper que sigue el usuario. El backend ya
 				    restringe el match a sus cadenas favoritas, así que todo lo que
 				    llega acá es de un súper que eligió. */}
-				<View style={styles.sectionHeader}>
+				<View ref={offersTarget.ref} onLayout={offersTarget.onLayout} style={styles.sectionHeader}>
 					<Text style={styles.sectionTitle}>OFERTAS EN TUS SÚPER</Text>
 					<Pressable onPress={() => onSelectTab("offers")}>
 						<Text style={styles.sectionLink}>Ver todas</Text>
