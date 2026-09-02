@@ -20,11 +20,11 @@ type Entry = {
 };
 
 const ENTRIES: Entry[] = [
-	{ id: "1", icon: "receipt-outline", iconColor: "#22C55E", bg: "#E0F5EF", title: "Ticket Coto · Av. Cabildo", date: "12 may · 18:42", pts: "+85", tone: "green" },
-	{ id: "2", icon: "gift-outline", iconColor: "#EF4444", bg: "#FEE2E2", title: "Canje: $500 en compras Día", date: "8 may · 14:15", pts: "-1.000", tone: "red" },
-	{ id: "3", icon: "receipt-outline", iconColor: "#22C55E", bg: "#E0F5EF", title: "Ticket Carrefour · Maipú", date: "6 may · 11:08", pts: "+120", tone: "green" },
-	{ id: "4", icon: "trophy-outline", iconColor: "#22C55E", bg: "#E0F5EF", title: "Bonus subir a Nivel Plata", date: "1 may · 09:00", pts: "+500", tone: "green" },
-	{ id: "5", icon: "receipt-outline", iconColor: "#22C55E", bg: "#E0F5EF", title: "Ticket Día · Av. Corrientes", date: "29 abr · 19:24", pts: "+72", tone: "green" },
+	{ id: "1", icon: "receipt-outline", iconColor: colors.success, bg: "#E0F5EF", title: "Ticket Coto · Av. Cabildo", date: "12 may · 18:42", pts: "+85", tone: "green" },
+	{ id: "2", icon: "gift-outline", iconColor: colors.danger, bg: "#FEE2E2", title: "Canje: $500 en compras Día", date: "8 may · 14:15", pts: "-1.000", tone: "red" },
+	{ id: "3", icon: "receipt-outline", iconColor: colors.success, bg: "#E0F5EF", title: "Ticket Carrefour · Maipú", date: "6 may · 11:08", pts: "+120", tone: "green" },
+	{ id: "4", icon: "trophy-outline", iconColor: colors.success, bg: "#E0F5EF", title: "Bonus subir a Nivel Plata", date: "1 may · 09:00", pts: "+500", tone: "green" },
+	{ id: "5", icon: "receipt-outline", iconColor: colors.success, bg: "#E0F5EF", title: "Ticket Día · Av. Corrientes", date: "29 abr · 19:24", pts: "+72", tone: "green" },
 ];
 
 type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
@@ -36,7 +36,7 @@ export function PointsHistoryScreen({ onBack, activeTab, onSelectTab, onScanPres
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Historial de puntos</Text>
@@ -45,12 +45,12 @@ export function PointsHistoryScreen({ onBack, activeTab, onSelectTab, onScanPres
 				<View style={styles.summary}>
 					<View style={styles.summaryItem}>
 						<Text style={styles.summaryLabel}>SUMADOS</Text>
-						<Text style={[styles.summaryValue, { color: "#22C55E" }]}>+777 pts</Text>
+						<Text style={[styles.summaryValue, { color: colors.success }]}>+777 pts</Text>
 					</View>
 					<View style={styles.summaryDivider} />
 					<View style={styles.summaryItem}>
 						<Text style={styles.summaryLabel}>USADOS</Text>
-						<Text style={[styles.summaryValue, { color: "#EF4444" }]}>-1.000 pts</Text>
+						<Text style={[styles.summaryValue, { color: colors.danger }]}>-1.000 pts</Text>
 					</View>
 				</View>
 
@@ -90,16 +90,16 @@ const styles = StyleSheet.create({
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	summary: { backgroundColor: colors.card, borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center" },
 	summaryItem: { flex: 1, alignItems: "center", gap: 4 },
-	summaryDivider: { width: 1, height: 32, backgroundColor: "#E5E7EB" },
-	summaryLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
+	summaryDivider: { width: 1, height: 32, backgroundColor: colors.divider },
+	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	summaryValue: { fontFamily: typography.family.bold, fontSize: 16 },
 	list: { backgroundColor: colors.card, borderRadius: 14, overflow: "hidden" },
 	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
 	iconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
 	rowTitle: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	rowDate: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
+	rowDate: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	pts: { fontFamily: typography.family.bold, fontSize: 14 },
-	ptsGreen: { color: "#22C55E" },
-	ptsRed: { color: "#EF4444" },
-	divider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 62 },
+	ptsGreen: { color: colors.success },
+	ptsRed: { color: colors.danger },
+	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 62 },
 });

@@ -70,7 +70,7 @@ export function OfferCodeScreen({ offer, onBack, activeTab, onSelectTab, onScanP
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Código de oferta</Text>
@@ -98,7 +98,7 @@ export function OfferCodeScreen({ offer, onBack, activeTab, onSelectTab, onScanP
 							<Text style={styles.storeName}>{offer.storeName}</Text>
 						</View>
 						<View style={styles.activatedBadge}>
-							<Ionicons name="checkmark" size={12} color="#22C55E" />
+							<Ionicons name="checkmark" size={12} color={colors.success} />
 							<Text style={styles.activatedText}>Activada</Text>
 						</View>
 					</View>
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
 	card: {
 		backgroundColor: colors.card,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 		borderRadius: 16,
 		padding: 18,
 		gap: 8,
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
 		gap: 4,
 	},
 	activatedText: {
-		color: "#22C55E",
+		color: colors.success,
 		fontFamily: typography.family.medium,
 		fontSize: 11,
 	},
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
 		marginTop: 8,
 	},
 	subtitle: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 	},
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
 	},
 	divider: {
 		height: 1,
-		backgroundColor: "#E5E7EB",
+		backgroundColor: colors.divider,
 		marginTop: 14,
 	},
 	qrWrap: { alignItems: "center", paddingVertical: 18 },
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
 	qrCellOff: { backgroundColor: "#fff" },
 	helper: {
 		textAlign: "center",
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 13,
 		lineHeight: 18,

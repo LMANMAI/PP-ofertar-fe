@@ -8,17 +8,19 @@ import {
 	KeyboardTypeOptions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../../theme/designSystem";
+import { typography, useThemeColors } from "../../theme/designSystem";
+
+type IoniconName = keyof typeof Ionicons.glyphMap;
 
 type InputFieldProps = {
 	label: string;
-	leftIcon: string;
+	leftIcon?: IoniconName;
 	value: string;
 	onChangeText: (text: string) => void;
 	keyboardType?: KeyboardTypeOptions;
 	autoCapitalize?: "none" | "sentences" | "words" | "characters";
 	secureTextEntry?: boolean;
-	rightIcon?: string;
+	rightIcon?: IoniconName;
 	showPasswordToggle?: boolean;
 };
 
@@ -33,6 +35,7 @@ export function InputField({
 	rightIcon,
 	showPasswordToggle,
 }: InputFieldProps) {
+	const colors = useThemeColors();
 	const [focused, setFocused] = useState(false);
 	const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -40,26 +43,47 @@ export function InputField({
 
 	return (
 		<View style={styles.wrapper}>
-			<Text style={styles.label}>{label}</Text>
-			<View style={[styles.inputRow, focused && styles.inputRowFocused]}>
-				{leftIcon ? <Text style={styles.leftIcon}>{leftIcon}</Text> : null}
+			<Text style={[styles.label, { color: colors.mutedText }]}>{label}</Text>
+			<View
+				style={[
+					styles.inputRow,
+					{ borderColor: colors.border, backgroundColor: colors.card },
+					focused && {
+						borderColor: colors.cyan,
+						backgroundColor: colors.softCyan,
+					},
+				]}
+			>
+				{leftIcon ? (
+					<Ionicons
+						name={leftIcon}
+						size={18}
+						color={colors.mutedText}
+						style={styles.leftIcon}
+					/>
+				) : null}
 				<TextInput
 					value={value}
 					onChangeText={onChangeText}
 					placeholder=""
 					placeholderTextColor={colors.mutedText}
-					style={styles.input}
+					style={[styles.input, { color: colors.defaultText }]}
 					keyboardType={keyboardType}
 					autoCapitalize={autoCapitalize}
 					secureTextEntry={isSecure}
 					onFocus={() => setFocused(true)}
 					onBlur={() => setFocused(false)}
+					accessibilityLabel={label}
 				/>
 				{showPasswordToggle ? (
 					<Pressable
 						onPress={() => setPasswordVisible((prev) => !prev)}
 						style={styles.eyeButton}
 						hitSlop={8}
+						accessibilityRole="button"
+						accessibilityLabel={
+							passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"
+						}
 					>
 						<Ionicons
 							name={passwordVisible ? "eye-outline" : "eye-off-outline"}
@@ -68,7 +92,7 @@ export function InputField({
 						/>
 					</Pressable>
 				) : rightIcon ? (
-					<Text style={styles.rightIcon}>{rightIcon}</Text>
+					<Ionicons name={rightIcon} size={16} color={colors.mutedText} />
 				) : null}
 			</View>
 		</View>
@@ -80,7 +104,6 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	label: {
-		color: colors.mutedText,
 		fontFamily: typography.family.medium,
 		fontSize: 13,
 		lineHeight: 16,
@@ -88,32 +111,20 @@ const styles = StyleSheet.create({
 	inputRow: {
 		height: 52,
 		borderWidth: 1,
-		borderColor: colors.border,
 		borderRadius: 10,
-		backgroundColor: colors.card,
 		flexDirection: "row",
 		alignItems: "center",
 		paddingHorizontal: 14,
-	},
-	inputRowFocused: {
-		borderColor: colors.cyan,
-		backgroundColor: colors.softCyan,
+		gap: 10,
 	},
 	leftIcon: {
-		width: 26,
-		color: colors.mutedText,
-		fontSize: 16,
+		width: 18,
 	},
 	input: {
 		flex: 1,
 		height: 52,
-		color: colors.defaultText,
 		fontFamily: typography.family.regular,
 		fontSize: 15,
-	},
-	rightIcon: {
-		color: colors.mutedText,
-		fontSize: 16,
 	},
 	eyeButton: {
 		width: 32,

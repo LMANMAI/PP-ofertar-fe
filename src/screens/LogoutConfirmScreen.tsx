@@ -13,7 +13,7 @@ export function LogoutConfirmScreen({ onCancel, onConfirm }: Props) {
 			<StatusBar style="light" translucent />
 			<View style={styles.sheet}>
 				<View style={styles.iconCircle}>
-					<Ionicons name="log-out-outline" size={28} color="#EF4444" />
+					<Ionicons name="log-out-outline" size={28} color={colors.danger} />
 				</View>
 				<Text style={styles.title}>¿Cerrar sesión?</Text>
 				<Text style={styles.subtitle}>
@@ -36,9 +36,9 @@ const styles = StyleSheet.create({
 	sheet: { backgroundColor: colors.card, borderRadius: 16, padding: 22, gap: 10, alignItems: "stretch" },
 	iconCircle: { alignSelf: "center", width: 60, height: 60, borderRadius: 30, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" },
 	title: { textAlign: "center", color: colors.navy, fontFamily: typography.family.bold, fontSize: 20, marginTop: 4 },
-	subtitle: { textAlign: "center", color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	confirmBtn: { backgroundColor: "#EF4444", height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: 12 },
+	subtitle: { textAlign: "center", color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
+	confirmBtn: { backgroundColor: colors.danger, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: 12 },
 	confirmText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 15 },
 	cancelBtn: { height: 44, alignItems: "center", justifyContent: "center" },
-	cancelText: { color: "#6B7280", fontFamily: typography.family.medium, fontSize: 14 },
+	cancelText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
 });

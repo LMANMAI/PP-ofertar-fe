@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+	FlatList,
 	Image,
 	Pressable,
 	ScrollView,
@@ -60,38 +61,43 @@ export function OffersScreen({
 				</View>
 			</View>
 
-			<ScrollView
+			<FlatList
 				style={styles.scroll}
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
-			>
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={styles.chipsRow}
-				>
-					{CATEGORIES.map((c) => {
-						const active = c === category;
-						return (
-							<Pressable
-								key={c}
-								onPress={() => setCategory(c)}
-								style={[styles.chip, active && styles.chipActive]}
-							>
-								<Text style={[styles.chipText, active && styles.chipTextActive]}>
-									{c}
-								</Text>
-							</Pressable>
-						);
-					})}
-				</ScrollView>
-
-				{visibleOffers.map((o) => {
+				data={visibleOffers}
+				keyExtractor={(o) => o.id}
+				ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+				ListHeaderComponent={
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={styles.chipsRow}
+					>
+						{CATEGORIES.map((c) => {
+							const active = c === category;
+							return (
+								<Pressable
+									key={c}
+									onPress={() => setCategory(c)}
+									style={[styles.chip, active && styles.chipActive]}
+									accessibilityRole="button"
+									accessibilityState={{ selected: active }}
+								>
+									<Text style={[styles.chipText, active && styles.chipTextActive]}>
+										{c}
+									</Text>
+								</Pressable>
+							);
+						})}
+					</ScrollView>
+				}
+				ListHeaderComponentStyle={{ marginBottom: 16 }}
+				renderItem={({ item: o }) => {
 					const isExpired = EXPIRED_IDS.has(o.id);
 					const isActivated = activatedIds.has(o.id);
 					return (
 						<OfferCard
-							key={o.id}
 							offer={o}
 							expired={isExpired}
 							activated={isActivated}
@@ -100,8 +106,8 @@ export function OffersScreen({
 							onShowCode={() => onShowCode(o.id)}
 						/>
 					);
-				})}
-			</ScrollView>
+				}}
+			/>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav
@@ -142,7 +148,7 @@ function OfferCard({
 						</Text>
 					</View>
 					<View style={styles.expiredBadge}>
-						<Ionicons name="close" size={11} color="#EF4444" />
+						<Ionicons name="close" size={11} color={colors.danger} />
 						<Text style={styles.expiredBadgeText}>Vencida</Text>
 					</View>
 				</View>
@@ -200,7 +206,7 @@ function OfferCard({
 			<Text
 				style={[
 					styles.offerSubtitle,
-					{ color: isDark ? "#99B2CC" : "#6B7280" },
+					{ color: isDark ? "#99B2CC" : colors.mutedText2 },
 				]}
 			>
 				{offer.subtitle}
@@ -269,7 +275,7 @@ const styles = StyleSheet.create({
 		width: 8,
 		height: 8,
 		borderRadius: 4,
-		backgroundColor: "#EF4444",
+		backgroundColor: colors.danger,
 	},
 	scroll: { flex: 1 },
 	scrollContent: { padding: 16, gap: 16 },
@@ -280,13 +286,13 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		backgroundColor: colors.card,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 	},
 	chipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
 	chipText: {
 		fontFamily: typography.family.medium,
 		fontSize: 11,
-		color: "#6B7280",
+		color: colors.mutedText2,
 		letterSpacing: 0.3,
 	},
 	chipTextActive: { color: colors.buttonText },
@@ -331,7 +337,7 @@ const styles = StyleSheet.create({
 		gap: 4,
 	},
 	expiredBadgeText: {
-		color: "#EF4444",
+		color: colors.danger,
 		fontFamily: typography.family.medium,
 		fontSize: 11,
 		letterSpacing: 0.3,

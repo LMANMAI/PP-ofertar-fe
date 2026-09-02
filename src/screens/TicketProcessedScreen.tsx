@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import {
 	Alert,
+	KeyboardAvoidingView,
 	Modal,
+	Platform,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -130,7 +132,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Ticket procesado</Text>
@@ -322,7 +324,10 @@ function EditProductSheet({
 			transparent
 			onRequestClose={onClose}
 		>
-			<View style={styles.modalBackdrop}>
+			<KeyboardAvoidingView
+				style={styles.modalBackdrop}
+				behavior={Platform.OS === "ios" ? "padding" : undefined}
+			>
 				<View style={styles.modalSheet}>
 					<View style={styles.modalHeader}>
 						<Pressable onPress={onClose}>
@@ -337,7 +342,6 @@ function EditProductSheet({
 					<View style={styles.modalForm}>
 						<InputField
 							label="Nombre del producto"
-							leftIcon=""
 							value={name}
 							onChangeText={setName}
 						/>
@@ -345,7 +349,6 @@ function EditProductSheet({
 							<View style={{ flex: 1 }}>
 								<InputField
 									label="Cantidad"
-									leftIcon=""
 									value={quantity}
 									onChangeText={setQuantity}
 									keyboardType="numeric"
@@ -354,7 +357,6 @@ function EditProductSheet({
 							<View style={{ flex: 1 }}>
 								<InputField
 									label="Precio unitario"
-									leftIcon=""
 									value={unitPrice}
 									onChangeText={setUnitPrice}
 									keyboardType="numeric"
@@ -376,7 +378,7 @@ function EditProductSheet({
 						)}
 					</View>
 				</View>
-			</View>
+			</KeyboardAvoidingView>
 		</Modal>
 	);
 }

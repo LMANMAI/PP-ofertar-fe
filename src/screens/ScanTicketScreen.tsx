@@ -97,7 +97,7 @@ export function ScanTicketScreen({
 			<CameraView style={StyleSheet.absoluteFill} facing="back" />
 
 			<View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
-				<Pressable onPress={onCancel} style={styles.closeButton}>
+				<Pressable onPress={onCancel} style={styles.closeButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cerrar">
 					<Ionicons name="close" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.topTitle}>Escaneando ticket</Text>

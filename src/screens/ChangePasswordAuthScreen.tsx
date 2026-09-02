@@ -85,7 +85,7 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={() => onBack()} style={styles.backButton}>
+				<Pressable onPress={() => onBack()} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Cambiar contraseña</Text>
@@ -97,9 +97,9 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 					Elegí una contraseña segura de al menos 8 caracteres con mayúsculas, números y caracteres especiales.
 				</Text>
 
-				<InputField label="Contraseña actual" leftIcon="" value={currentPw} onChangeText={setCurrentPw} secureTextEntry showPasswordToggle />
+				<InputField label="Contraseña actual" value={currentPw} onChangeText={setCurrentPw} secureTextEntry showPasswordToggle />
 
-				<InputField label="Nueva contraseña" leftIcon="" value={newPw} onChangeText={setNewPw} secureTextEntry showPasswordToggle />
+				<InputField label="Nueva contraseña" value={newPw} onChangeText={setNewPw} secureTextEntry showPasswordToggle />
 
 				<PasswordStrengthBar
 					minLength={checks.minLength}
@@ -109,7 +109,7 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 					matches={checks.matches}
 				/>
 
-				<InputField label="Repetí tu nueva contraseña" leftIcon="" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry showPasswordToggle />
+				<InputField label="Repetí tu nueva contraseña" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry showPasswordToggle />
 
 				{error && (
 					<View style={styles.errorBox}>

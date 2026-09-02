@@ -20,7 +20,7 @@ export function GoogleChooseAccountScreen({ onBack, onSelect }: Props) {
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="dark" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="close" size={22} color={colors.navy} />
 				</Pressable>
 			</View>
@@ -44,7 +44,7 @@ export function GoogleChooseAccountScreen({ onBack, onSelect }: Props) {
 					))}
 					<Pressable style={styles.accountRow}>
 						<View style={styles.addAccount}>
-							<Ionicons name="person-add-outline" size={20} color="#6B7280" />
+							<Ionicons name="person-add-outline" size={20} color={colors.mutedText2} />
 						</View>
 						<Text style={styles.addText}>Usar otra cuenta</Text>
 					</Pressable>
@@ -65,14 +65,14 @@ const styles = StyleSheet.create({
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	content: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
 	title: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 24 },
-	subtitle: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 14, marginTop: 4 },
+	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, marginTop: 4 },
 	accountList: { marginTop: 24, gap: 4 },
 	accountRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12, paddingHorizontal: 4 },
 	accAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
 	accAvatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
 	accName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	accEmail: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, marginTop: 1 },
+	accEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, marginTop: 1 },
 	addAccount: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#F8F9FB", alignItems: "center", justifyContent: "center" },
-	addText: { color: "#6B7280", fontFamily: typography.family.medium, fontSize: 14 },
-	legal: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 16, marginTop: 32 },
+	addText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
+	legal: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 16, marginTop: 32 },
 });

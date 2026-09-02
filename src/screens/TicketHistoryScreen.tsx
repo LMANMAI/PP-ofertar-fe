@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -74,7 +74,7 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Historial de tickets</Text>
@@ -102,30 +102,39 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 			)}
 
 			{!loading && tickets.length > 0 && (
-				<ScrollView
+				<FlatList
+					data={tickets}
+					keyExtractor={(t) => String(t.id)}
 					contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 24 }}
+					ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
 					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.cyan} />}
-				>
-					<View style={styles.summary}>
-						<View style={{ flex: 1 }}>
-							<Text style={styles.summaryLabel}>GASTADO</Text>
-							<Text style={styles.summaryValue}>{formatCurrency(totalSpent)}</Text>
-							<Text style={styles.summaryHint}>en {tickets.length} tickets</Text>
+					ListHeaderComponent={
+						<View style={styles.summary}>
+							<View style={{ flex: 1 }}>
+								<Text style={styles.summaryLabel}>GASTADO</Text>
+								<Text style={styles.summaryValue}>{formatCurrency(totalSpent)}</Text>
+								<Text style={styles.summaryHint}>en {tickets.length} tickets</Text>
+							</View>
+							<View style={styles.summaryDivider} />
+							<View style={{ flex: 1 }}>
+								<Text style={styles.summaryLabel}>AHORRADO</Text>
+								<Text style={[styles.summaryValue, { color: colors.success }]}>{formatCurrency(totalSaved)}</Text>
+								<Text style={styles.summaryHint}>descuentos</Text>
+							</View>
 						</View>
-						<View style={styles.summaryDivider} />
-						<View style={{ flex: 1 }}>
-							<Text style={styles.summaryLabel}>AHORRADO</Text>
-							<Text style={[styles.summaryValue, { color: "#22C55E" }]}>{formatCurrency(totalSaved)}</Text>
-							<Text style={styles.summaryHint}>descuentos</Text>
-						</View>
-					</View>
-
-					{tickets.map((t) => {
+					}
+					ListHeaderComponentStyle={{ marginBottom: 10 }}
+					renderItem={({ item: t }) => {
 						const badge = storeBadge(t.storeName);
 						const ticketTotal = t.total;
 						const ticketSavings = t.totalDiscounts;
 						return (
-							<Pressable key={t.id} style={styles.row} onPress={() => onSelectTicket(t.id)}>
+							<Pressable
+								style={styles.row}
+								onPress={() => onSelectTicket(t.id)}
+								accessibilityRole="button"
+								accessibilityLabel={`Ticket de ${t.storeName || "comercio sin nombre"}, ${formatCurrency(ticketTotal)}`}
+							>
 								<View style={[styles.badge, { backgroundColor: badge.color }]}>
 									<Text style={styles.badgeText}>{badge.code}</Text>
 								</View>
@@ -150,8 +159,8 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 								</View>
 							</Pressable>
 						);
-					})}
-				</ScrollView>
+					}}
+				/>
 			)}
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
@@ -174,18 +183,18 @@ const styles = StyleSheet.create({
 	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
 	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14 },
 	summary: { flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: 16 },
-	summaryDivider: { width: 1, height: 40, backgroundColor: "#E5E7EB", marginHorizontal: 12, alignSelf: "center" },
-	summaryLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
+	summaryDivider: { width: 1, height: 40, backgroundColor: colors.divider, marginHorizontal: 12, alignSelf: "center" },
+	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	summaryValue: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18, marginTop: 4 },
-	summaryHint: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB" },
+	summaryHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
 	badge: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
 	badgeText: { color: "#fff", fontFamily: typography.family.bold, fontSize: 12 },
 	store: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	date: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
+	date: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	total: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
 	statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
-	savings: { color: "#22C55E", fontFamily: typography.family.medium, fontSize: 11 },
+	savings: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11 },
 	statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
 	statusOk: { backgroundColor: "#E0F5EF" },
 	statusFailed: { backgroundColor: "rgba(231,111,81,0.15)" },

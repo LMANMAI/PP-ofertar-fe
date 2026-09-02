@@ -120,7 +120,7 @@ export function ProfileScreen({
 							<Text style={styles.levelBadgeText}>Nivel Plata · 2.430 pts</Text>
 						</View>
 					</View>
-					<Ionicons name="chevron-forward" size={18} color="#9CA3A8" />
+					<Ionicons name="chevron-forward" size={18} color={colors.subtleText} />
 				</Pressable>
 
 				<Text style={styles.sectionLabel}>CUENTA</Text>
@@ -135,7 +135,7 @@ export function ProfileScreen({
 									<Text style={styles.listLabel}>{it.label}</Text>
 									{it.hint && <Text style={styles.listHint}>{it.hint}</Text>}
 								</View>
-								<Ionicons name="chevron-forward" size={18} color="#9CA3A8" />
+								<Ionicons name="chevron-forward" size={18} color={colors.subtleText} />
 							</Pressable>
 							{idx < ACCOUNT_ITEMS.length - 1 && <View style={styles.listDivider} />}
 						</View>
@@ -203,12 +203,12 @@ export function ProfileScreen({
 						<View style={{ flex: 1 }}>
 							<Text style={styles.listLabel}>Centro de ayuda</Text>
 						</View>
-						<Ionicons name="chevron-forward" size={18} color="#9CA3A8" />
+						<Ionicons name="chevron-forward" size={18} color={colors.subtleText} />
 					</Pressable>
 				</View>
 
 				<Pressable style={styles.logoutButton} onPress={onLogout}>
-					<Ionicons name="log-out-outline" size={18} color="#EF4444" />
+					<Ionicons name="log-out-outline" size={18} color={colors.danger} />
 					<Text style={styles.logoutText}>Cerrar sesión</Text>
 				</Pressable>
 			</ScrollView>
@@ -232,21 +232,21 @@ const styles = StyleSheet.create({
 	headerTitle: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	scroll: { flex: 1 },
 	scrollContent: { padding: 16, gap: 12 },
-	profileCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1, borderColor: "#E5E7EB" },
+	profileCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1, borderColor: colors.divider },
 	avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
 	avatarImage: { width: "100%", height: "100%" },
 	avatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
 	profileName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 16 },
-	profileEmail: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12 },
+	profileEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
 	levelBadge: { alignSelf: "flex-start", backgroundColor: "#E8F6FC", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4, flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
 	levelBadgeText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 11, letterSpacing: 0.3 },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 8 },
-	listCard: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", overflow: "hidden" },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 8 },
+	listCard: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
 	listItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, minHeight: 60 },
 	listIconWrap: { width: 32, height: 32, borderRadius: 8, backgroundColor: "#E8F6FC", alignItems: "center", justifyContent: "center" },
 	listLabel: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	listHint: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12 },
-	listDivider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 60 },
-	logoutButton: { marginTop: 8, height: 48, borderRadius: 10, borderWidth: 1, borderColor: "#EF4444", backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-	logoutText: { color: "#EF4444", fontFamily: typography.family.medium, fontSize: 15 },
+	listHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
+	listDivider: { height: 1, backgroundColor: colors.divider, marginLeft: 60 },
+	logoutButton: { marginTop: 8, height: 48, borderRadius: 10, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+	logoutText: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
 });

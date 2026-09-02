@@ -105,7 +105,7 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 			<CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
 
 			<View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
-				<Pressable onPress={onBack} style={styles.closeButton}>
+				<Pressable onPress={onBack} style={styles.closeButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cerrar">
 					<Ionicons name="close" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.topTitle}>Ticket de compra</Text>

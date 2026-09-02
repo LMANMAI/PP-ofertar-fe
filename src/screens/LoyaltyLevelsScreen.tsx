@@ -15,7 +15,7 @@ type Level = {
 
 const LEVELS: Level[] = [
 	{ id: "bronze", name: "Bronce", threshold: 0, color: "#B45A14", perks: ["Acumulación básica", "Acceso a ofertas"] },
-	{ id: "silver", name: "Plata", threshold: 1500, color: "#9CA3A8", perks: ["+25% en puntos", "Ofertas exclusivas", "Soporte prioritario"] },
+	{ id: "silver", name: "Plata", threshold: 1500, color: colors.subtleText, perks: ["+25% en puntos", "Ofertas exclusivas", "Soporte prioritario"] },
 	{ id: "gold", name: "Oro", threshold: 3000, color: "#F2B61D", perks: ["+50% en puntos", "Envíos gratis", "Eventos VIP"] },
 	{ id: "platinum", name: "Platino", threshold: 6000, color: "#7DD4F5", perks: ["+100% en puntos", "Atención exclusiva", "Beneficios premium"] },
 ];
@@ -32,7 +32,7 @@ export function LoyaltyLevelsScreen({ onBack, activeTab, onSelectTab, onScanPres
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Niveles de fidelidad</Text>
@@ -42,7 +42,7 @@ export function LoyaltyLevelsScreen({ onBack, activeTab, onSelectTab, onScanPres
 				<View style={styles.currentCard}>
 					<Text style={styles.currentLabel}>TU NIVEL ACTUAL</Text>
 					<View style={styles.currentRow}>
-						<Ionicons name="medal" size={28} color="#9CA3A8" />
+						<Ionicons name="medal" size={28} color={colors.subtleText} />
 						<View style={{ flex: 1 }}>
 							<Text style={styles.currentName}>Nivel Plata</Text>
 							<Text style={styles.currentPts}>{CURRENT_PTS.toLocaleString("es-AR")} pts</Text>
@@ -72,7 +72,7 @@ export function LoyaltyLevelsScreen({ onBack, activeTab, onSelectTab, onScanPres
 								</View>
 								{reached && (
 									<View style={styles.reachedBadge}>
-										<Ionicons name="checkmark" size={12} color="#22C55E" />
+										<Ionicons name="checkmark" size={12} color={colors.success} />
 										<Text style={styles.reachedText}>Alcanzado</Text>
 									</View>
 								)}
@@ -110,14 +110,14 @@ const styles = StyleSheet.create({
 	progressFill: { height: 6, backgroundColor: colors.cyan, borderRadius: 3 },
 	progressHint: { color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 12 },
 	bold: { color: colors.cyan, fontFamily: typography.family.medium },
-	levelCard: { backgroundColor: colors.card, borderRadius: 14, padding: 16, gap: 8, borderWidth: 1, borderColor: "#E5E7EB" },
-	levelCardReached: { borderColor: "#22C55E", borderWidth: 1.5 },
+	levelCard: { backgroundColor: colors.card, borderRadius: 14, padding: 16, gap: 8, borderWidth: 1, borderColor: colors.divider },
+	levelCardReached: { borderColor: colors.success, borderWidth: 1.5 },
 	levelHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 6 },
 	levelBadge: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
 	levelName: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
-	levelThreshold: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
+	levelThreshold: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	reachedBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#E0F5EF", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
-	reachedText: { color: "#22C55E", fontFamily: typography.family.medium, fontSize: 11 },
+	reachedText: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11 },
 	perkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 	perkText: { color: "#374151", fontFamily: typography.family.regular, fontSize: 13 },
 });

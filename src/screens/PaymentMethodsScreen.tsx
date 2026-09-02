@@ -21,7 +21,7 @@ export function PaymentMethodsScreen({ onBack, activeTab, onSelectTab, onScanPre
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Métodos de pago</Text>
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
 	cardBottom: { flexDirection: "row", justifyContent: "space-between" },
 	cardMeta: { color: "rgba(255,255,255,0.6)", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
 	cardValue: { color: "#fff", fontFamily: typography.family.medium, fontSize: 13, marginTop: 4 },
-	addCard: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.card, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#E5E7EB", borderStyle: "dashed", justifyContent: "center" },
+	addCard: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.card, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.divider, borderStyle: "dashed", justifyContent: "center" },
 	addCardText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
 	note: { flexDirection: "row", gap: 8, alignItems: "center", backgroundColor: "#F0FDF4", padding: 12, borderRadius: 10 },
 	noteText: { flex: 1, color: "#15803D", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },

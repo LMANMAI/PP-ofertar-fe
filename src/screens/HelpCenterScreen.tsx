@@ -26,7 +26,7 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Centro de ayuda</Text>
@@ -34,7 +34,7 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 
 			<ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 24 }}>
 				<View style={styles.searchBox}>
-					<Ionicons name="search" size={16} color="#9CA3A8" />
+					<Ionicons name="search" size={16} color={colors.subtleText} />
 					<Text style={styles.searchPlaceholder}>Buscar en ayuda</Text>
 				</View>
 
@@ -50,7 +50,7 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 								<Ionicons
 									name={open === f.id ? "chevron-up" : "chevron-down"}
 									size={18}
-									color="#9CA3A8"
+									color={colors.subtleText}
 								/>
 							</Pressable>
 							{open === f.id && <Text style={styles.faqA}>{f.a}</Text>}
@@ -78,14 +78,14 @@ const styles = StyleSheet.create({
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	searchBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.card, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#E5E7EB" },
-	searchPlaceholder: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 14 },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 8 },
+	searchBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.card, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.divider },
+	searchPlaceholder: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 14 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 8 },
 	faqCard: { backgroundColor: colors.card, borderRadius: 12, overflow: "hidden" },
 	faqRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 },
 	faqQ: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	faqA: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 14 },
-	divider: { height: 1, backgroundColor: "#E5E7EB", marginHorizontal: 16 },
+	faqA: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 14 },
+	divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: 16 },
 	contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: colors.navy, height: 48, borderRadius: 10 },
 	contactText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 });

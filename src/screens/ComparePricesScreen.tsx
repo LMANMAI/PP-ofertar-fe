@@ -68,15 +68,24 @@ export function ComparePricesScreen({
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Comparar</Text>
-				<Pressable onPress={() => setSaved((s) => !s)} style={styles.favButton}>
+				<Pressable
+					onPress={() => setSaved((s) => !s)}
+					style={styles.favButton}
+					hitSlop={8}
+					accessibilityRole="button"
+					accessibilityLabel={
+						saved ? "Quitar de favoritos" : "Agregar a favoritos"
+					}
+					accessibilityState={{ selected: saved }}
+				>
 					<Ionicons
 						name={saved ? "heart" : "heart-outline"}
 						size={22}
-						color={saved ? "#EF4444" : colors.cyan}
+						color={saved ? colors.danger : colors.cyan}
 					/>
 				</Pressable>
 			</View>
@@ -91,7 +100,7 @@ export function ComparePricesScreen({
 			>
 				<View style={styles.productCard}>
 					<View style={styles.productThumb}>
-						<Ionicons name="cube-outline" size={28} color="#9CA3A8" />
+						<Ionicons name="cube-outline" size={28} color={colors.subtleText} />
 					</View>
 					<View style={{ flex: 1, gap: 4 }}>
 						<Text style={styles.productBrand}>{productBrand}</Text>
@@ -141,11 +150,11 @@ export function ComparePricesScreen({
 							<View style={{ gap: 3 }}>
 								<Text style={styles.storeName}>{s.name}</Text>
 								<View style={styles.storeMetaRow}>
-									<Ionicons name="location-sharp" size={11} color="#9CA3A8" />
+									<Ionicons name="location-sharp" size={11} color={colors.subtleText} />
 									<Text
 										style={[
 											styles.storeMetaText,
-											s.deltaTone === "bad" && s.id === "vea" && { color: "#EF4444" },
+											s.deltaTone === "bad" && s.id === "vea" && { color: colors.danger },
 											s.best && styles.storeMetaTextBest,
 										]}
 									>
@@ -239,7 +248,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 14,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 	},
 	productThumb: {
 		width: 58,
@@ -250,7 +259,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	productBrand: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.medium,
 		fontSize: 10,
 		letterSpacing: 1,
@@ -261,7 +270,7 @@ const styles = StyleSheet.create({
 		fontSize: 15,
 	},
 	productLastPrice: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 	},
@@ -272,18 +281,18 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		backgroundColor: colors.card,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 	},
 	filterChipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
 	filterChipText: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.medium,
 		fontSize: 11,
 		letterSpacing: 0.3,
 	},
 	filterChipTextActive: { color: colors.buttonText },
 	sectionLabel: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.medium,
 		fontSize: 10,
 		letterSpacing: 1.2,
@@ -298,7 +307,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 	},
 	storeRowBest: { borderColor: "#1D9E75", borderWidth: 1.5 },
 	storeLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
@@ -321,11 +330,11 @@ const styles = StyleSheet.create({
 	},
 	storeMetaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
 	storeMetaText: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 	},
-	storeMetaTextBest: { color: "#22C55E" },
+	storeMetaTextBest: { color: colors.success },
 	bestChip: {
 		alignSelf: "flex-start",
 		backgroundColor: "#E0F5EF",
@@ -347,19 +356,19 @@ const styles = StyleSheet.create({
 	},
 	storeDelta: { fontFamily: typography.family.medium, fontSize: 12 },
 	storeDeltaGood: { color: "#1D9E75" },
-	storeDeltaBad: { color: "#EF4444" },
+	storeDeltaBad: { color: colors.danger },
 	summaryRow: { flexDirection: "row", gap: 12, marginTop: 4 },
 	summaryCard: {
 		flex: 1,
 		backgroundColor: colors.card,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 		borderRadius: 12,
 		padding: 14,
 		gap: 4,
 	},
 	summaryLabel: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.medium,
 		fontSize: 9,
 		letterSpacing: 0.8,

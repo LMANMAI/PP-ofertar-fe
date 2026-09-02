@@ -35,7 +35,7 @@ export function FavoriteStoresScreen({ onBack, activeTab, onSelectTab, onScanPre
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Mis tiendas favoritas</Text>
@@ -49,7 +49,14 @@ export function FavoriteStoresScreen({ onBack, activeTab, onSelectTab, onScanPre
 				{STORES.map((s) => {
 					const isFav = favs.has(s.id);
 					return (
-						<Pressable key={s.id} style={styles.row} onPress={() => toggle(s.id)}>
+						<Pressable
+							key={s.id}
+							style={styles.row}
+							onPress={() => toggle(s.id)}
+							accessibilityRole="button"
+							accessibilityLabel={`${s.name}, ${isFav ? "quitar de" : "agregar a"} favoritos`}
+							accessibilityState={{ selected: isFav }}
+						>
 							<View style={[styles.badge, { backgroundColor: s.color }]}>
 								<Text style={styles.badgeText}>{s.code}</Text>
 							</View>
@@ -60,7 +67,7 @@ export function FavoriteStoresScreen({ onBack, activeTab, onSelectTab, onScanPre
 							<Ionicons
 								name={isFav ? "heart" : "heart-outline"}
 								size={22}
-								color={isFav ? "#EF4444" : "#9CA3A8"}
+								color={isFav ? colors.danger : colors.subtleText}
 							/>
 						</Pressable>
 					);
@@ -80,10 +87,10 @@ const styles = StyleSheet.create({
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	hint: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, marginBottom: 4 },
-	row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB" },
+	hint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, marginBottom: 4 },
+	row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
 	badge: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
 	badgeText: { color: "#fff", fontFamily: typography.family.bold, fontSize: 12 },
 	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	meta: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
+	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 });

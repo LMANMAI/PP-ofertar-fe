@@ -68,7 +68,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Lista inteligente</Text>
@@ -172,21 +172,21 @@ const styles = StyleSheet.create({
 	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center", paddingHorizontal: 40 },
 	heroCard: { flexDirection: "row", gap: 12, backgroundColor: "#E8F6FC", borderRadius: 14, padding: 16, alignItems: "center" },
 	heroTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
-	heroBody: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2, lineHeight: 16 },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
-	list: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: "#E5E7EB", overflow: "hidden" },
+	heroBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2, lineHeight: 16 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
+	list: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
 	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
 	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: "#D8E1EE", alignItems: "center", justifyContent: "center" },
 	checkOn: { backgroundColor: colors.cyan, borderColor: colors.cyan },
 	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	nameChecked: { color: "#9CA3A8", textDecorationLine: "line-through" },
+	nameChecked: { color: colors.subtleText, textDecorationLine: "line-through" },
 	suggestedChip: { alignSelf: "flex-start", backgroundColor: "#FFF7ED", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginTop: 4 },
 	suggestedText: { color: "#B45A14", fontFamily: typography.family.medium, fontSize: 10 },
-	price: { color: "#22C55E", fontFamily: typography.family.medium, fontSize: 12 },
-	priceChecked: { color: "#9CA3A8" },
-	divider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 48 },
-	footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: "#E5E7EB", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	footerLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
+	price: { color: colors.success, fontFamily: typography.family.medium, fontSize: 12 },
+	priceChecked: { color: colors.subtleText },
+	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 48 },
+	footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+	footerLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	footerValue: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 20, marginTop: 2 },
 	cta: { backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10 },
 	ctaText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 14 },

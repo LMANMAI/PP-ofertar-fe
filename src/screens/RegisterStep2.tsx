@@ -61,7 +61,7 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 			<View style={styles.header}>
 				<View style={styles.headerLine}>
 					<View style={styles.headerLeft}>
-						<Pressable onPress={onBack} style={styles.backButton}>
+						<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 							<Ionicons name="chevron-back" size={20} color={colors.buttonText} />
 						</Pressable>
 						<Text style={styles.headerTitle}>Registrarse</Text>
@@ -87,7 +87,6 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 				<View style={styles.form}>
 					<InputField
 						label="Contraseña"
-						leftIcon=""
 						value={password}
 						onChangeText={setPassword}
 						secureTextEntry
@@ -103,7 +102,6 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 
 					<InputField
 						label="Repetí tu contraseña"
-						leftIcon=""
 						value={repeatPassword}
 						onChangeText={setRepeatPassword}
 						secureTextEntry

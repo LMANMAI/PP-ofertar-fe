@@ -24,7 +24,7 @@ export function RecurringProductsScreen({ onBack, activeTab, onSelectTab, onScan
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Productos recurrentes</Text>
@@ -44,7 +44,7 @@ export function RecurringProductsScreen({ onBack, activeTab, onSelectTab, onScan
 								<Text style={styles.freq}>{p.freq}</Text>
 							</View>
 							<Pressable>
-								<Ionicons name="notifications-outline" size={20} color="#9CA3A8" />
+								<Ionicons name="notifications-outline" size={20} color={colors.subtleText} />
 							</Pressable>
 						</View>
 						<View style={styles.bestRow}>
@@ -71,13 +71,13 @@ const styles = StyleSheet.create({
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	intro: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 12, borderWidth: 1, borderColor: "#E5E7EB" },
+	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
+	card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 12, borderWidth: 1, borderColor: colors.divider },
 	cardHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
 	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	freq: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
+	freq: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	bestRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	bestChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+	bestChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.success, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
 	bestText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 11 },
 	price: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
 });

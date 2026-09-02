@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { useState, useEffect, useRef } from "react";
+import { ActivityIndicator, BackHandler, Platform, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -162,6 +162,30 @@ export default function App() {
 	const [booted, setBooted] = useState(false);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 	const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+
+	// Historial de pantallas visitadas, para que el botón físico Back de
+	// Android navegue hacia atrás en vez de cerrar la app directamente.
+	const screenHistoryRef = useRef<Screen[]>([]);
+	const prevScreenRef = useRef<Screen>(screen);
+
+	useEffect(() => {
+		if (prevScreenRef.current !== screen) {
+			screenHistoryRef.current.push(prevScreenRef.current);
+			prevScreenRef.current = screen;
+		}
+	}, [screen]);
+
+	useEffect(() => {
+		if (Platform.OS !== "android") return;
+		const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+			const previous = screenHistoryRef.current.pop();
+			if (!previous) return false;
+			prevScreenRef.current = previous;
+			setScreen(previous);
+			return true;
+		});
+		return () => sub.remove();
+	}, []);
 
 	useEffect(() => {
 		(async () => {

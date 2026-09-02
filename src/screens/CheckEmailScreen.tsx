@@ -13,7 +13,7 @@ export function CheckEmailScreen({ email = "tu correo", onBack, onOpenChange }: 
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 			</View>
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
 	content: { flex: 1, padding: 24, alignItems: "center", gap: 8 },
 	iconCircle: { width: 96, height: 96, borderRadius: 48, backgroundColor: "#E8F6FC", alignItems: "center", justifyContent: "center", marginTop: 32 },
 	title: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 24, textAlign: "center", marginTop: 14 },
-	body: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 14, textAlign: "center", lineHeight: 22 },
+	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center", lineHeight: 22 },
 	bold: { color: colors.navy, fontFamily: typography.family.medium },
 	hint: { flexDirection: "row", gap: 8, alignItems: "center", backgroundColor: "#FFF7ED", padding: 12, borderRadius: 10, marginTop: 16 },
 	hintText: { flex: 1, color: "#B45A14", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },

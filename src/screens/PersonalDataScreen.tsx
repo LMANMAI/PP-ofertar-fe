@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Animated, Dimensions, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -172,13 +172,17 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={() => onBack()} style={styles.backButton}>
+				<Pressable onPress={() => onBack()} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Datos personales</Text>
 			</View>
 
-			<ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 120 }}>
+			<KeyboardAvoidingView
+				style={{ flex: 1 }}
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+			>
+			<ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 120 }} keyboardShouldPersistTaps="handled">
 				<View style={styles.avatarRow}>
 					<View style={styles.avatar}>
 						{picUploading ? (
@@ -216,10 +220,10 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 					<ActivityIndicator size="small" color={colors.cyan} style={{ marginTop: 16 }} />
 				) : (
 					<>
-						<InputField label="Nombre" leftIcon="" value={first} onChangeText={setFirst} />
-						<InputField label="Apellido" leftIcon="" value={last} onChangeText={setLast} />
-						<InputField label="Correo electrónico" leftIcon="" value={email} onChangeText={() => {}} />
-						<InputField label="Teléfono" leftIcon="" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+						<InputField label="Nombre" value={first} onChangeText={setFirst} />
+						<InputField label="Apellido" value={last} onChangeText={setLast} />
+						<InputField label="Correo electrónico" value={email} onChangeText={() => {}} />
+						<InputField label="Teléfono" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
 
 						{saveError && (
 							<View style={styles.errorBox}>
@@ -241,6 +245,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 					</>
 				)}
 			</ScrollView>
+			</KeyboardAvoidingView>
 
 			<Modal visible={showSheet} transparent animationType="none" onRequestClose={closeSheet}>
 				<Pressable style={styles.sheetOverlay} onPress={closeSheet}>
@@ -275,7 +280,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 											pressed && { opacity: 0.7 },
 										]}
 									>
-										<Ionicons name="trash-outline" size={20} color="#EF4444" />
+										<Ionicons name="trash-outline" size={20} color={colors.danger} />
 										<Text style={styles.sheetOptionTextDanger}>Eliminar foto actual</Text>
 									</Pressable>
 								)}
@@ -326,9 +331,9 @@ const styles = StyleSheet.create({
 	sheetTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18, textAlign: "center", marginBottom: 4 },
 	sheetOptions: { gap: 10 },
 	sheetOption: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.navy, height: 52, borderRadius: 12, paddingHorizontal: 18 },
-	sheetOptionDanger: { backgroundColor: colors.card, borderWidth: 1, borderColor: "#EF4444" },
+	sheetOptionDanger: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
 	sheetOptionText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-	sheetOptionTextDanger: { color: "#EF4444", fontFamily: typography.family.medium, fontSize: 15 },
+	sheetOptionTextDanger: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
 	sheetCancel: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 20 },
 	sheetCancelText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 15 },
 });

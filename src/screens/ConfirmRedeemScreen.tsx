@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
 	sheet: { backgroundColor: colors.card, borderRadius: 16, padding: 22, gap: 12, alignItems: "stretch" },
 	iconCircle: { alignSelf: "center", width: 60, height: 60, borderRadius: 30, backgroundColor: "#E8F6FC", alignItems: "center", justifyContent: "center" },
 	title: { textAlign: "center", color: colors.navy, fontFamily: typography.family.bold, fontSize: 20, marginTop: 4 },
-	subtitle: { textAlign: "center", color: "#6B7280", fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20 },
+	subtitle: { textAlign: "center", color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20 },
 	bold: { color: colors.navy, fontFamily: typography.family.medium },
 	statsRow: { flexDirection: "row", gap: 10, marginTop: 6 },
 	stat: { flex: 1, backgroundColor: colors.navy, borderRadius: 12, padding: 14, alignItems: "center" },
@@ -73,5 +73,5 @@ const styles = StyleSheet.create({
 	confirmBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: 8 },
 	confirmText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	cancelBtn: { height: 44, alignItems: "center", justifyContent: "center" },
-	cancelText: { color: "#6B7280", fontFamily: typography.family.medium, fontSize: 14 },
+	cancelText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
 });

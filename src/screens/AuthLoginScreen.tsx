@@ -2,7 +2,10 @@ import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import {
 	ActivityIndicator,
+	KeyboardAvoidingView,
+	Platform,
 	Pressable,
+	ScrollView,
 	StyleSheet,
 	Text,
 	View,
@@ -76,70 +79,80 @@ export function AuthLoginScreen({
 			<View style={styles.topSection}>
 				<StatusBar style="light" translucent />
 				<View style={styles.header}>
-					<Pressable onPress={onBackPress} style={styles.backButton}>
+					<Pressable onPress={onBackPress} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 						<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 					</Pressable>
 				</View>
 			</View>
 
-			<View style={[styles.content, { paddingBottom: insets.bottom }]}>
-				<Text style={styles.title}>Iniciar sesión</Text>
-				<Text style={styles.subtitle}>
-					Ingresá a tu cuenta para seguir ahorrando
-				</Text>
-
-				<View style={styles.form}>
-					<InputField
-						label="Correo electrónico"
-						leftIcon=""
-						value={email}
-						onChangeText={setEmail}
-						keyboardType="email-address"
-						autoCapitalize="none"
-					/>
-					<InputField
-						label="Contraseña"
-						leftIcon=""
-						value={password}
-						onChangeText={setPassword}
-						secureTextEntry
-						showPasswordToggle
-					/>
-				</View>
-
-				{error && (
-					<View style={styles.errorBox}>
-						<Ionicons name="alert-circle" size={16} color="#A8341E" />
-						<Text style={styles.errorText}>{error}</Text>
-					</View>
-				)}
-
-				<Pressable style={styles.forgotButton} onPress={onForgotPassword}>
-					<Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-				</Pressable>
-
-				<Pressable
-					onPress={loading ? undefined : handleLogin}
-					style={({ pressed }) => [
-						styles.primaryButton,
-						pressed && !loading && styles.pressed,
-						loading && { opacity: 0.55 },
+			<KeyboardAvoidingView
+				style={{ flex: 1 }}
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				keyboardVerticalOffset={insets.top}
+			>
+				<ScrollView
+					contentContainerStyle={[
+						styles.content,
+						{ paddingBottom: insets.bottom + 24 },
 					]}
+					keyboardShouldPersistTaps="handled"
 				>
-					{loading ? (
-						<ActivityIndicator size="small" color={colors.buttonText} />
-					) : (
-						<Text style={styles.primaryButtonText}>Iniciar sesión</Text>
-					)}
-				</Pressable>
-
-				<Pressable onPress={onGoToRegister} style={styles.footerLinkWrap}>
-					<Text style={styles.footerText}>
-						¿No tenés cuenta?{" "}
-						<Text style={styles.footerLink}>Registrate gratis</Text>
+					<Text style={styles.title}>Iniciar sesión</Text>
+					<Text style={styles.subtitle}>
+						Ingresá a tu cuenta para seguir ahorrando
 					</Text>
-				</Pressable>
-			</View>
+
+					<View style={styles.form}>
+						<InputField
+							label="Correo electrónico"
+							value={email}
+							onChangeText={setEmail}
+							keyboardType="email-address"
+							autoCapitalize="none"
+						/>
+						<InputField
+							label="Contraseña"
+							value={password}
+							onChangeText={setPassword}
+							secureTextEntry
+							showPasswordToggle
+						/>
+					</View>
+
+					{error && (
+						<View style={styles.errorBox}>
+							<Ionicons name="alert-circle" size={16} color="#A8341E" />
+							<Text style={styles.errorText}>{error}</Text>
+						</View>
+					)}
+
+					<Pressable style={styles.forgotButton} onPress={onForgotPassword}>
+						<Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+					</Pressable>
+
+					<Pressable
+						onPress={loading ? undefined : handleLogin}
+						style={({ pressed }) => [
+							styles.primaryButton,
+							pressed && !loading && styles.pressed,
+							loading && { opacity: 0.55 },
+						]}
+					>
+						{loading ? (
+							<ActivityIndicator size="small" color={colors.buttonText} />
+						) : (
+							<Text style={styles.primaryButtonText}>Iniciar sesión</Text>
+						)}
+					</Pressable>
+
+					<Pressable onPress={onGoToRegister} style={styles.footerLinkWrap}>
+						<Text style={styles.footerText}>
+							¿No tenés cuenta?{" "}
+							<Text style={styles.footerLink}>Registrate gratis</Text>
+						</Text>
+					</Pressable>
+				</ScrollView>
+			</KeyboardAvoidingView>
 		</View>
 	);
 }

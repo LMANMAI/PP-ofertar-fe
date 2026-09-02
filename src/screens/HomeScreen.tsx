@@ -96,6 +96,8 @@ export function HomeScreen({
 						pressed && { opacity: 0.85 },
 					]}
 					hitSlop={8}
+					accessibilityRole="button"
+					accessibilityLabel="Abrir perfil"
 				>
 					{session.user.profilePicture ? (
 						<Image
@@ -227,7 +229,7 @@ export function HomeScreen({
 									<Text
 										style={[
 											styles.offerSub,
-											{ color: dark ? "#99B2CC" : "#6B7280" },
+											{ color: dark ? "#99B2CC" : colors.mutedText2 },
 										]}
 									>
 										{o.subtitle}
@@ -243,6 +245,9 @@ export function HomeScreen({
 												? { backgroundColor: colors.orange }
 												: { backgroundColor: colors.navy },
 										]}
+										hitSlop={6}
+										accessibilityRole="button"
+										accessibilityLabel={`Activar oferta ${o.title}`}
 									>
 										<Text style={styles.activateText}>Activar oferta</Text>
 									</Pressable>
@@ -267,7 +272,7 @@ export function HomeScreen({
 							onPress={onOpenRecurring}
 						>
 							<View style={styles.productIconWrap}>
-								<Ionicons name={p.icon} size={28} color="#9CA3A8" />
+								<Ionicons name={p.icon} size={28} color={colors.subtleText} />
 							</View>
 							<Text style={styles.productName}>{p.name}</Text>
 							<View style={styles.productFooter}>
@@ -505,7 +510,7 @@ const styles = StyleSheet.create({
 		padding: 12,
 		gap: 6,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 	},
 	productIconWrap: {
 		width: "100%",
@@ -555,7 +560,7 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		paddingVertical: 12,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 	},
 	quickLabel: {
 		color: colors.navy,

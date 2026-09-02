@@ -42,7 +42,7 @@ export function OfferDetailScreen({ offer, onBack, onActivate, activeTab, onSele
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Detalle de oferta</Text>
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
 	contentCard: {
 		backgroundColor: colors.card,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 		borderRadius: 16,
 		marginHorizontal: 16,
 		marginTop: 12,
@@ -231,11 +231,11 @@ const styles = StyleSheet.create({
 	},
 	divider: {
 		height: 1,
-		backgroundColor: "#E5E7EB",
+		backgroundColor: colors.divider,
 		marginVertical: 16,
 	},
 	conditionText: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 		lineHeight: 18,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
 		paddingBottom: 12,
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
-		borderTopColor: "#E5E7EB",
+		borderTopColor: colors.divider,
 	},
 	activateButton: {
 		backgroundColor: colors.navy,

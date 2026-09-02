@@ -62,7 +62,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Detalle del ticket</Text>
@@ -121,7 +121,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 
 					{computedSavings > 0 && (
 						<View style={styles.savings}>
-							<Ionicons name="trending-down-outline" size={18} color="#22C55E" />
+							<Ionicons name="trending-down-outline" size={18} color={colors.success} />
 							<View style={{ flex: 1 }}>
 								<Text style={styles.savingsTitle}>
 									Ahorraste {formatCurrency(computedSavings)} este ticket
@@ -203,14 +203,14 @@ const styles = StyleSheet.create({
 	savings: { flexDirection: "row", gap: 10, backgroundColor: "#E0F5EF", padding: 14, borderRadius: 12, alignItems: "center" },
 	savingsTitle: { color: "#15803D", fontFamily: typography.family.bold, fontSize: 13 },
 	savingsHint: { color: "#15803D", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
-	products: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", overflow: "hidden" },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
+	products: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
 	productRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12 },
 	productName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
 	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 8, marginTop: 2 },
-	productMeta: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12 },
-	originalPrice: { textDecorationLine: "line-through", color: "#9CA3A8", opacity: 0.6, fontFamily: typography.family.regular, fontSize: 12 },
+	productMeta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
+	originalPrice: { textDecorationLine: "line-through", color: colors.subtleText, opacity: 0.6, fontFamily: typography.family.regular, fontSize: 12 },
 	productPrice: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
-	discountText: { color: "#22C55E", fontFamily: typography.family.medium, fontSize: 11, marginTop: 2 },
-	divider: { height: 1, backgroundColor: "#E5E7EB" },
+	discountText: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11, marginTop: 2 },
+	divider: { height: 1, backgroundColor: colors.divider },
 });

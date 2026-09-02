@@ -24,7 +24,7 @@ function yyyyMM(date: Date): string {
 	return `${y}-${m}`;
 }
 
-const CAT_COLORS = ["#7DD4F5", "#0D80CC", "#22C55E", "#F2B61D", "#9CA3A8", "#E76F51"];
+const CAT_COLORS = ["#7DD4F5", "#0D80CC", colors.success, "#F2B61D", colors.subtleText, "#E76F51"];
 
 type Props = {
 	onBack: () => void;
@@ -87,7 +87,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Análisis mensual</Text>
@@ -180,7 +180,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 
 					<View style={styles.highlightsRow}>
 							<View style={styles.highlightPill}>
-								<Ionicons name="trending-up-outline" size={16} color="#22C55E" />
+								<Ionicons name="trending-up-outline" size={16} color={colors.success} />
 								<View>
 									<Text style={styles.highlightValue}>
 										{formatCurrency(report.summary.averageSavings)}
@@ -236,13 +236,13 @@ const styles = StyleSheet.create({
 	tagText: { fontFamily: typography.family.medium, fontSize: 11 },
 	tagTextMuted: { color: "rgba(255,255,255,0.85)" },
 	tagTextCyan: { color: colors.navy },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	catsCard: { backgroundColor: colors.card, borderRadius: 14, padding: 6 },
-	catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
+	catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.divider },
 	catDot: { width: 10, height: 10, borderRadius: 5 },
 	catHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
 	catName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	catAmount: { color: "#6B7280", fontFamily: typography.family.medium, fontSize: 12 },
+	catAmount: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 12 },
 	catBarTrack: { height: 6, backgroundColor: "#F8F9FB", borderRadius: 3, overflow: "hidden" },
 	catBarFill: { height: 6, borderRadius: 3 },
 	catPct: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 13, width: 54, textAlign: "right" },

@@ -81,7 +81,7 @@ export function StoreDetailScreen({ storeId = "dia", onBack, activeTab, onSelect
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Supermercado {store.name.split(" — ")[0]}</Text>
@@ -110,7 +110,7 @@ export function StoreDetailScreen({ storeId = "dia", onBack, activeTab, onSelect
 							<View style={{ flex: 1, gap: 2 }}>
 								<Text style={styles.storeName}>{store.name}</Text>
 								<View style={styles.distanceRow}>
-									<Ionicons name="location-sharp" size={12} color="#9CA3A8" />
+									<Ionicons name="location-sharp" size={12} color={colors.subtleText} />
 									<Text style={styles.distanceText}>{store.distance}</Text>
 								</View>
 							</View>
@@ -121,7 +121,7 @@ export function StoreDetailScreen({ storeId = "dia", onBack, activeTab, onSelect
 								<Text
 									style={[
 										styles.summaryPrice,
-										store.isBest && { color: "#22C55E" },
+										store.isBest && { color: colors.success },
 									]}
 								>
 									{store.price}
@@ -129,7 +129,7 @@ export function StoreDetailScreen({ storeId = "dia", onBack, activeTab, onSelect
 								<Text
 									style={[
 										styles.summaryPriceDelta,
-										store.isBest && { color: "#22C55E" },
+										store.isBest && { color: colors.success },
 									]}
 								>
 									{store.priceDelta}
@@ -148,7 +148,7 @@ export function StoreDetailScreen({ storeId = "dia", onBack, activeTab, onSelect
 						{INFO.map((row, idx) => (
 							<View key={row.label}>
 								<View style={styles.infoRow}>
-									<Ionicons name={row.icon} size={18} color="#9CA3A8" />
+									<Ionicons name={row.icon} size={18} color={colors.subtleText} />
 									<View style={{ flex: 1 }}>
 										<Text style={styles.infoLabel}>{row.label}</Text>
 										<Text style={styles.infoValue}>{row.value}</Text>
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
 	},
 	distanceRow: { flexDirection: "row", alignItems: "center", gap: 4 },
 	distanceText: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 	},
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
 	},
 	summaryProduct: {
 		flex: 1,
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 13,
 	},
@@ -279,13 +279,13 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 	},
 	summaryPriceDelta: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 11,
 	},
 	bestChip: {
 		alignSelf: "flex-start",
-		backgroundColor: "#22C55E",
+		backgroundColor: colors.success,
 		paddingHorizontal: 10,
 		paddingVertical: 4,
 		borderRadius: 12,
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 	},
 	infoLabel: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.medium,
 		fontSize: 12,
 	},
@@ -320,14 +320,14 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		marginTop: 2,
 	},
-	infoDivider: { height: 1, backgroundColor: "#E5E7EB" },
+	infoDivider: { height: 1, backgroundColor: colors.divider },
 	footer: {
 		paddingHorizontal: 16,
 		paddingTop: 12,
 		paddingBottom: 12,
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
-		borderTopColor: "#E5E7EB",
+		borderTopColor: colors.divider,
 	},
 	primaryButton: {
 		backgroundColor: colors.navy,

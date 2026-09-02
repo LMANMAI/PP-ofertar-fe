@@ -26,7 +26,7 @@ export function RewardDetailScreen({ reward, onBack, onRedeem, activeTab, onSele
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" translucent />
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Detalle</Text>
@@ -60,7 +60,7 @@ export function RewardDetailScreen({ reward, onBack, onRedeem, activeTab, onSele
 			<View style={styles.footer}>
 				<View style={{ flex: 1 }}>
 					<Text style={styles.balText}>Tu saldo: {SALDO_PUNTOS.toLocaleString("es-AR")} pts</Text>
-					<Text style={[styles.balRemaining, !canRedeem && { color: "#EF4444" }]}>
+					<Text style={[styles.balRemaining, !canRedeem && { color: colors.danger }]}>
 						{canRedeem ? `Quedará: ${remaining.toLocaleString("es-AR")} pts` : "Saldo insuficiente"}
 					</Text>
 				</View>
@@ -85,7 +85,7 @@ function InfoRow({
 	return (
 		<View>
 			<View style={styles.infoRow}>
-				<Ionicons name={icon} size={18} color="#9CA3A8" />
+				<Ionicons name={icon} size={18} color={colors.subtleText} />
 				<View style={{ flex: 1 }}>
 					<Text style={styles.infoLabel}>{label}</Text>
 					<Text style={styles.infoValue}>{value}</Text>
@@ -110,15 +110,15 @@ const styles = StyleSheet.create({
 	heroBadgeText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 12 },
 	infoCard: { marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14 },
 	infoRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
-	infoLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 13 },
+	infoLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 13 },
 	infoValue: { color: colors.navy, fontFamily: typography.family.regular, fontSize: 14, marginTop: 2 },
-	infoDivider: { height: 1, backgroundColor: "#E5E7EB" },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16, marginBottom: 8 },
+	infoDivider: { height: 1, backgroundColor: colors.divider },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16, marginBottom: 8 },
 	condCard: { marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 4 },
-	condText: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 18 },
-	footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: "#E5E7EB", flexDirection: "row", alignItems: "center", gap: 12 },
-	balText: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13 },
-	balRemaining: { color: "#22C55E", fontFamily: typography.family.regular, fontSize: 13 },
+	condText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 18 },
+	footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, flexDirection: "row", alignItems: "center", gap: 12 },
+	balText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13 },
+	balRemaining: { color: colors.success, fontFamily: typography.family.regular, fontSize: 13 },
 	cta: { backgroundColor: colors.navy, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8 },
 	ctaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
 });

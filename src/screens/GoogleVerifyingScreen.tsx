@@ -31,5 +31,5 @@ const styles = StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	content: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6 },
 	title: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 20, marginTop: 18 },
-	subtitle: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13 },
+	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13 },
 });

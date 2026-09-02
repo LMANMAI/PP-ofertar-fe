@@ -59,7 +59,7 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 			<View style={styles.header}>
 				<View style={styles.headerLine}>
 					<View style={styles.headerLeft}>
-						<Pressable onPress={onBack} style={styles.backButton}>
+						<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 							<Ionicons name="chevron-back" size={20} color={colors.buttonText} />
 						</Pressable>
 						<Text style={styles.headerTitle}>Registrarse</Text>
@@ -86,26 +86,22 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 				<View style={styles.form}>
 					<InputField
 						label="Nombre"
-						leftIcon=""
 						value={firstName}
 						onChangeText={setFirstName}
 					/>
 					<InputField
 						label="Apellido"
-						leftIcon=""
 						value={lastName}
 						onChangeText={setLastName}
 					/>
 					<InputField
 						label="Correo electrónico"
-						leftIcon=""
 						value={email}
 						onChangeText={setEmail}
 						keyboardType="email-address"
 					/>
 					<InputField
 						label="Teléfono (opcional)"
-						leftIcon=""
 						value={phone}
 						onChangeText={setPhone}
 						keyboardType="phone-pad"
