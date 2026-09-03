@@ -21,7 +21,7 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { login } from "../services/authApi";
 import type { Session } from "../auth/session";
 
@@ -169,15 +169,24 @@ function createStyles(colors: ColorTokens) {
 	backButton: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
 	content: { flex: 1, paddingHorizontal: 20, paddingTop: 24, backgroundColor: colors.card },
 	title: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 28, lineHeight: 36 },
-	subtitle: { marginTop: 6, color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 17, lineHeight: 26 },
-	form: { marginTop: 24, gap: 16 },
-	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	subtitle: { marginTop: space.xs, color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 17, lineHeight: 26 },
+	// xxl (24) is a deliberate, larger break: title+subtitle are the screen's
+	// intro, the form below is the actual task, and the gap should read as a
+	// change of section, not just "next line."
+	form: { marginTop: space.xxl, gap: space.lg },
+	errorBox: { marginTop: space.md, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	forgotButton: { alignSelf: "flex-end", marginTop: 8 },
+	forgotButton: { alignSelf: "flex-end", marginTop: space.sm },
 	forgotText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 16, textDecorationLine: "underline" },
-	primaryButton: { height: 52, borderRadius: 10, backgroundColor: colors.navy, alignItems: "center", justifyContent: "center", marginTop: 14 },
+	// lg (16), not the old ad hoc 14: the forgot-password link is a recovery
+	// path, this button is the actual commit action — the gap between them
+	// should read as a bigger break than the tight sibling spacing above it,
+	// not a rounding error away from it.
+	primaryButton: { height: 52, borderRadius: 10, backgroundColor: colors.navy, alignItems: "center", justifyContent: "center", marginTop: space.lg },
 	primaryButtonText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
-	footerLinkWrap: { marginTop: 18, alignItems: "center" },
+	// xl (20): the clearest break on the screen — everything above is the
+	// login task, this is the exit to a different one.
+	footerLinkWrap: { marginTop: space.xl, alignItems: "center" },
 	footerText: { textAlign: "center", color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
 	footerLink: { color: colors.defaultText, fontFamily: typography.family.medium, textDecorationLine: "underline" },
 	pressed: { opacity: 0.88 },

@@ -17,7 +17,7 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { Ionicons } from "@expo/vector-icons";
 
 type AuthWelcomeScreenProps = {
@@ -121,7 +121,7 @@ export function AuthWelcomeScreen({
 						</Pressable>
 					)}
 
-					<Text style={styles.legalText}>
+					<Text style={[styles.legalText, !showBiometricButton && styles.legalTextBreak]}>
 						Al continuar aceptás los términos y la política de privacidad.
 					</Text>
 				</View>
@@ -159,7 +159,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	zoneCta: {
 		paddingBottom: 6,
-		gap: 10,
+		gap: space.sm,
 	},
 	loader: {
 		flex: 1,
@@ -169,14 +169,18 @@ function createStyles(colors: ColorTokens) {
 	},
 	hero: {
 		maxWidth: 324,
-		gap: 12,
 		justifyContent: "center",
 	},
+	// No blanket gap here on purpose: the four elements below read as two
+	// groups — a tight brand lockup (logo, name, tagline), then a clear break
+	// into the actual pitch (headline, body) — so each gap is spelled out
+	// explicitly rather than inherited from a container value that would
+	// silently stack with these anyway.
 	badgeIcon: {
 		width: 84,
 		height: 84,
 		borderRadius: 7,
-		marginBottom: 12,
+		marginBottom: space.md,
 	},
 	overline: {
 		color: colors.cyan,
@@ -185,7 +189,7 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 14,
 		letterSpacing: 2.2,
 		textTransform: "uppercase",
-		marginTop: 2,
+		marginTop: space.xs,
 	},
 	brandTitle: {
 		color: colors.buttonText,
@@ -197,7 +201,7 @@ function createStyles(colors: ColorTokens) {
 		color: colors.cyan,
 	},
 	headline: {
-		marginTop: 8,
+		marginTop: space.xl,
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 36,
@@ -208,14 +212,11 @@ function createStyles(colors: ColorTokens) {
 		color: colors.cyan,
 	},
 	body: {
-		marginTop: 8,
+		marginTop: space.sm,
 		color: "rgba(255, 255, 255, 0.58)",
 		fontFamily: typography.family.regular,
 		fontSize: 17,
 		lineHeight: 26,
-	},
-	footer: {
-		gap: 10,
 	},
 	primaryButton: {
 		height: 52,
@@ -246,19 +247,28 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 16,
 	},
 	legalText: {
-		marginTop: 2,
 		color: "rgba(255, 255, 255, 0.35)",
 		fontFamily: typography.family.regular,
 		fontSize: 10,
 		lineHeight: 14,
 		textAlign: "left",
 	},
+	// Only needed when the biometric row is absent: legalText then sits
+	// directly under the CTA pair and needs the same "new group" break the
+	// biometric button otherwise provides.
+	legalTextBreak: {
+		marginTop: space.md,
+	},
+	// The break before this tertiary action: primary/secondary are the
+	// decision, this and the legal line are the footnote — grouped tight to
+	// each other (the container's own gap.sm), separated from the CTAs above.
 	biometricButton: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 8,
 		paddingVertical: 8,
+		marginTop: space.md,
 	},
 	biometricButtonText: {
 		color: "rgba(255,255,255,0.45)",
