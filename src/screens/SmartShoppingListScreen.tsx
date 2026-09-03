@@ -173,7 +173,14 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 
 					{bought.length > 0 && (
 						<>
-							<Text style={styles.sectionLabel}>YA COMPRASTE ({bought.length})</Text>
+							{/* Green here, not the neutral gray the "pending" label above
+							    uses: this section is the payoff, not another to-do — the
+							    color is the difference between "done" and "the rest of the
+							    list, but grayed out". */}
+							<View style={styles.sectionLabelDoneRow}>
+								<Ionicons name="checkmark-circle" size={13} color={colors.successSoftText} />
+								<Text style={styles.sectionLabelDone}>YA COMPRASTE ({bought.length})</Text>
+							</View>
 							<View style={styles.list}>
 								{bought.map((p, idx) => renderRow(p, idx === bought.length - 1, true))}
 							</View>
@@ -188,7 +195,10 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 						<Text style={styles.footerLabel}>
 							{missing.length > 0 ? "TE FALTAN" : "LISTA COMPLETA"}
 						</Text>
-						<Text style={styles.footerValue}>
+						{/* The one moment this screen has to pay off "you finished your
+						    shop" — everywhere else on the footer is neutral, this is the
+						    single place that earns the accent color. */}
+						<Text style={[styles.footerValue, missing.length === 0 && styles.footerValueDone]}>
 							{missing.length > 0 ? `${missing.length} productos` : "¡Todo listo!"}
 						</Text>
 					</View>
@@ -228,22 +238,30 @@ function createStyles(colors: ColorTokens) {
 	heroCard: { flexDirection: "row", gap: 12, backgroundColor: colors.infoSoft, borderRadius: 14, padding: 16, alignItems: "center" },
 	heroTitle: { color: colors.infoSoftText, fontFamily: typography.family.bold, fontSize: 14 },
 	heroBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2, lineHeight: 16 },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 4 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 4 },
+	sectionLabelDoneRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+	sectionLabelDone: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	list: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
 	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
 	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
-	checkOn: { backgroundColor: colors.cyan, borderColor: colors.cyan },
+	// Green, not the brand cyan: cyan is this app's generic interactive/link
+	// accent (focus rings, the scan button, "ver más" links) — completion is a
+	// different meaning, and the app already has a color for it (savings,
+	// discount badges). Reusing it here is what makes it read as "done" and
+	// not just "selected".
+	checkOn: { backgroundColor: colors.success, borderColor: colors.success },
 	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
-	nameChecked: { color: "#9CA3A8", textDecorationLine: "line-through" },
+	nameChecked: { color: colors.mutedText2, textDecorationLine: "line-through" },
 	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	offerFor: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, marginTop: 2 },
+	offerFor: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, marginTop: 2 },
 	promoChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.navy, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9, maxWidth: 150 },
 	offerChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.success, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9 },
 	offerChipText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 10 },
 	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 48 },
 	footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	footerLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
+	footerLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	footerValue: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: 2 },
+	footerValueDone: { color: colors.successSoftText },
 	savingsWrap: { alignItems: "flex-end" },
 	savingsValue: { color: colors.success, fontFamily: typography.family.bold, fontSize: 20, marginTop: 2 },
 	});
