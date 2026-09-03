@@ -22,6 +22,9 @@ export interface TicketResponse {
 	subtotal: number | null;
 	totalDiscounts: number | null;
 	status: "PENDING" | "PROCESSED" | "FAILED";
+	/** False until the user opens the finished ticket and confirms it. Only
+	 * then does it stop being editable. */
+	reviewed: boolean;
 	createdAt: string;
 	items: TicketItemResponse[];
 }
@@ -71,7 +74,9 @@ export type UpdateTicketData = {
 
 export async function scanTicket(
 	token: string,
-	photos: { uri: string; base64: string; id?: string }[],
+	// Uploaded as multipart by uri; base64 is unused here and stays optional
+	// only because the PDF flow still carries it.
+	photos: { uri: string; base64?: string; id?: string }[],
 	contentType?: string,
 ): Promise<TicketResponse> {
 	const formData = new FormData();
@@ -155,6 +160,20 @@ export async function updateTicket(
 	}
 
 	return response.json();
+}
+
+export async function deleteTicket(token: string, id: number): Promise<void> {
+	const response = await fetch(`${BACKEND_URL}/tickets/${id}`, {
+		method: "DELETE",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+	});
+
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
+		throw new Error(error.message || `Error ${response.status}`);
+	}
 }
 
 export async function getSavingsReport(

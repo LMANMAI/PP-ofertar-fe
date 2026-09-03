@@ -13,16 +13,146 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomNav, type TabKey, useOnboardingTarget } from "../components";
 import { colors, typography } from "../theme/designSystem";
+import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
-	type Session,
-	getInitials,
-	getAvatarUri,
-	splitName,
-} from "../auth/session";
-import { OFFERS, EXPIRED_IDS } from "../data/offers";
-import { TRACKED_PRODUCTS } from "../data/tracked";
-import { getSavingsReport } from "../services";
-import type { SavingsReportResponse } from "../services";
+	describeCampaignDiscount,
+	getOffers,
+	getRecurringProducts,
+	getSavingsReport,
+	offerBadge,
+	offerPromo,
+	sortByOfferRelevance,
+} from "../services";
+import type { Offer, PromoIcon, RecurringProduct, SavingsReportResponse } from "../services";
+
+function formatUntil(iso: string | null): string | null {
+	if (!iso) return null;
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return null;
+	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
+}
+
+/** One offer in the home carousel. Informational only: there is no activation
+ * or points behind these, so the card states what is on offer, where, until
+ * when, and which of the user's products it touches.
+ *
+ * The number gets a tile of its own with an icon, because a percentage buried
+ * in a sentence is exactly what made these cards read as flat text. The chip
+ * under it answers "¿sobre qué se aplica?" — a card that says 50% without
+ * saying whether that is the unit or the second unit is worse than no card.
+ */
+function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => void }) {
+	const { badge, color } = offerBadge(offer.retailerName);
+	const until = formatUntil(offer.activeTo);
+	// Campaigns are worded here from the structured mechanic + percentages.
+	// A backend that predates those fields returns null and the card falls
+	// back to the headline string it already sent.
+	const promo = offerPromo(offer);
+	const catalogPct =
+		offer.kind === "catalog" && offer.discountPct != null && offer.discountPct >= 1
+			? `${Math.round(offer.discountPct)}%`
+			: null;
+
+	const amount = promo ? promo.amount : catalogPct;
+	const capped = promo ? promo.capped : false;
+	const icon: PromoIcon = promo ? promo.icon : "pricetag-outline";
+	// Conditional promotions are the ones a shopper misreads as a flat
+	// discount, so their cue is warm rather than navy.
+	const conditional = promo?.conditional ?? false;
+
+	return (
+		<Pressable
+			onPress={onPress}
+			style={({ pressed }) => [styles.offerCard, pressed && styles.offerCardPressed]}
+		>
+			<View style={styles.offerTop}>
+				<View style={styles.offerStoreRow}>
+					<View style={[styles.storeBadge, { backgroundColor: color }]}>
+						<Text style={styles.storeBadgeText}>{badge}</Text>
+					</View>
+					<Text style={styles.storeName} numberOfLines={1}>
+						{offer.retailerName}
+					</Text>
+				</View>
+			</View>
+
+			<View style={styles.offerBody}>
+				{amount ? (
+					<View style={styles.amountTile}>
+						<View style={styles.amountKickerRow}>
+							<Ionicons name={icon} size={11} color={colors.cyan} />
+							{capped && <Text style={styles.amountKicker}>HASTA</Text>}
+						</View>
+						<Text
+							style={styles.amountValue}
+							numberOfLines={1}
+							adjustsFontSizeToFit
+							minimumFontScale={0.6}
+						>
+							{amount}
+						</Text>
+					</View>
+				) : (
+					<View style={[styles.amountTile, styles.amountTileFlat]}>
+						<Ionicons name={icon} size={22} color={colors.cyan} />
+					</View>
+				)}
+
+				<View style={styles.offerBodyRight}>
+					{offer.kind === "catalog" ? (
+						<>
+							<Text style={styles.offerProduct} numberOfLines={2}>
+								{offer.productName ?? offer.headline}
+							</Text>
+							{offer.price != null && (
+								<View style={styles.priceRow}>
+									<Text style={styles.priceNow}>
+										${Math.round(offer.price).toLocaleString("es-AR")}
+									</Text>
+									{offer.listPrice != null && offer.listPrice > offer.price && (
+										<Text style={styles.priceWas}>
+											${Math.round(offer.listPrice).toLocaleString("es-AR")}
+										</Text>
+									)}
+								</View>
+							)}
+						</>
+					) : (
+						<>
+							<View style={[styles.appliesChip, conditional && styles.appliesChipWarm]}>
+								<Text
+									style={[styles.appliesText, conditional && styles.appliesTextWarm]}
+									numberOfLines={2}
+								>
+									{promo ? promo.applies : offer.headline}
+								</Text>
+							</View>
+							<Text style={styles.offerSub} numberOfLines={2}>
+								{/* `||`, not `??`: the scraper stores an unknown category as an
+							    empty string, not null, and `??` would render a blank line. */}
+							{offer.category || "Promoción del súper"}
+								{offer.province ? ` · ${offer.province}` : ""}
+							</Text>
+						</>
+					)}
+				</View>
+			</View>
+
+			{until && (
+				<Text style={styles.offerValidity}>Vigente hasta el {until}</Text>
+			)}
+
+			{offer.percentagesUnverified && (
+				<View style={styles.offerCaveatRow}>
+					<Ionicons name="alert-circle-outline" size={11} color="#9CA3A8" />
+					<Text style={styles.offerCaveat} numberOfLines={1}>
+						Porcentaje leído de la imagen
+					</Text>
+				</View>
+			)}
+		</Pressable>
+	);
+}
 
 type Props = {
 	session: Session;
@@ -34,7 +164,6 @@ type Props = {
 	onOpenRecurring: () => void;
 	onOpenSmartList: () => void;
 	onOpenOffer: (offerId: string) => void;
-	onActivateOffer: (offerId: string) => void;
 };
 
 export function HomeScreen({
@@ -47,15 +176,13 @@ export function HomeScreen({
 	onOpenRecurring,
 	onOpenSmartList,
 	onOpenOffer,
-	onActivateOffer,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const [savings, setSavings] = useState<SavingsReportResponse["summary"] | null>(null);
+	const [recurringProducts, setRecurringProducts] = useState<RecurringProduct[]>([]);
+	const [offers, setOffers] = useState<Offer[]>([]);
 	const offersTarget = useOnboardingTarget("offers");
 	const historyTarget = useOnboardingTarget("history");
-	const activeOffers = OFFERS.filter((o) => !EXPIRED_IDS.has(o.id)).slice(0, 4);
-	const [savings, setSavings] = useState<
-		SavingsReportResponse["summary"] | null
-	>(null);
 	const [savingsError, setSavingsError] = useState(false);
 	const [loadingSavings, setLoadingSavings] = useState(true);
 
@@ -76,6 +203,25 @@ export function HomeScreen({
 	useEffect(() => {
 		loadSavings();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [session.token]);
+
+	useEffect(() => {
+		getRecurringProducts(session.token)
+			// Same ordering as the full section, so the carousel reads left to
+			// right in the same priority the user sees after "Ver todos": own
+			// offer first, then other-brand offer, then no offer — each group by
+			// how often they buy it. The backend's own order is by frequency
+			// alone, which filled the first cards with staples nobody discounts.
+			.then((products) => setRecurringProducts(sortByOfferRelevance(products).slice(0, 10)))
+			.catch(() => {});
+	}, [session.token]);
+
+	// Everything on offer at the user's chains, not just what matches their
+	// habitual products — that is what the section below is for.
+	useEffect(() => {
+		getOffers(session.token, 1, 8)
+			.then((p) => setOffers(p.items))
+			.catch(() => setOffers([]));
 	}, [session.token]);
 
 	const savingsTickets = savings?.ticketCount ?? 0;
@@ -116,9 +262,7 @@ export function HomeScreen({
 							style={styles.avatarImage}
 						/>
 					) : (
-						<Text style={styles.avatarText}>
-							{getInitials(session.user.name)}
-						</Text>
+						<Text style={styles.avatarText}>{getInitials(session.user.name)}</Text>
 					)}
 				</Pressable>
 			</View>
@@ -130,7 +274,7 @@ export function HomeScreen({
 				showsVerticalScrollIndicator={false}
 			>
 				{/* Savings card */}
-				<View style={styles.savingsCard}>
+				<View ref={historyTarget.ref} onLayout={historyTarget.onLayout} style={styles.savingsCard}>
 					<Text style={styles.savingsOverline}>AHORRO DEL MES</Text>
 					{savingsError ? (
 						<View style={styles.savingsErrorRow}>
@@ -170,118 +314,39 @@ export function HomeScreen({
 								</Text>
 							</View>
 						</View>
-						<Pressable
-							ref={historyTarget.ref}
-							onLayout={historyTarget.onLayout}
-							style={styles.savingsCta}
-							onPress={onOpenHistory}
-						>
+						<Pressable style={styles.savingsCta} onPress={onOpenHistory}>
 							<Text style={styles.savingsCtaText}>Ver mis tickets</Text>
 						</Pressable>
 					</View>
 				</View>
 
-				{/* Próximas ofertas */}
-				<View ref={offersTarget.ref} onLayout={offersTarget.onLayout}>
-					<View style={styles.sectionHeader}>
-						<Text style={styles.sectionTitle}>TUS PRÓXIMAS OFERTAS</Text>
-						<Pressable onPress={() => onSelectTab("offers")}>
-							<Text style={styles.sectionLink}>Ver todas</Text>
-						</Pressable>
+				{/* Ofertas vigentes en los súper que sigue el usuario. El backend ya
+				    restringe el match a sus cadenas favoritas, así que todo lo que
+				    llega acá es de un súper que eligió. */}
+				<View ref={offersTarget.ref} onLayout={offersTarget.onLayout} style={styles.sectionHeader}>
+					<Text style={styles.sectionTitle}>OFERTAS EN TUS SÚPER</Text>
+					<Pressable onPress={() => onSelectTab("offers")}>
+						<Text style={styles.sectionLink}>Ver todas</Text>
+					</Pressable>
+				</View>
+				{offers.length === 0 ? (
+					<View style={styles.offersEmpty}>
+						<Ionicons name="pricetags-outline" size={20} color="#9CA3A8" />
+						<Text style={styles.offersEmptyText}>
+							Todavía no hay ofertas vigentes en los súper que elegiste como favoritos.
+						</Text>
 					</View>
+				) : (
 					<ScrollView
 						horizontal
 						showsHorizontalScrollIndicator={false}
 						contentContainerStyle={styles.offersRow}
 					>
-						{activeOffers.map((o) => {
-							const dark = o.tone === "dark";
-							return (
-								<Pressable
-									key={o.id}
-									onPress={() => onOpenOffer(o.id)}
-									style={[
-										styles.offerCard,
-										dark ? styles.offerCardDark : styles.offerCardLight,
-									]}
-								>
-									<View style={styles.offerTop}>
-										<View style={styles.offerStoreRow}>
-											<View
-												style={[
-													styles.storeBadge,
-													{ backgroundColor: o.storeBadgeColor },
-												]}
-											>
-												<Text style={styles.storeBadgeText}>
-													{o.storeBadge}
-												</Text>
-											</View>
-											<Text
-												style={[
-													styles.storeName,
-													{ color: dark ? "#fff" : colors.navy },
-												]}
-											>
-												{o.storeName}
-											</Text>
-										</View>
-										<View
-											style={[
-												styles.ptsBadge,
-												dark
-													? { backgroundColor: colors.cyan }
-													: { backgroundColor: colors.navy },
-											]}
-										>
-											<Text
-												style={[
-													styles.ptsBadgeText,
-													{ color: dark ? colors.navy : colors.cyan },
-												]}
-											>
-												{o.points}
-											</Text>
-										</View>
-									</View>
-									<Text
-										style={[
-											styles.offerTitle,
-											{ color: dark ? "#fff" : colors.navy },
-										]}
-									>
-										{o.title}
-									</Text>
-									<Text
-										style={[
-											styles.offerSub,
-											{ color: dark ? "#99B2CC" : colors.mutedText2 },
-										]}
-									>
-										{o.subtitle}
-									</Text>
-									<Pressable
-										onPress={(e) => {
-											e.stopPropagation();
-											onActivateOffer(o.id);
-										}}
-										style={[
-											styles.activateBtn,
-											dark
-												? { backgroundColor: colors.orange }
-												: { backgroundColor: colors.navy },
-										]}
-										hitSlop={6}
-										accessibilityRole="button"
-										accessibilityLabel={`Activar oferta ${o.title}`}
-									>
-										<Text style={styles.activateText}>Activar oferta</Text>
-									</Pressable>
-								</Pressable>
-							);
-						})}
+						{offers.map((o) => (
+							<OfferCarouselCard key={o.id} offer={o} onPress={() => onOpenOffer(o.id)} />
+						))}
 					</ScrollView>
-				</View>
+				)}
 
 				{isNewUser ? (
 					<View style={styles.firstRunCard}>
@@ -301,7 +366,7 @@ export function HomeScreen({
 							<Text style={styles.firstRunCtaText}>Escanear mi primer ticket</Text>
 						</Pressable>
 					</View>
-				) : savings && savingsTickets > 0 ? (
+				) : (
 					<>
 						{/* Productos seguidos — full width grid */}
 						<View style={styles.sectionHeader}>
@@ -310,28 +375,60 @@ export function HomeScreen({
 								<Text style={styles.sectionLink}>Ver todos</Text>
 							</Pressable>
 						</View>
-						<View style={styles.productsGrid}>
-							{TRACKED_PRODUCTS.map((p) => (
-								<Pressable
-									key={p.id}
-									style={styles.productCard}
-									onPress={onOpenRecurring}
-								>
-									<View style={styles.productIconWrap}>
-										<Ionicons name={p.icon} size={28} color={colors.subtleText} />
-									</View>
-									<Text style={styles.productName}>{p.name}</Text>
-									<View style={styles.productFooter}>
-										<Text style={styles.productPrice}>{p.price}</Text>
-										<View style={styles.productDeltaBadge}>
-											<Text style={styles.productDeltaText}>{p.delta}</Text>
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.productsRow}
+						>
+							{recurringProducts.map((p) => {
+								const id = p.barcode || p.description;
+								const delta = p.bestOffer?.discountPct != null ? `-${Math.round(p.bestOffer.discountPct)}%` : null;
+								return (
+									<Pressable key={id} style={styles.productCard} onPress={onOpenRecurring}>
+										<View style={styles.productIconWrap}>
+											<Ionicons name="cart-outline" size={28} color="#9CA3A8" />
 										</View>
-									</View>
-								</Pressable>
-							))}
-						</View>
+										<Text style={styles.productName}>{p.description}</Text>
+										{/* The price belongs to a same-brand, same-type catalog product that
+										    may be a different size, so name it here too — the card is the
+										    first place the user sees the claim. */}
+										{p.bestOffer?.productName && (
+											<Text style={styles.productOfferFor} numberOfLines={1}>
+												{p.bestOffer.productName}
+											</Text>
+										)}
+										<View style={styles.productFooter}>
+											{p.bestOffer ? (
+												<>
+													<Text style={styles.productPrice}>{formatCurrencyS(p.bestOffer.price)}</Text>
+													{delta && (
+														<View style={styles.productDeltaBadge}>
+															<Text style={styles.productDeltaText}>{delta}</Text>
+														</View>
+													)}
+												</>
+											) : p.campaignOffers.length > 0 ? (
+												// Was missing entirely: a product whose only offer is a
+												// campaign promotion sorted to the front and then announced
+												// "Sin oferta activa" on the very card the ordering had
+												// promoted.
+												<Text style={styles.productPromo}>
+													{describeCampaignDiscount(p.campaignOffers[0]) ?? "Promoción vigente"}
+												</Text>
+											) : p.alternativeOffers.length > 0 ? (
+												// Ordering now promotes these, so the card can no longer
+												// claim there is nothing on offer.
+												<Text style={styles.productPrice}>Otra marca en oferta</Text>
+											) : (
+												<Text style={styles.productPrice}>Sin oferta activa</Text>
+											)}
+										</View>
+									</Pressable>
+								);
+							})}
+						</ScrollView>
 					</>
-				) : null}
+				)}
 
 				{/* Quick actions */}
 				<View style={styles.quickRow}>
@@ -507,13 +604,40 @@ const styles = StyleSheet.create({
 	},
 	offersRow: { gap: 12, paddingRight: 20 },
 	offerCard: {
-		width: 240,
-		borderRadius: 16,
+		// Wider than the old 240: the number now sits in a tile beside the
+		// text instead of above it, and the "En la 2da unidad" chip needs room
+		// to read on one line.
+		width: 262,
+		borderRadius: 18,
 		padding: 14,
-		gap: 6,
+		gap: 10,
+		backgroundColor: colors.card,
+		borderWidth: 1,
+		borderColor: colors.border,
+		shadowColor: colors.navy,
+		shadowOpacity: 0.06,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 3 },
+		elevation: 2,
 	},
-	offerCardLight: { backgroundColor: "#E8F6FC" },
-	offerCardDark: { backgroundColor: colors.navy },
+	offerCardPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
+	offersEmpty: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+		backgroundColor: colors.card,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: "#E5E7EB",
+		padding: 14,
+	},
+	offersEmptyText: {
+		flex: 1,
+		color: "#6B7280",
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 17,
+	},
 	offerTop: {
 		flexDirection: "row",
 		justifyContent: "space-between",
@@ -532,36 +656,80 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: 10,
 	},
-	storeName: { fontFamily: typography.family.medium, fontSize: 13 },
-	ptsBadge: {
+	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
+	offerValidity: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
+	offerBody: { flexDirection: "row", alignItems: "stretch", gap: 12 },
+	// The percentage gets its own block instead of being one more line of
+	// text — this is the visual cue the cards were missing.
+	amountTile: {
+		width: 78,
+		borderRadius: 14,
+		paddingVertical: 8,
+		paddingHorizontal: 6,
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 2,
+		backgroundColor: colors.navy,
+	},
+	amountTileFlat: { paddingVertical: 16 },
+	amountKickerRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+	amountKicker: {
+		color: colors.cyan,
+		fontFamily: typography.family.medium,
+		fontSize: 11,
+		letterSpacing: 0.8,
+	},
+	amountValue: {
+		color: colors.buttonText,
+		fontFamily: typography.family.bold,
+		fontSize: 24,
+	},
+	offerBodyRight: { flex: 1, justifyContent: "center", gap: 6 },
+	appliesChip: {
+		alignSelf: "flex-start",
+		maxWidth: "100%",
 		paddingHorizontal: 8,
 		paddingVertical: 4,
-		borderRadius: 14,
-	},
-	ptsBadgeText: { fontFamily: typography.family.medium, fontSize: 10 },
-	offerTitle: {
-		fontFamily: typography.family.bold,
-		fontSize: 16,
-		marginTop: 4,
-	},
-	offerSub: { fontFamily: typography.family.regular, fontSize: 11 },
-	activateBtn: {
-		marginTop: 8,
-		paddingVertical: 9,
 		borderRadius: 8,
-		alignItems: "center",
+		backgroundColor: colors.softNavy,
 	},
-	activateText: {
-		color: colors.buttonText,
+	// Warm for anything that is not simply taken off the price, so a
+	// "50% en la 2da unidad" never looks like a plain 50% off.
+	appliesChipWarm: { backgroundColor: "#FDECE6" },
+	appliesText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 11, lineHeight: 15 },
+	appliesTextWarm: { color: "#B44A2E" },
+	offerProduct: {
+		color: colors.navy,
 		fontFamily: typography.family.medium,
 		fontSize: 12,
+		lineHeight: 16,
 	},
-	productsGrid: {
-		flexDirection: "row",
+	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+	priceNow: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
+	priceWas: {
+		color: "#9CA3A8",
+		fontFamily: typography.family.regular,
+		fontSize: 11,
+		textDecorationLine: "line-through",
+	},
+	offerSub: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
+	offerCaveatRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+	offerCaveat: {
+		flex: 1,
+		color: "#64748B",
+		fontFamily: typography.family.regular,
+		fontSize: 11,
+		fontStyle: "italic",
+	},
+	// Matches offersRow above, so both carousels on this screen scroll the same.
+	productsRow: {
 		gap: 10,
+		paddingRight: 20,
 	},
 	productCard: {
-		flex: 1,
+		// Fixed width now that these scroll horizontally; flex:1 only made sense
+		// while it was a static row of three.
+		width: 150,
 		backgroundColor: colors.card,
 		borderRadius: 14,
 		padding: 12,
@@ -584,6 +752,13 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		lineHeight: 17,
 	},
+	productOfferFor: {
+		color: "#9CA3A8",
+		fontFamily: typography.family.regular,
+		fontSize: 10,
+		lineHeight: 14,
+		marginTop: 1,
+	},
 	productFooter: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -594,6 +769,14 @@ const styles = StyleSheet.create({
 		color: colors.navy,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
+	},
+	// Slightly smaller than a price: a promotion headline is wordier and has to
+	// fit the narrow card without truncating.
+	productPromo: {
+		color: colors.navy,
+		fontFamily: typography.family.bold,
+		fontSize: 13,
+		lineHeight: 17,
 	},
 	productDeltaBadge: {
 		backgroundColor: "#E0F5EF",

@@ -15,7 +15,8 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "NSCameraUsageDescription": "Necesitamos acceso a la cámara para escanear tus tickets de compra."
+        "NSCameraUsageDescription": "Necesitamos acceso a la cámara para escanear tus tickets de compra.",
+        "NSLocationWhenInUseUsageDescription": "Usamos tu ubicación para mostrarte las sucursales de supermercados más cercanas."
       }
     },
     "android": {
@@ -27,8 +28,15 @@
       "predictiveBackGestureEnabled": true,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDAERhAFSxlq1SpztZD-wM3ohsKHINYh7g"
+        }
+      },
       "package": "com.ofertar.ofertarapp"
     },
     "web": {
@@ -39,6 +47,12 @@
         "expo-camera",
         {
           "cameraPermission": "Necesitamos acceso a la cámara para escanear tus tickets de compra."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Usamos tu ubicación para mostrarte las sucursales de supermercados más cercanas."
         }
       ],
       "expo-secure-store",

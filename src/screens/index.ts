@@ -19,7 +19,6 @@ export { PasswordSuccessScreen } from "./PasswordSuccessScreen";
 export { HomeScreen } from "./HomeScreen";
 export { OffersScreen } from "./OffersScreen";
 export { OfferDetailScreen } from "./OfferDetailScreen";
-export { OfferCodeScreen } from "./OfferCodeScreen";
 export { PointsScreen } from "./PointsScreen";
 export { RewardDetailScreen } from "./RewardDetailScreen";
 export { ConfirmRedeemScreen } from "./ConfirmRedeemScreen";

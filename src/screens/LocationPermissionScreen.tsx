@@ -1,13 +1,27 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
+import { ensureLocationPermission } from "../location/permission";
 
-type Props = { onAllow: () => void; onSkip: () => void };
+/** `granted` is what the OS answered, not what the user tapped: the screen
+ * moves on either way, but the caller needs to know whether the permission
+ * was actually obtained. */
+type Props = { onAllow: (granted: boolean) => void; onSkip: () => void };
 
 export function LocationPermissionScreen({ onAllow, onSkip }: Props) {
 	const insets = useSafeAreaInsets();
+	const [asking, setAsking] = useState(false);
+
+	const handleAllow = async () => {
+		if (asking) return;
+		setAsking(true);
+		const { granted } = await ensureLocationPermission();
+		setAsking(false);
+		onAllow(granted);
+	};
 	return (
 		<View style={[styles.safeArea, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
 			<StatusBar style="dark" translucent />
@@ -28,8 +42,12 @@ export function LocationPermissionScreen({ onAllow, onSkip }: Props) {
 			</View>
 
 			<View style={styles.footer}>
-				<Pressable style={styles.primaryBtn} onPress={onAllow}>
-					<Text style={styles.primaryText}>Permitir ubicación</Text>
+				<Pressable style={styles.primaryBtn} onPress={handleAllow} disabled={asking}>
+					{asking ? (
+						<ActivityIndicator color="#fff" />
+					) : (
+						<Text style={styles.primaryText}>Permitir ubicación</Text>
+					)}
 				</Pressable>
 				<Pressable style={styles.skipBtn} onPress={onSkip}>
 					<Text style={styles.skipText}>Más tarde</Text>

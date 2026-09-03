@@ -1,34 +1,138 @@
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import MapView, { Circle, Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import * as Location from "expo-location";
+import { ensureLocationPermission } from "../location/permission";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
+import type { Session } from "../auth/session";
+import { getFavoriteStores, getNearbyStores, getStoreChains, updateFavoriteStores } from "../services";
+import type { NearbyStore, StoreChain } from "../services";
 
-type Store = { id: string; code: string; color: string; name: string; address: string; distance: string };
+const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20];
 
-const STORES: Store[] = [
-	{ id: "dia", code: "DI", color: "#0D80CC", name: "Día — Av. Corrientes 1234", address: "Recoleta", distance: "0.6 km" },
-	{ id: "coto", code: "CO", color: "#CC1A1A", name: "Coto — Av. Cabildo 4500", address: "Belgrano", distance: "1.1 km" },
-	{ id: "carrefour", code: "CA", color: "#0059A6", name: "Carrefour — Maipú 800", address: "Vicente López", distance: "1.2 km" },
-	{ id: "jumbo", code: "JU", color: "#008040", name: "Jumbo — Pueyrredón 200", address: "Recoleta", distance: "2.1 km" },
-	{ id: "vea", code: "VE", color: "#990000", name: "Vea — Las Heras 2900", address: "Recoleta", distance: "1.8 km" },
-];
+/** Fallback view when location permission is denied — Obelisco, CABA. */
+const DEFAULT_REGION = { latitude: -34.6037, longitude: -58.3816 };
 
-type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
+/** Distinct pin colours so chains are tellable apart at a glance. */
+const CHAIN_COLORS: Record<string, string> = {
+	carrefour: "#0E4C96",
+	dia: "#E30613",
+	coto: "#D52B1E",
+	jumbo: "#2E9E43",
+	vea: "#F5A623",
+	disco: "#C8102E",
+	changomas: "#7B2D8B",
+	laanonima: "#00539B",
+	makro: "#003DA5",
+};
 
-export function FavoriteStoresScreen({ onBack, activeTab, onSelectTab, onScanPress }: Props) {
+type Props = {
+	onBack: () => void;
+	session: Session;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
+};
+
+export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
-	const [favs, setFavs] = useState<Set<string>>(new Set(["dia", "coto"]));
-	const toggle = (id: string) => {
-		setFavs((prev) => {
-			const n = new Set(prev);
-			if (n.has(id)) n.delete(id);
-			else n.add(id);
-			return n;
-		});
+	const [chains, setChains] = useState<StoreChain[]>([]);
+	const [favorites, setFavorites] = useState<Set<string>>(new Set());
+	const [radiusKm, setRadiusKm] = useState(5);
+	const [stores, setStores] = useState<NearbyStore[]>([]);
+	const [coords, setCoords] = useState(DEFAULT_REGION);
+	const [locationDenied, setLocationDenied] = useState(false);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [saving, setSaving] = useState(false);
+
+	useEffect(() => {
+		(async () => {
+			try {
+				// Only prompts when the permission was not already granted during
+				// registration; a user who denied it there is asked again here,
+				// where the radius search genuinely depends on it.
+				const { granted } = await ensureLocationPermission();
+				if (granted) {
+					const pos = await Location.getCurrentPositionAsync({});
+					setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+				} else {
+					setLocationDenied(true);
+				}
+			} catch {
+				setLocationDenied(true);
+			}
+
+			try {
+				const [chainList, fav] = await Promise.all([
+					getStoreChains(session.token),
+					getFavoriteStores(session.token),
+				]);
+				setChains(chainList);
+				setFavorites(new Set(fav.chainSlugs));
+				setRadiusKm(fav.radiusKm);
+			} catch (err) {
+				setError(err instanceof Error ? err.message : "Error al cargar tus tiendas");
+			} finally {
+				setLoading(false);
+			}
+		})();
+	}, [session.token]);
+
+	const loadStores = useCallback(async () => {
+		try {
+			const nearby = await getNearbyStores(session.token, coords.latitude, coords.longitude, radiusKm);
+			setStores(nearby);
+			setError(null);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Error al cargar sucursales");
+		}
+	}, [session.token, coords.latitude, coords.longitude, radiusKm]);
+
+	useEffect(() => {
+		if (!loading) loadStores();
+	}, [loading, loadStores]);
+
+	const persist = async (nextFavorites: Set<string>, nextRadius: number) => {
+		setSaving(true);
+		try {
+			await updateFavoriteStores(session.token, {
+				chainSlugs: [...nextFavorites],
+				radiusKm: nextRadius,
+			});
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "No se pudo guardar la preferencia");
+		} finally {
+			setSaving(false);
+		}
 	};
+
+	const toggleChain = (slug: string) => {
+		const next = new Set(favorites);
+		if (next.has(slug)) next.delete(slug);
+		else next.add(slug);
+		setFavorites(next);
+		persist(next, radiusKm);
+	};
+
+	const changeRadius = (km: number) => {
+		setRadiusKm(km);
+		persist(favorites, km);
+	};
+
+	// With no chain selected the user hasn't filtered yet, so showing every
+	// branch matches how the backend treats an empty favourites list.
+	const visibleStores = useMemo(
+		() => (favorites.size === 0 ? stores : stores.filter((s) => favorites.has(s.chainSlug))),
+		[stores, favorites],
+	);
+
+	// Rough degrees-per-km so the initial zoom frames the selected radius.
+	const latitudeDelta = Math.max(0.02, (radiusKm / 111) * 2.5);
 
 	return (
 		<View style={styles.safeArea}>
@@ -41,38 +145,102 @@ export function FavoriteStoresScreen({ onBack, activeTab, onSelectTab, onScanPre
 				<Text style={styles.headerTitle}>Mis tiendas favoritas</Text>
 			</View>
 
-			<ScrollView contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: insets.bottom + 24 }}>
-				<Text style={styles.hint}>
-					Las tiendas favoritas aparecen primero cuando comparás precios.
-				</Text>
-
-				{STORES.map((s) => {
-					const isFav = favs.has(s.id);
-					return (
-						<Pressable
-							key={s.id}
-							style={styles.row}
-							onPress={() => toggle(s.id)}
-							accessibilityRole="button"
-							accessibilityLabel={`${s.name}, ${isFav ? "quitar de" : "agregar a"} favoritos`}
-							accessibilityState={{ selected: isFav }}
+			{loading ? (
+				<View style={styles.loaderWrap}>
+					<ActivityIndicator size="small" color={colors.cyan} />
+				</View>
+			) : (
+				<ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+					<View style={styles.mapWrap}>
+						<MapView
+							provider={PROVIDER_DEFAULT}
+							style={StyleSheet.absoluteFill}
+							region={{
+								latitude: coords.latitude,
+								longitude: coords.longitude,
+								latitudeDelta,
+								longitudeDelta: latitudeDelta,
+							}}
 						>
-							<View style={[styles.badge, { backgroundColor: s.color }]}>
-								<Text style={styles.badgeText}>{s.code}</Text>
-							</View>
-							<View style={{ flex: 1 }}>
-								<Text style={styles.name}>{s.name}</Text>
-								<Text style={styles.meta}>{s.address} · {s.distance}</Text>
-							</View>
-							<Ionicons
-								name={isFav ? "heart" : "heart-outline"}
-								size={22}
-								color={isFav ? colors.danger : colors.subtleText}
+							<Circle
+								center={coords}
+								radius={radiusKm * 1000}
+								strokeColor="rgba(0,163,224,0.6)"
+								fillColor="rgba(0,163,224,0.12)"
 							/>
-						</Pressable>
-					);
-				})}
-			</ScrollView>
+							{visibleStores.map((s) => (
+								<Marker
+									key={`${s.chainSlug}-${s.externalId}`}
+									coordinate={{ latitude: s.lat, longitude: s.lng }}
+									title={s.name}
+									description={`${s.chainName} · ${s.distanceKm} km`}
+									pinColor={CHAIN_COLORS[s.chainSlug] ?? colors.navy}
+								/>
+							))}
+						</MapView>
+					</View>
+
+					{locationDenied && (
+						<View style={styles.warnBanner}>
+							<Ionicons name="location-outline" size={16} color="#B45A14" />
+							<Text style={styles.warnText}>
+								Sin permiso de ubicación: mostrando el centro de CABA
+							</Text>
+						</View>
+					)}
+
+					{error && (
+						<View style={styles.errorBanner}>
+							<Ionicons name="warning-outline" size={16} color="#E76F51" />
+							<Text style={styles.errorText}>{error}</Text>
+						</View>
+					)}
+
+					<Text style={styles.sectionLabel}>RADIO DE BÚSQUEDA</Text>
+					<View style={styles.radiusRow}>
+						{RADIUS_OPTIONS.map((km) => (
+							<Pressable
+								key={km}
+								style={[styles.radiusChip, radiusKm === km && styles.radiusChipOn]}
+								onPress={() => changeRadius(km)}
+								disabled={saving}
+							>
+								<Text style={[styles.radiusText, radiusKm === km && styles.radiusTextOn]}>{km} km</Text>
+							</Pressable>
+						))}
+					</View>
+
+					<Text style={styles.sectionLabel}>
+						CADENAS {favorites.size > 0 ? `(${favorites.size} elegidas)` : "(todas)"}
+					</Text>
+					<Text style={styles.sectionHint}>
+						Elegí dónde comprás: solo vas a ver ofertas de esas cadenas.
+					</Text>
+					<View style={styles.chainList}>
+						{chains.map((c, idx) => {
+							const on = favorites.has(c.slug);
+							const count = stores.filter((s) => s.chainSlug === c.slug).length;
+							return (
+								<View key={c.slug}>
+									<Pressable style={styles.chainRow} onPress={() => toggleChain(c.slug)} disabled={saving}>
+										<View style={[styles.dot, { backgroundColor: CHAIN_COLORS[c.slug] ?? colors.navy }]} />
+										<View style={{ flex: 1 }}>
+											<Text style={styles.chainName}>{c.name}</Text>
+											<Text style={styles.chainMeta}>
+												{count > 0 ? `${count} cerca tuyo` : "Sin sucursales en el radio"}
+											</Text>
+										</View>
+										<View style={[styles.check, on && styles.checkOn]}>
+											{on && <Ionicons name="checkmark" size={14} color="#fff" />}
+										</View>
+									</Pressable>
+									{idx < chains.length - 1 && <View style={styles.divider} />}
+								</View>
+							);
+						})}
+					</View>
+				</ScrollView>
+			)}
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
@@ -87,10 +255,25 @@ const styles = StyleSheet.create({
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	hint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, marginBottom: 4 },
-	row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
-	badge: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-	badgeText: { color: "#fff", fontFamily: typography.family.bold, fontSize: 12 },
-	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
+	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+	mapWrap: { height: 280, backgroundColor: "#E5E7EB" },
+	warnBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, marginBottom: 0, backgroundColor: "#FFF7ED", borderRadius: 10, padding: 10 },
+	warnText: { flex: 1, color: "#B45A14", fontFamily: typography.family.medium, fontSize: 12 },
+	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, marginBottom: 0, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 10 },
+	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 12 },
+	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16 },
+	sectionHint: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginHorizontal: 16, marginTop: 4 },
+	radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginTop: 10 },
+	radiusChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: "#D8E1EE", backgroundColor: colors.card },
+	radiusChipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
+	radiusText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
+	radiusTextOn: { color: "#fff" },
+	chainList: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: "#E5E7EB", marginHorizontal: 16, marginTop: 10, overflow: "hidden" },
+	chainRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+	dot: { width: 12, height: 12, borderRadius: 6 },
+	chainName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
+	chainMeta: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: "#D8E1EE", alignItems: "center", justifyContent: "center" },
+	checkOn: { backgroundColor: colors.cyan, borderColor: colors.cyan },
+	divider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 38 },
 });

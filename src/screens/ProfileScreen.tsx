@@ -17,6 +17,7 @@ import { colors, typography } from "../theme/designSystem";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { isBiometricAvailable } from "../auth/biometricAuth";
+import { updateProfile } from "../services";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
 
@@ -35,6 +36,10 @@ type Props = {
 	onChangePassword?: () => void;
 	biometricEnabled?: boolean;
 	onToggleBiometric?: (enabled: boolean) => void;
+	/** The switch below writes to the profile; without lifting the result
+	 * back up, `session.user` keeps the old value and the screen re-reads it
+	 * on the next visit, showing the preference the user just turned off. */
+	onSessionUpdate?: (session: Session) => void;
 };
 
 type LinkItem = {
@@ -68,15 +73,36 @@ export function ProfileScreen({
 	onChangePassword,
 	biometricEnabled = false,
 	onToggleBiometric,
+	onSessionUpdate,
 }: Props) {
 	const insets = useSafeAreaInsets();
 	const [alertsEnabled, setAlertsEnabled] = useState(true);
 	const [shareData, setShareData] = useState(false);
 	const [biometricAvailable, setBiometricAvailable] = useState(false);
+	const [alternativeBrands, setAlternativeBrands] = useState(
+		session.user.alternativeBrandsEnabled ?? true,
+	);
+	const [savingPreference, setSavingPreference] = useState(false);
 
 	useEffect(() => {
 		isBiometricAvailable().then(setBiometricAvailable).catch(() => {});
 	}, []);
+
+	const handleToggleAlternativeBrands = async (value: boolean) => {
+		// Optimistic: the switch should feel instant, and a failed save is
+		// recoverable by toggling again rather than worth blocking the UI.
+		setAlternativeBrands(value);
+		setSavingPreference(true);
+		try {
+			const updated = await updateProfile(session.token, { alternativeBrandsEnabled: value });
+			// The PUT may answer without re-issuing a token; keep the current one.
+			onSessionUpdate?.({ token: updated.token || session.token, user: updated.user });
+		} catch {
+			setAlternativeBrands(!value);
+		} finally {
+			setSavingPreference(false);
+		}
+	};
 
 	const handlers: Record<string, () => void> = {
 		onOpenPersonalData,
@@ -161,6 +187,25 @@ export function ProfileScreen({
 							onValueChange={setAlertsEnabled}
 							trackColor={{ true: colors.cyan, false: "#D9DEE5" }}
 							thumbColor="#fff"
+						/>
+					</View>
+					<View style={styles.listDivider} />
+					<View style={styles.listItem}>
+						<View style={styles.listIconWrap}>
+							<Ionicons name="swap-horizontal-outline" size={16} color={colors.navy} />
+						</View>
+						<View style={{ flex: 1, gap: 2 }}>
+							<Text style={styles.listLabel}>Marcas alternativas</Text>
+							<Text style={styles.listHint}>
+								Mostrarte ofertas del mismo producto en otras marcas
+							</Text>
+						</View>
+						<Switch
+							value={alternativeBrands}
+							onValueChange={handleToggleAlternativeBrands}
+							trackColor={{ true: colors.cyan, false: "#D9DEE5" }}
+							thumbColor="#fff"
+							disabled={savingPreference}
 						/>
 					</View>
 					<View style={styles.listDivider} />

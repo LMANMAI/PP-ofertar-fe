@@ -14,10 +14,13 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { InputField, BottomNav, type TabKey } from "../components";
-import type { TicketResponse } from "../services";
+import { InputField, BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
+import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
-import { updateTicket } from "../services";
+import { updateTicket, deleteTicket, getRecurringProducts } from "../services";
+
+/** Only nag about products bought on at least this many separate shopping
+ * trips — one-off purchases aren't a habit worth reminding about. */
 
 type Product = {
 	id: number | null;
@@ -32,6 +35,14 @@ type Product = {
 function formatCurrency(value: number | null): string {
 	if (value == null) return "$0,00";
 	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// A whole number is units; a fraction only ever comes from a line the
+// supermarket weighed, so it reads as kilos rather than "0,52 u".
+function formatQuantity(value: number | null | undefined): string {
+	if (value == null) return "1 u";
+	if (Number.isInteger(value)) return `${value} u`;
+	return `${value.toLocaleString("es-AR", { maximumFractionDigits: 3 })} kg`;
 }
 
 function buildProductsFromTicket(ticket: TicketResponse): Product[] {
@@ -63,14 +74,32 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 	const [products, setProducts] = useState<Product[]>(initialProducts);
 	const [editing, setEditing] = useState<Product | null>(null);
 	const [saving, setSaving] = useState(false);
+	const [deleting, setDeleting] = useState(false);
+	const [forgotten, setForgotten] = useState<RecurringProduct[]>([]);
+	const [forgottenDismissed, setForgottenDismissed] = useState(false);
+	const [edited, setEdited] = useState(false);
 
 	useEffect(() => {
 		if (ticket) {
 			setProducts(buildProductsFromTicket(ticket));
+			setEdited(false);
 		}
 	}, [ticket]);
 
+	useEffect(() => {
+		if (!ticket || ticket.status !== "PROCESSED") return;
+		setForgottenDismissed(false);
+		getRecurringProducts(session.token, ticket.id)
+			.then((all) => {
+				setForgotten(forgottenIn(all));
+			})
+			.catch(() => setForgotten([]));
+	}, [ticket, session.token]);
+
 	const isFailed = ticket?.status === "FAILED";
+	// Corrections are allowed only on the first visit after processing; once
+	// confirmed the ticket feeds savings history and stops being editable.
+	const isLocked = ticket?.reviewed === true;
 	const supermarket = ticket?.storeName?.trim();
 	const storeDisplay = supermarket || "Ticket escaneado";
 	const storeBadge = (supermarket || "TI").slice(0, 2).toUpperCase();
@@ -85,19 +114,39 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 		? new Set(ticket.items.map((i) => i.category).filter(Boolean)).size
 		: 0;
 
+	// Discounts are stored with the sign the receipt printed them with, so the
+	// backend sums them as absolute values; mirror that or a ticket full of
+	// "MERCADOPAGO 10% OF -162,49" lines reports negative savings.
 	const computedSavings = products.reduce(
-		(sum, p) => sum + (p.discountAmount ?? 0),
+		(sum, p) => sum + Math.abs(p.discountAmount ?? 0),
 		0,
 	);
-	const computedTotal = products.reduce(
+	/** What the receipt lists per line, before its discounts. */
+	const computedGross = products.reduce(
 		(sum, p) => sum + p.unitPrice * p.quantity,
 		0,
 	);
+	// The label is GASTO: what the shopper actually paid, which is the printed
+	// TOTAL — gross minus the discounts below it, not the sum of the lines.
+	const computedTotal = computedGross - computedSavings;
+	// Until something is corrected, show the figures the backend stored: those
+	// come from the TOTAL printed on the receipt, which the item sum does not
+	// reproduce while the OCR reads some lines gross and others net. Showing
+	// the sum here would contradict the same ticket's detail screen.
+	const showStored = !edited && ticket?.total != null;
+	const displayTotal = showStored ? (ticket?.total as number) : computedTotal;
+	const displaySavings = showStored && ticket?.totalDiscounts != null
+		? ticket.totalDiscounts
+		: computedSavings;
+	const displayGross = showStored && ticket?.subtotal != null
+		? ticket.subtotal
+		: computedGross;
 
 	const handleSave = (updated: Product) => {
 		setProducts((curr) =>
 			curr.map((p) => (p.id === updated.id ? updated : p)),
 		);
+		setEdited(true);
 		setEditing(null);
 	};
 
@@ -123,6 +172,22 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 			);
 		} finally {
 			setSaving(false);
+		}
+	};
+
+	const handleCancel = async () => {
+		if (!ticket) return;
+		setDeleting(true);
+		try {
+			await deleteTicket(session.token, ticket.id);
+			onBack();
+		} catch (error) {
+			Alert.alert(
+				"Error",
+				error instanceof Error ? error.message : "No se pudo eliminar el ticket",
+			);
+		} finally {
+			setDeleting(false);
 		}
 	};
 
@@ -177,14 +242,14 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 					</View>
 					<Text style={styles.totalLabel}>GASTO</Text>
 					<Text style={styles.totalValue}>
-						{formatCurrency(computedTotal)}
+						{formatCurrency(displayTotal)}
 					</Text>
 					<View style={styles.tagsRow}>
 						<Tag text={`Productos ${products.length}`} />
 						<Tag text={`Categorías ${categoriesCount}`} />
-						{computedSavings > 0 && computedTotal > 0 && (
+						{displaySavings > 0 && displayGross > 0 && (
 							<Tag
-								text={`${((computedSavings / (computedTotal + computedSavings)) * 100).toFixed(1).replace(".", ",")}% ahorrado`}
+								text={`${((displaySavings / displayGross) * 100).toFixed(1).replace(".", ",")}% ahorrado`}
 								tone="cyan"
 							/>
 						)}
@@ -200,7 +265,10 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 								styles.productRow,
 								idx === products.length - 1 && styles.productRowLast,
 							]}
-							onPress={() => onSelectProduct ? onSelectProduct(p.name) : setEditing(p)}
+							onPress={() => {
+								if (onSelectProduct) onSelectProduct(p.name);
+								else if (!isLocked) setEditing(p);
+							}}
 						>
 							<View style={{ flex: 1 }}>
 								<View style={styles.productNameRow}>
@@ -215,7 +283,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 								</View>
 								<View style={styles.priceRow}>
 									<Text style={styles.productMeta}>
-										{p.quantity} u · {formatCurrency(p.unitPrice)}
+										{formatQuantity(p.quantity)} · {formatCurrency(p.unitPrice)}
 									</Text>
 									{p.discountAmount != null && p.discountAmount > 0
 										&& p.originalPrice != null && p.originalPrice > p.unitPrice && (
@@ -225,12 +293,13 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 							</View>
 							<Pressable
 								hitSlop={8}
-								onPress={(e) => { e.stopPropagation(); setEditing(p); }}
+								disabled={isLocked}
+								onPress={(e) => { e.stopPropagation(); if (!isLocked) setEditing(p); }}
 							>
 								<Ionicons
-									name="create-outline"
+									name={isLocked ? "lock-closed-outline" : "create-outline"}
 									size={18}
-									color={colors.mutedText}
+									color={isLocked ? "#C7CDD4" : colors.mutedText}
 								/>
 							</Pressable>
 						</Pressable>
@@ -238,7 +307,14 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 				</View>
 			</ScrollView>
 
-			{!isFailed && (
+			{isLocked && !isFailed && (
+				<View style={[styles.lockedBar, { paddingBottom: insets.bottom + 12 }]}>
+					<Ionicons name="lock-closed" size={15} color="#6B7280" />
+					<Text style={styles.lockedText}>Ticket confirmado — ya no se puede modificar</Text>
+				</View>
+			)}
+
+			{!isFailed && !isLocked && (
 				<View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
 					<Pressable
 						style={[styles.primaryButton, saving && { opacity: 0.6 }]}
@@ -250,8 +326,17 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 							{saving ? "Guardando..." : "Confirmar ticket"}
 						</Text>
 					</Pressable>
-					<Pressable style={styles.cancelButton} onPress={onBack}>
-						<Text style={styles.cancelText}>Cancelar</Text>
+					<Pressable
+						style={[
+							styles.cancelButton,
+							deleting && { opacity: 0.6 },
+						]}
+						onPress={handleCancel}
+						disabled={deleting}
+					>
+						<Text style={styles.cancelText}>
+							{deleting ? "Cancelando..." : "Cancelar"}
+						</Text>
 					</Pressable>
 				</View>
 			)}
@@ -260,6 +345,12 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 				product={editing}
 				onClose={() => setEditing(null)}
 				onSave={handleSave}
+			/>
+
+			<ForgottenProductsSheet
+				products={forgotten}
+				visible={forgotten.length > 0 && !forgottenDismissed}
+				onClose={() => setForgottenDismissed(true)}
 			/>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
@@ -600,6 +691,22 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: "rgba(15,23,42,0.45)",
 		justifyContent: "flex-end",
+	},
+	lockedBar: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingTop: 12,
+		paddingHorizontal: 20,
+		backgroundColor: colors.card,
+		borderTopWidth: 1,
+		borderTopColor: "#E5E7EB",
+	},
+	lockedText: {
+		color: "#6B7280",
+		fontFamily: typography.family.medium,
+		fontSize: 13,
 	},
 	modalSheet: {
 		backgroundColor: colors.card,
