@@ -82,6 +82,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 	const [forgotten, setForgotten] = useState<RecurringProduct[]>([]);
 	const [forgottenDismissed, setForgottenDismissed] = useState(false);
 	const [edited, setEdited] = useState(false);
+	const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
 
 	useEffect(() => {
 		if (ticket) {
@@ -195,16 +196,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 		}
 	};
 
-	const handleDiscard = () => {
-		Alert.alert(
-			"¿Descartar este ticket?",
-			"Se borra de tu historial y no lo vas a poder recuperar.",
-			[
-				{ text: "Seguir editando", style: "cancel" },
-				{ text: "Descartar", style: "destructive", onPress: performDiscard },
-			],
-		);
-	};
+	const handleDiscard = () => setConfirmDiscardVisible(true);
 
 	return (
 		<View style={styles.safeArea}>
@@ -378,10 +370,63 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 				onClose={() => setForgottenDismissed(true)}
 			/>
 
+			<DiscardConfirmSheet
+				visible={confirmDiscardVisible}
+				onCancel={() => setConfirmDiscardVisible(false)}
+				onConfirm={() => {
+					setConfirmDiscardVisible(false);
+					performDiscard();
+				}}
+				colors={colors}
+				styles={styles}
+			/>
+
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
 		</View>
+	);
+}
+
+/** Same branded confirm-sheet shape as LogoutConfirmScreen/ConfirmRedeemScreen
+ * (icon circle + title + subtitle + danger action + cancel), instead of a bare
+ * native Alert — this is the one moment the user is about to lose scanned
+ * ticket data, and every other confirm-before-loss moment in the app looks
+ * like this, not like an OS dialog. */
+function DiscardConfirmSheet({
+	visible,
+	onCancel,
+	onConfirm,
+	colors,
+	styles,
+}: {
+	visible: boolean;
+	onCancel: () => void;
+	onConfirm: () => void;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
+}) {
+	return (
+		<Modal visible={visible} animationType="fade" transparent onRequestClose={onCancel}>
+			<View style={styles.discardBackdrop}>
+				<View style={styles.discardSheet}>
+					<View style={styles.discardIconCircle}>
+						<Ionicons name="trash-outline" size={28} color={colors.dangerSoftText} />
+					</View>
+					<Text style={styles.discardTitle}>¿Descartar este ticket?</Text>
+					<Text style={styles.discardSubtitle}>
+						Se borra de tu historial y no lo vas a poder recuperar.
+					</Text>
+
+					<Pressable style={styles.discardConfirmBtn} onPress={onConfirm}>
+						<Text style={styles.discardConfirmText}>Descartar</Text>
+					</Pressable>
+					<Pressable style={styles.discardCancelBtn} onPress={onCancel}>
+						<Text style={styles.discardCancelText}>Seguir editando</Text>
+					</Pressable>
+				</View>
+			</View>
+		</Modal>
 	);
 }
 
@@ -727,6 +772,15 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: "rgba(15,23,42,0.45)",
 		justifyContent: "flex-end",
 	},
+	discardBackdrop: { flex: 1, backgroundColor: "rgba(10,31,68,0.7)", justifyContent: "center", paddingHorizontal: space.xxl },
+	discardSheet: { backgroundColor: colors.card, borderRadius: 16, padding: 22, gap: space.sm, alignItems: "stretch" },
+	discardIconCircle: { alignSelf: "center", width: 60, height: 60, borderRadius: 30, backgroundColor: colors.dangerSoft, alignItems: "center", justifyContent: "center" },
+	discardTitle: { textAlign: "center", color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: space.xs },
+	discardSubtitle: { textAlign: "center", color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
+	discardConfirmBtn: { backgroundColor: colors.danger, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: space.md },
+	discardConfirmText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
+	discardCancelBtn: { height: 44, alignItems: "center", justifyContent: "center" },
+	discardCancelText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
 	lockedBar: {
 		flexDirection: "row",
 		alignItems: "center",

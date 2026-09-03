@@ -6,7 +6,7 @@ import { space, typography, useThemeColors, type ColorTokens } from "../theme/de
 import { getSavingsReport } from "../services";
 import type { SavingsReportResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
+import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
 
 function formatCurrency(value: number | null | undefined): string {
 	if (value == null) return "$0";
@@ -85,6 +85,10 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 		? Math.max(...report.byCategory.map((c) => c.totalDiscounts), 1)
 		: 1;
 
+	const now = new Date();
+	const isCurrentMonth = selectedMonth.getFullYear() === now.getFullYear()
+		&& selectedMonth.getMonth() === now.getMonth();
+
 	return (
 		<View style={styles.safeArea}>
 			<ScreenHeader title="Análisis mensual" onBack={onBack} />
@@ -94,14 +98,29 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 					<Ionicons name="chevron-back" size={18} color={colors.defaultText} />
 				</Pressable>
 				<Text style={styles.monthLabel}>{formatMonth(selectedMonth)}</Text>
-				<Pressable onPress={nextMonth} style={styles.monthArrow} accessibilityRole="button" accessibilityLabel="Mes siguiente">
-					<Ionicons name="chevron-forward" size={18} color={colors.defaultText} />
+				<Pressable
+					onPress={nextMonth}
+					disabled={isCurrentMonth}
+					style={[styles.monthArrow, isCurrentMonth && styles.monthArrowDisabled]}
+					accessibilityRole="button"
+					accessibilityLabel="Mes siguiente"
+					accessibilityState={{ disabled: isCurrentMonth }}
+				>
+					<Ionicons name="chevron-forward" size={18} color={isCurrentMonth ? colors.border : colors.defaultText} />
 				</Pressable>
 			</View>
 
 			{loading && <LoadingState />}
 
-			{error && <ErrorBanner message={error} />}
+			{error && !loading && <ErrorBanner message={error} />}
+
+			{!loading && !error && !report && (
+				<EmptyState
+					icon="bar-chart-outline"
+					title="No hay datos para este mes"
+					hint="Todavía no encontramos un reporte de ahorro para el mes seleccionado."
+				/>
+			)}
 
 			{!loading && !error && report && (
 				<ScrollView
@@ -206,6 +225,7 @@ function createStyles(colors: ColorTokens) {
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	monthSelector: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: space.md, gap: space.md, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
 	monthArrow: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+	monthArrowDisabled: { opacity: 0.4 },
 	monthLabel: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textTransform: "capitalize" },
 	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: space.xl, gap: space.sm },
 	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },

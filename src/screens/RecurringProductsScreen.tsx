@@ -278,70 +278,79 @@ const ProductCard = memo(function ProductCard({
 
 			{isExpanded && hasAnything && (
 				<View style={styles.detailBlock}>
-					{offer &&
-						(savings ? (
-							<>
-								<View style={styles.detailRow}>
-									<Text style={styles.detailLabel}>Precio de lista</Text>
-									<Text style={styles.strikePrice}>{formatCurrency(offer.listPrice)}</Text>
-								</View>
-								<View style={styles.detailRow}>
-									<Text style={styles.detailLabel}>Precio con la oferta</Text>
-									<Text style={styles.detailValue}>{formatCurrency(offer.price)}</Text>
-								</View>
-								<View style={styles.savingsRow}>
-									<Ionicons name="pricetag" size={13} color={colors.successSoftText} />
-									<Text style={styles.savingsText}>
-										Ahorrás {formatCurrency(savings.amount)} ({Math.round(savings.pct)}%) sobre el
-										precio de lista
+					{/* Everything about the one offer this card already shows — price
+					    comparison, which promo it comes from, how it compares to what
+					    you actually paid last time — grouped under one heading instead
+					    of running straight into "other promotions" below with nothing
+					    to mark where one ends and the next begins. */}
+					{offer && (
+						<View style={styles.detailGroup}>
+							<Text style={styles.detailGroupTitle}>ESTE PRECIO</Text>
+							{savings ? (
+								<>
+									<View style={styles.detailRow}>
+										<Text style={styles.detailLabel}>Precio de lista</Text>
+										<Text style={styles.strikePrice}>{formatCurrency(offer.listPrice)}</Text>
+									</View>
+									<View style={styles.detailRow}>
+										<Text style={styles.detailLabel}>Precio con la oferta</Text>
+										<Text style={styles.detailValue}>{formatCurrency(offer.price)}</Text>
+									</View>
+									<View style={styles.savingsRow}>
+										<Ionicons name="pricetag" size={13} color={colors.successSoftText} />
+										<Text style={styles.savingsText}>
+											Ahorrás {formatCurrency(savings.amount)} ({Math.round(savings.pct)}%) sobre el
+											precio de lista
+										</Text>
+									</View>
+									<Text style={styles.detailNote}>
+										El mejor precio registrado para un producto de la misma marca y tipo — puede
+										ser otra presentación o tamaño del que comprás vos.
+									</Text>
+								</>
+							) : (
+								<Text style={styles.detailNote}>
+									{offer.retailerName} no publicó precio de lista para este producto, así que no
+									podemos calcular cuánto representa el descuento.
+								</Text>
+							)}
+
+							{offer.promoLabel && (
+								// Attributed to the retailer: unattributed, this validity window
+								// sat next to a different chain's promotion and read as if both
+								// belonged to the same offer.
+								<View style={styles.promoRow}>
+									<Ionicons name="megaphone-outline" size={13} color={colors.defaultText} />
+									<Text style={styles.promoText}>
+										{offer.retailerName}: {offer.promoLabel}
 									</Text>
 								</View>
-								<Text style={styles.detailNote}>
-									El mejor precio registrado para un producto de la misma marca y tipo — puede
-									ser otra presentación o tamaño del que comprás vos.
-								</Text>
-							</>
-						) : (
-							<Text style={styles.detailNote}>
-								{offer.retailerName} no publicó precio de lista para este producto, así que no
-								podemos calcular cuánto representa el descuento.
-							</Text>
-						))}
+							)}
 
-					{offer?.promoLabel && (
-						// Attributed to the retailer: unattributed, this validity window
-						// sat next to a different chain's promotion and read as if both
-						// belonged to the same offer.
-						<View style={styles.promoRow}>
-							<Ionicons name="megaphone-outline" size={13} color={colors.defaultText} />
-							<Text style={styles.promoText}>
-								{offer.retailerName}: {offer.promoLabel}
-							</Text>
-						</View>
-					)}
-
-					{offer && p.lastPaidPrice != null && (
-						<View style={styles.paidBlock}>
-							<View style={styles.detailRow}>
-								{/* The date is when the receipt was scanned, not when the
-								    purchase happened — the ticket carries no emission date.
-								    Worded so it stays true either way, including when an old
-								    receipt is scanned today. */}
-								<Text style={styles.detailLabel}>
-									En tu último ticket escaneado
-									{formatDate(p.lastPaidAt) ? ` (${formatDate(p.lastPaidAt)})` : ""}
-								</Text>
-								<Text style={styles.detailValue}>{formatCurrency(p.lastPaidPrice)}</Text>
-							</View>
-							{p.lastPaidPrice > offer.price ? (
-								<Text style={styles.paidBetter}>
-									La oferta está {formatCurrency(p.lastPaidPrice - offer.price)} por debajo de lo
-									que pagaste
-								</Text>
-							) : (
-								<Text style={styles.paidWorse}>
-									La última vez lo conseguiste más barato que esta oferta
-								</Text>
+							{p.lastPaidPrice != null && (
+								<View style={styles.paidBlock}>
+									<View style={styles.detailRow}>
+										{/* The date is when the receipt was scanned, not when the
+										    purchase happened — the ticket carries no emission date.
+										    Worded so it stays true either way, including when an old
+										    receipt is scanned today. */}
+										<Text style={styles.detailLabel}>
+											En tu último ticket escaneado
+											{formatDate(p.lastPaidAt) ? ` (${formatDate(p.lastPaidAt)})` : ""}
+										</Text>
+										<Text style={styles.detailValue}>{formatCurrency(p.lastPaidPrice)}</Text>
+									</View>
+									{p.lastPaidPrice > offer.price ? (
+										<Text style={styles.paidBetter}>
+											La oferta está {formatCurrency(p.lastPaidPrice - offer.price)} por debajo de lo
+											que pagaste
+										</Text>
+									) : (
+										<Text style={styles.paidWorse}>
+											La última vez lo conseguiste más barato que esta oferta
+										</Text>
+									)}
+								</View>
 							)}
 						</View>
 					)}
@@ -457,6 +466,8 @@ function createStyles(colors: ColorTokens) {
 	price: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
 	noOffer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12 },
 	detailBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 10, gap: space.sm },
+	detailGroup: { gap: space.sm },
+	detailGroupTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
 	detailRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	detailLabel: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
 	detailValue: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },

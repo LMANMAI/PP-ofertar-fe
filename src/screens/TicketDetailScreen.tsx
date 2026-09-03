@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getRecurringProducts, getTicket, offerBadge } from "../services";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
+import {
+	BottomNav,
+	EmptyState,
+	ErrorBanner,
+	ForgottenProductsSheet,
+	forgottenIn,
+	LoadingState,
+	ScreenHeader,
+	type TabKey,
+} from "../components";
 import { hasBeenAnnounced, markAnnounced } from "../store/announcedTickets";
 
 function formatCurrency(value: number | null | undefined): string {
@@ -104,26 +112,18 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Detalle del ticket</Text>
-			</View>
+			<ScreenHeader title="Detalle del ticket" onBack={onBack} />
 
-			{loading && (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
-			)}
+			{loading && <LoadingState />}
 
-			{error && (
-				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color={colors.orange} />
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
+			{error && !loading && <ErrorBanner message={error} />}
+
+			{!loading && !error && !ticket && (
+				<EmptyState
+					icon="receipt-outline"
+					title="No encontramos este ticket"
+					hint="Puede que ya no exista o que el enlace esté desactualizado."
+				/>
 			)}
 
 			{!loading && !error && ticket && (
@@ -225,13 +225,6 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: space.md, height: 56, flexDirection: "row", alignItems: "center", gap: space.sm },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: space.sm, margin: space.lg, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: space.md },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
 	failedBanner: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: space.md },
 	failedBannerText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
 	summary: { backgroundColor: colors.navy, borderRadius: 16, padding: space.lg, gap: 6 },
