@@ -1,3 +1,5 @@
+import { displayProductName } from "../utils/productName";
+
 const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
 /** How a campaign discount applies. Mirrors the scraper's `promoMechanic`
@@ -240,5 +242,9 @@ export async function getOffers(token: string, page = 1, pageSize = 30): Promise
 	const body = (await response.json()) as OfferPage;
 	// The app ships independently of the backend; an older one has no /offers
 	// at all, and a partial payload should degrade rather than crash a screen.
-	return { ...body, items: body.items ?? [] };
+	const items = (body.items ?? []).map((o) => ({
+		...o,
+		productName: o.productName && displayProductName(o.productName),
+	}));
+	return { ...body, items };
 }

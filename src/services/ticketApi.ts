@@ -1,3 +1,5 @@
+import { displayProductName } from "../utils/productName";
+
 const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
 export interface TicketItemResponse {
@@ -60,6 +62,13 @@ export interface SavingsReportResponse {
 	}>;
 }
 
+function cleanTicket(ticket: TicketResponse): TicketResponse {
+	return {
+		...ticket,
+		items: ticket.items.map((item) => ({ ...item, description: displayProductName(item.description) })),
+	};
+}
+
 export type UpdateTicketData = {
 	storeName?: string;
 	items: Array<{
@@ -103,7 +112,7 @@ export async function scanTicket(
 		throw new Error(error.message || `Error ${response.status}`);
 	}
 
-	return response.json();
+	return cleanTicket(await response.json());
 }
 
 export async function getTickets(token: string): Promise<TicketResponse[]> {
@@ -120,7 +129,8 @@ export async function getTickets(token: string): Promise<TicketResponse[]> {
 		throw new Error(error.message || `Error ${response.status}`);
 	}
 
-	return response.json();
+	const tickets = (await response.json()) as TicketResponse[];
+	return tickets.map(cleanTicket);
 }
 
 export async function getTicket(token: string, id: number): Promise<TicketResponse> {
@@ -137,7 +147,7 @@ export async function getTicket(token: string, id: number): Promise<TicketRespon
 		throw new Error(error.message || `Error ${response.status}`);
 	}
 
-	return response.json();
+	return cleanTicket(await response.json());
 }
 
 export async function updateTicket(
@@ -159,7 +169,7 @@ export async function updateTicket(
 		throw new Error(error.message || `Error ${response.status}`);
 	}
 
-	return response.json();
+	return cleanTicket(await response.json());
 }
 
 export async function deleteTicket(token: string, id: number): Promise<void> {
