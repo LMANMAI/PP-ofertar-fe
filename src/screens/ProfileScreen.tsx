@@ -32,6 +32,7 @@ type Props = {
 	onOpenPayment: () => void;
 	onOpenStores: () => void;
 	onOpenSavings: () => void;
+	onOpenPoints: () => void;
 	onOpenHelp: () => void;
 	onChangePassword?: () => void;
 	biometricEnabled?: boolean;
@@ -47,11 +48,12 @@ type LinkItem = {
 	icon: IonName;
 	label: string;
 	hint?: string;
-	action: keyof Pick<Props, "onOpenPersonalData" | "onOpenPayment" | "onOpenStores" | "onOpenSavings" | "onChangePassword">;
+	action: keyof Pick<Props, "onOpenPersonalData" | "onOpenPayment" | "onOpenStores" | "onOpenSavings" | "onOpenPoints" | "onChangePassword">;
 };
 
 const ACCOUNT_ITEMS: LinkItem[] = [
 	{ id: "personal", icon: "person-outline", label: "Datos personales", action: "onOpenPersonalData" },
+	{ id: "points", icon: "people-outline", label: "Puntos y referidos", action: "onOpenPoints" },
 	{ id: "payment", icon: "card-outline", label: "Métodos de pago", action: "onOpenPayment" },
 	{ id: "stores", icon: "location-outline", label: "Mis tiendas favoritas", action: "onOpenStores" },
 	{ id: "savings", icon: "wallet-outline", label: "Mis últimos ahorros", action: "onOpenSavings" },
@@ -69,6 +71,7 @@ export function ProfileScreen({
 	onOpenPayment,
 	onOpenStores,
 	onOpenSavings,
+	onOpenPoints,
 	onOpenHelp,
 	onChangePassword,
 	biometricEnabled = false,
@@ -109,6 +112,7 @@ export function ProfileScreen({
 		onOpenPayment,
 		onOpenStores,
 		onOpenSavings,
+		onOpenPoints,
 		onChangePassword: onChangePassword ?? (() => {}),
 	};
 
@@ -155,21 +159,24 @@ export function ProfileScreen({
 
 				<Text style={styles.sectionLabel}>CUENTA</Text>
 				<View style={styles.listCard}>
-					{ACCOUNT_ITEMS.map((it, idx) => (
-						<View key={it.id}>
-							<Pressable style={styles.listItem} onPress={handlers[it.action]}>
-								<View style={styles.listIconWrap}>
-									<Ionicons name={it.icon} size={16} color={colors.navy} />
-								</View>
-								<View style={{ flex: 1, gap: 2 }}>
-									<Text style={styles.listLabel}>{it.label}</Text>
-									{it.hint && <Text style={styles.listHint}>{it.hint}</Text>}
-								</View>
-								<Ionicons name="chevron-forward" size={18} color={colors.subtleText} />
-							</Pressable>
-							{idx < ACCOUNT_ITEMS.length - 1 && <View style={styles.listDivider} />}
-						</View>
-					))}
+					{ACCOUNT_ITEMS.map((it, idx) => {
+						const hint = it.id === "points" ? `${referralPoints.toLocaleString("es-AR")} pts` : it.hint;
+						return (
+							<View key={it.id}>
+								<Pressable style={styles.listItem} onPress={handlers[it.action]}>
+									<View style={styles.listIconWrap}>
+										<Ionicons name={it.icon} size={16} color={colors.navy} />
+									</View>
+									<View style={{ flex: 1, gap: 2 }}>
+										<Text style={styles.listLabel}>{it.label}</Text>
+										{hint && <Text style={styles.listHint}>{hint}</Text>}
+									</View>
+									<Ionicons name="chevron-forward" size={18} color={colors.subtleText} />
+								</Pressable>
+								{idx < ACCOUNT_ITEMS.length - 1 && <View style={styles.listDivider} />}
+							</View>
+						);
+					})}
 				</View>
 
 				<Text style={styles.sectionLabel}>PREFERENCIAS</Text>

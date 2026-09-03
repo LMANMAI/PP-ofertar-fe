@@ -35,21 +35,21 @@ const STEPS: Step[] = [
 			"Encuadrá el ticket o producto, confirmá y dejá que OfertAR encuentre tus ahorros.",
 	},
 	{
+		id: "history",
+		title: "Tu historial y ahorro",
+		description: "Consultá tus tickets escaneados y cuánto venís ahorrando.",
+	},
+	{
 		id: "offers",
 		title: "Tus ofertas detectadas",
 		description:
 			"Acá aparecen las ofertas que pueden interesarte según tus supermercados de preferencia.",
 	},
 	{
-		id: "history",
-		title: "Tu historial y ahorro",
-		description: "Consultá tus tickets escaneados y cuánto venís ahorrando.",
-	},
-	{
 		id: "main-navigation",
 		title: "Todo a mano",
 		description:
-			"Usá esta navegación para ir a Inicio, Ofertas y tu Perfil.",
+			"Usá esta navegación para ir a Inicio, tus Tickets, Ofertas y tu Perfil.",
 	},
 ];
 

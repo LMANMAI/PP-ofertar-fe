@@ -58,7 +58,7 @@ import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
 import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
 import { getOffers, getTicket, scanTicket } from "./src/services";
-import type { Offer, TicketResponse } from "./src/services";
+import type { Offer, NearbyStore, TicketResponse } from "./src/services";
 import { REWARDS, POINTS_PER_REFERRAL } from "./src/data/rewards";
 import { colors } from "./src/theme/designSystem";
 
@@ -72,7 +72,7 @@ type Screen =
 	| "scanBarcode"
 	| "compare" | "storeDetail"
 	| "offerDetail"
-	| "rewardDetail" | "confirmRedeem" | "redeemSuccess"
+	| "points" | "rewardDetail" | "confirmRedeem" | "redeemSuccess"
 	| "pointsHistory"
 	| "personalData" | "paymentMethods" | "favoriteStores" | "helpCenter" | "logoutConfirm"
 	| "ticketHistory" | "ticketDetail" | "monthlyAnalysis" | "recurringProducts" | "smartList";
@@ -83,7 +83,8 @@ export default function App() {
 	const [session, setSession] = useState<Session | null>(null);
 	const [registerData, setRegisterData] = useState<{ firstName: string; lastName: string; email: string; phone: string; referralCode: string } | null>(null);
 	const [compareProduct, setCompareProduct] = useState<string>("Aceite Natura girasol 1.5L");
-	const [selectedStore, setSelectedStore] = useState<string>("dia");
+	const [compareBarcode, setCompareBarcode] = useState<string | null>(null);
+	const [selectedStore, setSelectedStore] = useState<NearbyStore | null>(null);
 	const [compareOrigin, setCompareOrigin] = useState<"main" | "ticketProcessed">("main");
 	const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
 	/** An offer opened from somewhere other than the feed — the feed is paged
@@ -94,7 +95,6 @@ export default function App() {
 	// pantalla de detalle se resuelve por id desde el router.
 	const [offers, setOffers] = useState<Offer[]>([]);
 	const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
-	const [redeemCode, setRedeemCode] = useState<string>("DIA-X4K2-9WM7");
 	const [redeemRemaining, setRedeemRemaining] = useState<number>(0);
 	const [referralPoints, setReferralPoints] = useState<number>(0);
 	const [referralHistory, setReferralHistory] = useState<PointsHistoryEntry[]>([]);
@@ -195,11 +195,18 @@ export default function App() {
 	const handleScanPress = () => { setTab("scan"); setScreen("scanMethod"); };
 	const handleSelectTab = (t: TabKey) => {
 		if (t === "scan") return handleScanPress();
+		if (t === "history") { setTab(t); setScreen("ticketHistory"); return; }
 		setTab(t);
 		setScreen("main");
 	};
 	const handleLogout = () => {
 		setSession(null); setTab("home"); setOffers([]); setAwaitingTicketIds([]); setBiometricEnabled(false); setScreen("welcome");
+		// El sistema de puntos por referidos es solo-frontend (sin backend
+		// todavía), así que sin este reset el saldo y el historial de una
+		// cuenta quedarían visibles para la próxima que inicie sesión en el
+		// mismo dispositivo.
+		setReferralPoints(0);
+		setReferralHistory([]);
 		clearStoredToken();
 	};
 
@@ -220,8 +227,6 @@ export default function App() {
 	const findOffer = (id: string | null) =>
 		offers.find((o) => o.id === id) ?? (fallbackOffer?.id === id ? fallbackOffer : null);
 	const findReward = (id: string | null) => REWARDS.find((r) => r.id === id) ?? REWARDS[0];
-	const generateCode = () =>
-		`OFE-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 	const enterMain = (ss: Session) => {
 		setSession(ss);
@@ -498,7 +503,7 @@ export default function App() {
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
-					onOpenHistory={() => setScreen("ticketHistory")}
+					onOpenHistory={() => { setTab("history"); setScreen("ticketHistory"); }}
 					onOpenAnalysis={() => setScreen("monthlyAnalysis")}
 					onOpenRecurring={() => setScreen("recurringProducts")}
 					onOpenSmartList={() => setScreen("smartList")}
@@ -516,10 +521,11 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "main" && session && tab === "points" && (
+			{screen === "points" && session && (
 				<PointsScreen
 					session={session}
 					pointsBalance={referralPoints}
+					onBack={() => goMain("profile")}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
@@ -540,7 +546,8 @@ export default function App() {
 					onOpenPersonalData={() => setScreen("personalData")}
 					onOpenPayment={() => setScreen("paymentMethods")}
 					onOpenStores={() => setScreen("favoriteStores")}
-					onOpenSavings={() => setScreen("ticketHistory")}
+					onOpenSavings={() => { setTab("history"); setScreen("ticketHistory"); }}
+					onOpenPoints={() => setScreen("points")}
 					onOpenHelp={() => setScreen("helpCenter")}
 					onChangePassword={() => setScreen("changePasswordAuth")}
 					biometricEnabled={biometricEnabled}
@@ -594,8 +601,9 @@ export default function App() {
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
-					onSelectProduct={(name) => {
+					onSelectProduct={(name, barcode) => {
 						setCompareProduct(name);
+						setCompareBarcode(barcode);
 						setCompareOrigin("ticketProcessed");
 						setScreen("compare");
 					}}
@@ -614,11 +622,12 @@ export default function App() {
 			{screen === "compare" && (
 				<ComparePricesScreen
 					productName={compareProduct}
+					barcode={compareBarcode}
 					onBack={() => {
 						if (compareOrigin === "ticketProcessed") setScreen("ticketProcessed");
 						else setScreen("main");
 					}}
-					onSelectStore={(storeId) => { setSelectedStore(storeId); setScreen("storeDetail"); }}
+					onScanBarcode={() => setScreen("scanBarcode")}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
@@ -627,8 +636,8 @@ export default function App() {
 
 			{screen === "storeDetail" && (
 				<StoreDetailScreen
-					storeId={selectedStore}
-					onBack={() => setScreen("compare")}
+					store={selectedStore}
+					onBack={() => setScreen("favoriteStores")}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
@@ -649,7 +658,7 @@ export default function App() {
 				<RewardDetailScreen
 					reward={findReward(selectedRewardId)}
 					pointsBalance={referralPoints}
-					onBack={() => goMain("points")}
+					onBack={() => setScreen("points")}
 					onRedeem={() => setScreen("confirmRedeem")}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
@@ -682,7 +691,6 @@ export default function App() {
 							...prev,
 						]);
 						setRedeemRemaining(remaining);
-						setRedeemCode(generateCode());
 						setScreen("redeemSuccess");
 					}}
 				/>
@@ -691,10 +699,9 @@ export default function App() {
 			{screen === "redeemSuccess" && selectedRewardId && (
 				<RedeemSuccessScreen
 					reward={findReward(selectedRewardId)}
-					code={redeemCode}
 					remainingPoints={redeemRemaining}
 					onSeeMy={() => setScreen("pointsHistory")}
-					onKeepRedeeming={() => goMain("points")}
+					onKeepRedeeming={() => setScreen("points")}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
@@ -704,7 +711,7 @@ export default function App() {
 			{screen === "pointsHistory" && (
 				<PointsHistoryScreen
 					entries={referralHistory}
-					onBack={() => goMain("points")}
+					onBack={() => setScreen("points")}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
@@ -737,6 +744,10 @@ export default function App() {
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
+					onSelectStore={(store) => {
+						setSelectedStore(store);
+						setScreen("storeDetail");
+					}}
 				/>
 			)}
 

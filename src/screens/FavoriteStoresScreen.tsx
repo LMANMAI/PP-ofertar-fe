@@ -36,9 +36,10 @@ type Props = {
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
+	onSelectStore?: (store: NearbyStore) => void;
 };
 
-export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
+export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, onScanPress, onSelectStore }: Props) {
 	const insets = useSafeAreaInsets();
 	const [chains, setChains] = useState<StoreChain[]>([]);
 	const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -175,6 +176,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 									title={s.name}
 									description={`${s.chainName} · ${s.distanceKm} km`}
 									pinColor={CHAIN_COLORS[s.chainSlug] ?? colors.navy}
+									onCalloutPress={() => onSelectStore?.(s)}
 								/>
 							))}
 						</MapView>

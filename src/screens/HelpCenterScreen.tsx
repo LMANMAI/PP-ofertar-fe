@@ -11,9 +11,9 @@ type Faq = { id: string; q: string; a: string };
 
 const FAQS: Faq[] = [
 	{ id: "1", q: "¿Cómo escaneo un ticket?", a: "Tocá el botón con el ícono de ticket en el centro de la barra inferior. Apuntá la cámara al ticket completo y esperá la confirmación." },
-	{ id: "2", q: "¿Cómo gano puntos?", a: `Ganás ${POINTS_PER_REFERRAL} puntos cada vez que alguien se registra con tu código de invitación, y la persona invitada gana otros ${POINTS_PER_REFERRAL}. Encontrá tu código en la pestaña Puntos.` },
-	{ id: "3", q: "¿Mis datos están seguros?", a: "Sí. Usamos encriptación de nivel bancario y nunca compartimos tu información personal con terceros." },
-	{ id: "4", q: "¿Cómo activo una oferta?", a: "Desde la pestaña Ofertas, tocá la oferta y luego 'Activar oferta'. Te damos un código para mostrar en caja." },
+	{ id: "2", q: "¿Cómo gano puntos?", a: `Si te registrás usando el código de invitación de un amigo, ganás ${POINTS_PER_REFERRAL} puntos. Encontrá tu propio código para compartir en la pestaña Puntos.` },
+	{ id: "3", q: "¿Mis datos están seguros?", a: "Guardamos lo mínimo necesario para que funcione tu cuenta y nunca compartimos tu información personal con terceros." },
+	{ id: "4", q: "¿Cómo veo el detalle de una oferta?", a: "Desde la pestaña Ofertas, tocá cualquier oferta para ver en qué sucursales aplica, hasta cuándo dura y las condiciones." },
 	{ id: "5", q: "¿Para qué sirven los puntos por referidos?", a: "Se canjean por descuentos en tu próxima suscripción a OfertAR, o incluso un mes gratis. Mirá los canjes disponibles en la pestaña Puntos." },
 ];
 

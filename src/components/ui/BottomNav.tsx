@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { typography, useThemeColors } from "../../theme/designSystem";
 import { useOnboardingTarget } from "../onboarding/OnboardingProvider";
 
-export type TabKey = "home" | "offers" | "scan" | "points" | "profile";
+export type TabKey = "home" | "offers" | "scan" | "history" | "profile";
 
 type Props = {
 	active: TabKey;
@@ -28,10 +28,10 @@ const ITEMS: Item[] = [
 		iconActive: "pricetag",
 	},
 	{
-		key: "points",
-		label: "Puntos",
-		icon: "star-outline",
-		iconActive: "star",
+		key: "history",
+		label: "Tickets",
+		icon: "receipt-outline",
+		iconActive: "receipt",
 	},
 	{
 		key: "profile",

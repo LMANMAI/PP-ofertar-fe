@@ -24,9 +24,9 @@ export function ConfirmRedeemScreen({ reward, pointsBalance, onCancel, onConfirm
 				<View style={styles.iconCircle}>
 					<Ionicons name={reward.icon} size={28} color={colors.navy} />
 				</View>
-				<Text style={styles.title}>Confirmar canje</Text>
+				<Text style={styles.title}>Confirmar</Text>
 				<Text style={styles.subtitle}>
-					Vas a canjear <Text style={styles.bold}>{reward.title}</Text>.
+					Vas a usar tus puntos en <Text style={styles.bold}>{reward.title}</Text>.
 				</Text>
 
 				<View style={styles.statsRow}>
@@ -38,14 +38,14 @@ export function ConfirmRedeemScreen({ reward, pointsBalance, onCancel, onConfirm
 					<View style={styles.warningBox}>
 						<Ionicons name="information-circle-outline" size={16} color="#B45A14" />
 						<Text style={styles.warningText}>
-							Una vez canjeado, los puntos no se pueden devolver.
+							Una vez confirmado, los puntos no se pueden devolver.
 						</Text>
 					</View>
 				) : (
 					<View style={[styles.warningBox, styles.warningBoxDanger]}>
 						<Ionicons name="alert-circle-outline" size={16} color={colors.danger} />
 						<Text style={[styles.warningText, { color: colors.danger }]}>
-							No te alcanzan los puntos para este canje.
+							No te alcanzan los puntos todavía.
 						</Text>
 					</View>
 				)}
@@ -56,7 +56,7 @@ export function ConfirmRedeemScreen({ reward, pointsBalance, onCancel, onConfirm
 					accessibilityRole="button"
 					accessibilityState={{ disabled: !canConfirm }}
 				>
-					<Text style={styles.confirmText}>Confirmar canje</Text>
+					<Text style={styles.confirmText}>Confirmar</Text>
 				</Pressable>
 				<Pressable style={styles.cancelBtn} onPress={onCancel}>
 					<Text style={styles.cancelText}>Cancelar</Text>

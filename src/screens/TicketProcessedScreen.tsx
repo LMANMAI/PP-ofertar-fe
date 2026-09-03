@@ -30,6 +30,7 @@ type Product = {
 	originalPrice: number | null;
 	category: string | null;
 	discountAmount: number | null;
+	barcode: string | null;
 };
 
 function formatCurrency(value: number | null): string {
@@ -54,6 +55,7 @@ function buildProductsFromTicket(ticket: TicketResponse): Product[] {
 		originalPrice: item.originalPrice,
 		category: item.category,
 		discountAmount: item.discountAmount,
+		barcode: item.barcode,
 	}));
 }
 
@@ -62,7 +64,7 @@ type Props = {
 	session: Session;
 	onBack: () => void;
 	onFinish: () => void;
-	onSelectProduct?: (productName: string) => void;
+	onSelectProduct?: (productName: string, barcode: string | null) => void;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
@@ -175,7 +177,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 		}
 	};
 
-	const handleCancel = async () => {
+	const performDiscard = async () => {
 		if (!ticket) return;
 		setDeleting(true);
 		try {
@@ -189,6 +191,17 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 		} finally {
 			setDeleting(false);
 		}
+	};
+
+	const handleDiscard = () => {
+		Alert.alert(
+			"¿Descartar este ticket?",
+			"Se borra de tu historial y no lo vas a poder recuperar.",
+			[
+				{ text: "Seguir editando", style: "cancel" },
+				{ text: "Descartar", style: "destructive", onPress: performDiscard },
+			],
+		);
 	};
 
 	return (
@@ -266,7 +279,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 								idx === products.length - 1 && styles.productRowLast,
 							]}
 							onPress={() => {
-								if (onSelectProduct) onSelectProduct(p.name);
+								if (onSelectProduct) onSelectProduct(p.name, p.barcode);
 								else if (!isLocked) setEditing(p);
 							}}
 						>
@@ -316,6 +329,9 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 
 			{!isFailed && !isLocked && (
 				<View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+					<Text style={styles.confirmHint}>
+						Después de confirmar no vas a poder editar los productos.
+					</Text>
 					<Pressable
 						style={[styles.primaryButton, saving && { opacity: 0.6 }]}
 						onPress={handleConfirm}
@@ -331,11 +347,14 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 							styles.cancelButton,
 							deleting && { opacity: 0.6 },
 						]}
-						onPress={handleCancel}
+						onPress={handleDiscard}
 						disabled={deleting}
+						accessibilityRole="button"
+						accessibilityLabel="Descartar ticket"
 					>
+						<Ionicons name="trash-outline" size={16} color={colors.danger} />
 						<Text style={styles.cancelText}>
-							{deleting ? "Cancelando..." : "Cancelar"}
+							{deleting ? "Descartando..." : "Descartar ticket"}
 						</Text>
 					</Pressable>
 				</View>
@@ -674,16 +693,24 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 15,
 	},
+	confirmHint: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		textAlign: "center",
+	},
 	cancelButton: {
 		height: 44,
 		borderRadius: 10,
 		alignItems: "center",
 		justifyContent: "center",
+		flexDirection: "row",
+		gap: 6,
 		borderWidth: 1,
-		borderColor: colors.border,
+		borderColor: colors.danger,
 	},
 	cancelText: {
-		color: colors.mutedText,
+		color: colors.danger,
 		fontFamily: typography.family.medium,
 		fontSize: 14,
 	},

@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+	ActivityIndicator,
+	Image,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -11,84 +13,60 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
-
-type Store = {
-	id: string;
-	code: string;
-	color: string;
-	name: string;
-	price: string;
-	rawPrice: number;
-	distanceKm: number;
-	inStock: boolean;
-	delta: string | null;
-	deltaTone: "good" | "bad" | null;
-};
-
-const STORES: Store[] = [
-	{ id: "dia", code: "DI", color: "#0D80CC", name: "Día", price: "$2.010", rawPrice: 2010, distanceKm: 0.6, inStock: true, delta: "-18%", deltaTone: "good" },
-	{ id: "coto", code: "CO", color: "#CC1A1A", name: "Coto", price: "$2.450", rawPrice: 2450, distanceKm: 1.9, inStock: true, delta: null, deltaTone: null },
-	{ id: "carrefour", code: "CA", color: "#0059A6", name: "Carrefour", price: "$2.580", rawPrice: 2580, distanceKm: 1.2, inStock: true, delta: "+5%", deltaTone: "bad" },
-	{ id: "jumbo", code: "JU", color: "#00804D", name: "Jumbo", price: "$2.640", rawPrice: 2640, distanceKm: 3.4, inStock: false, delta: "+8%", deltaTone: "bad" },
-	{ id: "vea", code: "VE", color: "#990000", name: "Vea", price: "$2.720", rawPrice: 2720, distanceKm: 0.9, inStock: true, delta: "+11%", deltaTone: "bad" },
-];
-
-const FILTERS = ["Precio", "Cerca tuyo", "Disponibilidad", "Marca"] as const;
-type Filter = (typeof FILTERS)[number];
-
-function sortStores(filter: Filter): Store[] {
-	const list = [...STORES];
-	switch (filter) {
-		case "Precio":
-			return list.sort((a, b) => a.rawPrice - b.rawPrice);
-		case "Cerca tuyo":
-			return list.sort((a, b) => a.distanceKm - b.distanceKm);
-		case "Disponibilidad":
-			return list.sort((a, b) => Number(b.inStock) - Number(a.inStock));
-		case "Marca":
-			return list.sort((a, b) => a.name.localeCompare(b.name));
-	}
-}
+import { getProductoPorEan } from "../services/sepaApi";
+import type { ProductoDetalleResponse } from "../services/sepaApi";
 
 type Props = {
-	productName?: string;
-	productBrand?: string;
-	lastPrice?: string;
+	productName: string;
+	barcode: string | null;
 	onBack: () => void;
-	onSelectStore: (storeId: string) => void;
-	onSave?: () => void;
+	onScanBarcode: () => void;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
 };
 
+type Estado = "sin-codigo" | "buscando" | "resultado" | "error";
+
+const formatearPrecio = (valor: number | null) =>
+	valor == null
+		? "—"
+		: valor.toLocaleString("es-AR", {
+				style: "currency",
+				currency: "ARS",
+				maximumFractionDigits: 0,
+			});
+
 export function ComparePricesScreen({
-	productName = "Aceite Natura girasol 1.5L",
-	productBrand = "NATURA",
-	lastPrice = "Último precio: $2.450",
+	productName,
+	barcode,
 	onBack,
-	onSelectStore,
-	onSave,
+	onScanBarcode,
 	activeTab,
 	onSelectTab,
 	onScanPress,
 }: Props) {
 	const insets = useSafeAreaInsets();
-	const [filter, setFilter] = useState<Filter>("Precio");
-	const [saved, setSaved] = useState(false);
-	const sortedStores = useMemo(() => sortStores(filter), [filter]);
-	const cheapestPrice = useMemo(
-		() => Math.min(...STORES.map((s) => s.rawPrice)),
-		[],
-	);
+	const [estado, setEstado] = useState<Estado>(barcode ? "buscando" : "sin-codigo");
+	const [producto, setProducto] = useState<ProductoDetalleResponse | null>(null);
+	const [mensajeError, setMensajeError] = useState<string | null>(null);
 
-	const toggleSaved = () => {
-		setSaved((s) => {
-			const next = !s;
-			if (next) onSave?.();
-			return next;
-		});
-	};
+	const buscar = useCallback(async (ean: string) => {
+		setEstado("buscando");
+		try {
+			setProducto(await getProductoPorEan(ean));
+			setEstado("resultado");
+		} catch (e) {
+			setMensajeError(
+				e instanceof Error ? e.message : "No pudimos consultar el producto.",
+			);
+			setEstado("error");
+		}
+	}, []);
+
+	useEffect(() => {
+		if (barcode) buscar(barcode);
+	}, [barcode, buscar]);
 
 	return (
 		<View style={styles.safeArea}>
@@ -100,153 +78,132 @@ export function ComparePricesScreen({
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Comparar</Text>
-				<Pressable
-					onPress={toggleSaved}
-					style={styles.favButton}
-					hitSlop={8}
-					accessibilityRole="button"
-					accessibilityLabel={
-						saved ? "Quitar de favoritos" : "Agregar a favoritos"
-					}
-					accessibilityState={{ selected: saved }}
-				>
-					<Ionicons
-						name={saved ? "heart" : "heart-outline"}
-						size={22}
-						color={saved ? colors.danger : colors.cyan}
-					/>
-				</Pressable>
+				<View style={{ width: 32 }} />
 			</View>
 
-			<ScrollView
-				style={styles.scroll}
-				contentContainerStyle={[
-					styles.scrollContent,
-					{ paddingBottom: insets.bottom + 20 },
-				]}
-				showsVerticalScrollIndicator={false}
-			>
-				<View style={styles.productCard}>
-					<View style={styles.productThumb}>
-						<Ionicons name="cube-outline" size={28} color={colors.subtleText} />
-					</View>
-					<View style={{ flex: 1, gap: 4 }}>
-						<Text style={styles.productBrand}>{productBrand}</Text>
-						<Text style={styles.productName}>{productName}</Text>
-						<Text style={styles.productLastPrice}>{lastPrice}</Text>
-					</View>
+			{estado === "sin-codigo" ? (
+				<View style={styles.centrado}>
+					<Ionicons name="barcode-outline" size={40} color={colors.mutedText} />
+					<Text style={styles.centradoTitulo}>No leímos el código de este producto</Text>
+					<Text style={styles.centradoTexto}>
+						El ticket no tenía un código de barras legible para{" "}
+						<Text style={{ fontFamily: typography.family.bold }}>{productName}</Text>
+						, así que no tenemos precios verificados para compararlo todavía.
+						Escaneá el código del producto para ver precios reales.
+					</Text>
+					<Pressable style={styles.botonPrimario} onPress={onScanBarcode}>
+						<Ionicons name="barcode-outline" size={18} color={colors.buttonText} />
+						<Text style={styles.botonPrimarioTexto}>Escanear código</Text>
+					</Pressable>
 				</View>
-
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={styles.filtersRow}
-				>
-					{FILTERS.map((f) => {
-						const active = f === filter;
-						return (
-							<Pressable
-								key={f}
-								onPress={() => setFilter(f)}
-								style={[styles.filterChip, active && styles.filterChipActive]}
-							>
-								<Text
-									style={[
-										styles.filterChipText,
-										active && styles.filterChipTextActive,
-									]}
-								>
-									{f}
-								</Text>
-							</Pressable>
-						);
-					})}
-				</ScrollView>
-
-				<Text style={styles.sectionLabel}>ORDENADO POR {filter.toUpperCase()}</Text>
-
-				{sortedStores.map((s, idx) => {
-					const isCheapest = s.rawPrice === cheapestPrice;
-					const metaText =
-						filter === "Cerca tuyo"
-							? `${s.distanceKm.toFixed(1)} km`
-							: filter === "Disponibilidad"
-								? s.inStock
-									? "Disponible"
-									: "Sin stock"
-								: filter === "Marca"
-									? s.price
-									: `${idx + 1}°`;
-					return (
-						<Pressable
-							key={s.id}
-							onPress={() => onSelectStore(s.id)}
-							style={[styles.storeRow, isCheapest && styles.storeRowBest]}
-						>
-							<View style={styles.storeLeft}>
-								<View style={[styles.storeBadge, { backgroundColor: s.color }]}>
-									<Text style={styles.storeBadgeText}>{s.code}</Text>
-								</View>
-								<View style={{ gap: 3 }}>
-									<Text style={styles.storeName}>{s.name}</Text>
-									<View style={styles.storeMetaRow}>
-										<Ionicons
-											name={filter === "Cerca tuyo" ? "location-sharp" : "information-circle-outline"}
-											size={11}
-											color={colors.subtleText}
-										/>
-										<Text
-											style={[
-												styles.storeMetaText,
-												isCheapest && styles.storeMetaTextBest,
-											]}
-										>
-											{metaText}
-										</Text>
-									</View>
-									{isCheapest && (
-										<View style={styles.bestChip}>
-											<Text style={styles.bestChipText}>Mejor precio</Text>
-										</View>
-									)}
-								</View>
-							</View>
-							<View style={styles.storeRight}>
-								<Text style={styles.storePrice}>{s.price}</Text>
-								{s.delta && (
-									<Text
-										style={[
-											styles.storeDelta,
-											s.deltaTone === "good"
-												? styles.storeDeltaGood
-												: styles.storeDeltaBad,
-										]}
-									>
-										{s.delta}
-									</Text>
-								)}
-							</View>
-						</Pressable>
-					);
-				})}
-
-				<View style={styles.summaryRow}>
-					<View style={styles.summaryCard}>
-						<Text style={styles.summaryLabel}>PRECIO PROMEDIO</Text>
-						<Text style={styles.summaryValue}>$2.480</Text>
-					</View>
-					<View style={styles.summaryCard}>
-						<Text style={styles.summaryLabel}>AHORRO VS. MÁS CARO</Text>
-						<Text style={[styles.summaryValue, { color: "#1D9E75" }]}>26%</Text>
-						<Text style={styles.summaryHint}>↓ -$710 vs Vea</Text>
-					</View>
+			) : estado === "buscando" ? (
+				<View style={styles.centrado}>
+					<ActivityIndicator color={colors.cyan} />
+					<Text style={styles.centradoTexto}>Buscando precios de {productName}…</Text>
 				</View>
-			</ScrollView>
+			) : estado === "error" ? (
+				<View style={styles.centrado}>
+					<Ionicons name="cloud-offline-outline" size={40} color={colors.orange} />
+					<Text style={styles.centradoTitulo}>No pudimos buscarlo</Text>
+					<Text style={styles.centradoTexto}>{mensajeError}</Text>
+					<Pressable style={styles.botonPrimario} onPress={() => barcode && buscar(barcode)}>
+						<Text style={styles.botonPrimarioTexto}>Reintentar</Text>
+					</Pressable>
+				</View>
+			) : (
+				<Resultado producto={producto!} fallbackNombre={productName} />
+			)}
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
 		</View>
+	);
+}
+
+function Resultado({
+	producto,
+	fallbackNombre,
+}: {
+	producto: ProductoDetalleResponse;
+	fallbackNombre: string;
+}) {
+	return (
+		<ScrollView style={styles.resultado} contentContainerStyle={styles.resultadoContent}>
+			<View style={styles.productoCard}>
+				{producto.imagenUrl ? (
+					<Image source={{ uri: producto.imagenUrl }} style={styles.productoImagen} resizeMode="contain" />
+				) : (
+					<View style={[styles.productoImagen, styles.imagenPlaceholder]}>
+						<Ionicons name="cube-outline" size={28} color={colors.mutedText} />
+					</View>
+				)}
+				<View style={styles.productoInfo}>
+					<Text style={styles.productoNombre} numberOfLines={3}>
+						{producto.descripcion ?? fallbackNombre}
+					</Text>
+					{producto.marca ? <Text style={styles.productoMarca}>{producto.marca}</Text> : null}
+					<Text style={styles.productoEan}>EAN {producto.ean}</Text>
+				</View>
+			</View>
+
+			{producto.sinPrecios ? (
+				<View style={styles.avisoSinPrecios}>
+					<Ionicons name="information-circle-outline" size={20} color={colors.orange} />
+					<Text style={styles.avisoTexto}>
+						{producto.fuenteDatos === "ninguna"
+							? "No encontramos este producto. Puede ser un código interno del comercio."
+							: "SEPA todavía no publica precios de este producto."}
+					</Text>
+				</View>
+			) : (
+				<>
+					<View style={styles.precioCard}>
+						<Text style={styles.precioLabel}>Precio más bajo</Text>
+						<Text style={styles.precioDestacado}>{formatearPrecio(producto.precioMinimo)}</Text>
+						<Text style={styles.precioRango}>
+							Promedio {formatearPrecio(producto.precioPromedio)} · Máximo{" "}
+							{formatearPrecio(producto.precioMaximo)}
+						</Text>
+					</View>
+
+					{producto.comercios.length > 0 ? (
+						<View style={styles.comerciosWrap}>
+							<Text style={styles.seccionTitulo}>Dónde comprarlo</Text>
+							{producto.comercios.map((comercio, index) => (
+								<View
+									key={`${comercio.comercioId}-${index}`}
+									style={[styles.comercioFila, index === 0 && styles.comercioMasBarato]}
+								>
+									<View style={styles.comercioInfo}>
+										<Text style={styles.comercioNombre} numberOfLines={1}>
+											{comercio.bandera || comercio.razonSocial || "Comercio"}
+										</Text>
+										<Text style={styles.comercioSucursales}>
+											{comercio.cantidadSucursales === 1
+												? "1 sucursal"
+												: `${comercio.cantidadSucursales} sucursales`}
+										</Text>
+									</View>
+									<View style={styles.comercioPrecioWrap}>
+										{index === 0 ? (
+											<View style={styles.badgeBarato}>
+												<Text style={styles.badgeBaratoTexto}>Más barato</Text>
+											</View>
+										) : null}
+										<Text style={styles.comercioPrecio}>{formatearPrecio(comercio.precioMinimo)}</Text>
+									</View>
+								</View>
+							))}
+						</View>
+					) : null}
+
+					{producto.fechaDataset ? (
+						<Text style={styles.pieDatos}>Datos de SEPA al {producto.fechaDataset}</Text>
+					) : null}
+				</>
+			)}
+		</ScrollView>
 	);
 }
 
@@ -264,154 +221,168 @@ const styles = StyleSheet.create({
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
 		flex: 1,
+		textAlign: "center",
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 17,
 	},
-	favButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	scroll: { flex: 1 },
-	scrollContent: { padding: 16, gap: 12 },
-	productCard: {
-		backgroundColor: colors.card,
-		borderRadius: 16,
-		padding: 16,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 14,
-		borderWidth: 1,
-		borderColor: colors.divider,
-	},
-	productThumb: {
-		width: 58,
-		height: 58,
-		borderRadius: 10,
-		backgroundColor: colors.background,
+	centrado: {
+		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
+		gap: 12,
+		paddingHorizontal: 32,
+		backgroundColor: colors.background,
 	},
-	productBrand: {
-		color: colors.subtleText,
+	centradoTitulo: {
+		color: colors.defaultText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.bodyL,
+		textAlign: "center",
+	},
+	centradoTexto: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.caption,
+		lineHeight: typography.lineHeights.caption,
+		textAlign: "center",
+	},
+	resultado: { flex: 1 },
+	resultadoContent: { padding: 20, gap: 16 },
+	productoCard: {
+		flexDirection: "row",
+		gap: 14,
+		backgroundColor: colors.card,
+		borderRadius: 16,
+		borderWidth: 1,
+		borderColor: colors.border,
+		padding: 14,
+	},
+	productoImagen: { width: 88, height: 88, borderRadius: 12, backgroundColor: colors.softWarm },
+	imagenPlaceholder: { alignItems: "center", justifyContent: "center" },
+	productoInfo: { flex: 1, justifyContent: "center", gap: 3 },
+	productoNombre: {
+		color: colors.defaultText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.body,
+		lineHeight: typography.lineHeights.body,
+	},
+	productoMarca: {
+		color: colors.mutedText,
 		fontFamily: typography.family.medium,
-		fontSize: 10,
-		letterSpacing: 1,
+		fontSize: typography.sizes.caption,
 	},
-	productName: {
+	productoEan: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.overline,
+		marginTop: 2,
+	},
+	avisoSinPrecios: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		gap: 10,
+		backgroundColor: "#FDF1EC",
+		borderRadius: 14,
+		padding: 14,
+	},
+	avisoTexto: {
+		flex: 1,
+		color: colors.orange,
+		fontFamily: typography.family.medium,
+		fontSize: typography.sizes.caption,
+		lineHeight: typography.lineHeights.caption,
+	},
+	precioCard: {
+		backgroundColor: colors.softCyan,
+		borderRadius: 16,
+		padding: 18,
+		gap: 2,
+	},
+	precioLabel: {
 		color: colors.navy,
 		fontFamily: typography.family.medium,
-		fontSize: 15,
+		fontSize: typography.sizes.overline,
+		textTransform: "uppercase",
+		letterSpacing: 0.5,
 	},
-	productLastPrice: {
-		color: colors.mutedText2,
+	precioDestacado: {
+		color: colors.navy,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.h1,
+	},
+	precioRango: {
+		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 12,
+		fontSize: typography.sizes.caption,
 	},
-	filtersRow: { gap: 8, paddingRight: 16 },
-	filterChip: {
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 20,
-		backgroundColor: colors.card,
-		borderWidth: 1,
-		borderColor: colors.divider,
+	comerciosWrap: { gap: 8 },
+	seccionTitulo: {
+		color: colors.defaultText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.body,
+		marginBottom: 2,
 	},
-	filterChipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
-	filterChipText: {
-		color: colors.mutedText2,
-		fontFamily: typography.family.medium,
-		fontSize: 11,
-		letterSpacing: 0.3,
-	},
-	filterChipTextActive: { color: colors.buttonText },
-	sectionLabel: {
-		color: colors.subtleText,
-		fontFamily: typography.family.medium,
-		fontSize: 10,
-		letterSpacing: 1.2,
-		marginTop: 4,
-	},
-	storeRow: {
-		backgroundColor: colors.card,
-		borderRadius: 12,
-		paddingHorizontal: 14,
-		paddingVertical: 12,
+	comercioFila: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
+		backgroundColor: colors.card,
+		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: colors.divider,
+		borderColor: colors.border,
+		paddingHorizontal: 14,
+		paddingVertical: 12,
 	},
-	storeRowBest: { borderColor: "#1D9E75", borderWidth: 1.5 },
-	storeLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
-	storeBadge: {
-		width: 36,
-		height: 36,
-		borderRadius: 18,
+	comercioMasBarato: { borderColor: colors.cyan, backgroundColor: colors.softCyan },
+	comercioInfo: { flex: 1, gap: 2 },
+	comercioNombre: {
+		color: colors.defaultText,
+		fontFamily: typography.family.medium,
+		fontSize: typography.sizes.body,
+	},
+	comercioSucursales: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.overline,
+	},
+	comercioPrecioWrap: { alignItems: "flex-end", gap: 3 },
+	comercioPrecio: {
+		color: colors.defaultText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.body,
+	},
+	badgeBarato: {
+		backgroundColor: colors.navy,
+		paddingHorizontal: 8,
+		paddingVertical: 2,
+		borderRadius: 6,
+	},
+	badgeBaratoTexto: {
+		color: colors.buttonText,
+		fontFamily: typography.family.medium,
+		fontSize: 10,
+	},
+	pieDatos: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.overline,
+		textAlign: "center",
+	},
+	botonPrimario: {
+		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
+		gap: 8,
+		backgroundColor: colors.navy,
+		borderRadius: 14,
+		paddingVertical: 15,
+		paddingHorizontal: 24,
+		marginTop: 4,
 	},
-	storeBadgeText: {
+	botonPrimarioTexto: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
-		fontSize: 12,
-	},
-	storeName: {
-		color: colors.navy,
-		fontFamily: typography.family.medium,
-		fontSize: 14,
-	},
-	storeMetaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-	storeMetaText: {
-		color: colors.subtleText,
-		fontFamily: typography.family.regular,
-		fontSize: 12,
-	},
-	storeMetaTextBest: { color: colors.success },
-	bestChip: {
-		alignSelf: "flex-start",
-		backgroundColor: "#E0F5EF",
-		paddingHorizontal: 10,
-		paddingVertical: 4,
-		borderRadius: 4,
-	},
-	bestChipText: {
-		color: "#1D9E75",
-		fontFamily: typography.family.medium,
-		fontSize: 11,
-		letterSpacing: 0.3,
-	},
-	storeRight: { alignItems: "flex-end", gap: 3 },
-	storePrice: {
-		color: colors.navy,
-		fontFamily: typography.family.bold,
-		fontSize: 15,
-	},
-	storeDelta: { fontFamily: typography.family.medium, fontSize: 12 },
-	storeDeltaGood: { color: "#1D9E75" },
-	storeDeltaBad: { color: colors.danger },
-	summaryRow: { flexDirection: "row", gap: 12, marginTop: 4 },
-	summaryCard: {
-		flex: 1,
-		backgroundColor: colors.card,
-		borderWidth: 1,
-		borderColor: colors.divider,
-		borderRadius: 12,
-		padding: 14,
-		gap: 4,
-	},
-	summaryLabel: {
-		color: colors.subtleText,
-		fontFamily: typography.family.medium,
-		fontSize: 9,
-		letterSpacing: 0.8,
-	},
-	summaryValue: {
-		color: colors.navy,
-		fontFamily: typography.family.bold,
-		fontSize: 22,
-	},
-	summaryHint: {
-		color: "#1D9E75",
-		fontFamily: typography.family.medium,
-		fontSize: 12,
+		fontSize: typography.sizes.body,
 	},
 });

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-	Image,
 	Pressable,
 	ScrollView,
 	Share,
@@ -21,6 +20,7 @@ import { getReferralCode } from "../auth/session";
 type Props = {
 	session: Session;
 	pointsBalance: number;
+	onBack: () => void;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
@@ -33,6 +33,7 @@ const SORTED_REWARDS = [...REWARDS].sort((a, b) => a.points - b.points);
 export function PointsScreen({
 	session,
 	pointsBalance,
+	onBack,
 	activeTab,
 	onSelectTab,
 	onScanPress,
@@ -49,7 +50,10 @@ export function PointsScreen({
 		: 100;
 	const remainingToNext = nextReward ? nextReward.points - pointsBalance : 0;
 
-	const shareMessage = `Te invito a OfertAR, la app para ahorrar en el super. Registrate con mi código ${referralCode} y ganamos puntos los dos: https://ofertar.app/r/${referralCode}`;
+	// Solo promete lo que pasa de verdad: quien se registra con el código gana
+	// puntos. No hay forma de avisarle a quien comparte que alguien lo usó, así
+	// que no afirmamos "ganamos los dos" acá (ver PRODUCT.md / HelpCenterScreen).
+	const shareMessage = `Te invito a probar OfertAR, la app para ahorrar en el súper. Usá mi código ${referralCode} cuando te registres y arrancás con ${POINTS_PER_REFERRAL} puntos.`;
 
 	const handleShare = () => {
 		Share.share({ message: shareMessage }).catch(() => {});
@@ -67,13 +71,10 @@ export function PointsScreen({
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<View style={styles.headerTitleRow}>
-					<Image
-						source={require("../../assets/logo_ofertar.png")}
-						style={styles.headerLogo}
-					/>
-					<Text style={styles.headerTitle}>Mis puntos</Text>
-				</View>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
+					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
+				</Pressable>
+				<Text style={styles.headerTitle}>Mis puntos</Text>
 				<Pressable
 					onPress={onShowHistory}
 					hitSlop={8}
@@ -219,15 +220,15 @@ const styles = StyleSheet.create({
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 20,
+		paddingHorizontal: 12,
 		height: 56,
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "space-between",
+		gap: 8,
 	},
-	headerTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-	headerLogo: { width: 24, height: 24, borderRadius: 6 },
+	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
+		flex: 1,
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 17,
