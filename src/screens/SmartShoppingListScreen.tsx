@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { describeCampaignDiscount, getRecurringProducts } from "../services";
 import type { RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
 
 /** Products bought on fewer separate trips than this are one-offs, not part of
  * the recurring shop — keeping them out avoids a list full of noise. */
@@ -117,36 +116,18 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Consumo inteligente</Text>
-			</View>
+			<ScreenHeader title="Consumo inteligente" onBack={onBack} />
 
-			{loading && (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
-			)}
+			{loading && <LoadingState />}
 
-			{error && !loading && (
-				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color={colors.orange} />
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			)}
+			{error && !loading && <ErrorBanner message={error} />}
 
 			{!loading && !error && products.length === 0 && (
-				<View style={styles.emptyWrap}>
-					<Ionicons name="receipt-outline" size={56} color={colors.border} />
-					<Text style={styles.emptyTitle}>Todavía no hay compra recurrente</Text>
-					<Text style={styles.emptyHint}>
-						Escaneá al menos dos tickets para que detectemos qué comprás habitualmente
-					</Text>
-				</View>
+				<EmptyState
+					icon="receipt-outline"
+					title="Todavía no hay compra recurrente"
+					hint="Escaneá al menos dos tickets para que detectemos qué comprás habitualmente"
+				/>
 			)}
 
 			{!loading && !error && products.length > 0 && (
@@ -225,16 +206,6 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: 12 },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
-	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 60, paddingHorizontal: 40 },
-	emptyTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 17, textAlign: "center" },
-	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
 	heroCard: { flexDirection: "row", gap: 12, backgroundColor: colors.infoSoft, borderRadius: 14, padding: 16, alignItems: "center" },
 	heroTitle: { color: colors.infoSoftText, fontFamily: typography.family.bold, fontSize: 14 },
 	heroBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2, lineHeight: 16 },

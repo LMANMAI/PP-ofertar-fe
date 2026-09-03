@@ -1,11 +1,10 @@
 import { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, EmptyState, ScreenHeader, type TabKey } from "../components";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
 
@@ -34,14 +33,7 @@ export function PointsHistoryScreen({ entries, onBack, activeTab, onSelectTab, o
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Historial de puntos</Text>
-			</View>
+			<ScreenHeader title="Historial de puntos" onBack={onBack} />
 			<ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 24 }}>
 				<View style={styles.summary}>
 					<View style={styles.summaryItem}>
@@ -60,13 +52,11 @@ export function PointsHistoryScreen({ entries, onBack, activeTab, onSelectTab, o
 				</View>
 
 				{entries.length === 0 ? (
-					<View style={styles.emptyWrap}>
-						<Ionicons name="people-outline" size={48} color={colors.divider} />
-						<Text style={styles.emptyTitle}>Todavía no ganaste puntos</Text>
-						<Text style={styles.emptyHint}>
-							Compartí tu código de referido para empezar a sumar.
-						</Text>
-					</View>
+					<EmptyState
+						icon="people-outline"
+						title="Todavía no ganaste puntos"
+						hint="Compartí tu código de referido para empezar a sumar."
+					/>
 				) : (
 					<View style={styles.list}>
 						{entries.map((e, idx) => {
@@ -118,18 +108,11 @@ export function PointsHistoryScreen({ entries, onBack, activeTab, onSelectTab, o
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	summary: { backgroundColor: colors.card, borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center" },
 	summaryItem: { flex: 1, alignItems: "center", gap: 4 },
 	summaryDivider: { width: 1, height: 32, backgroundColor: colors.divider },
 	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	summaryValue: { fontFamily: typography.family.bold, fontSize: 16 },
-	emptyWrap: { alignItems: "center", gap: 8, paddingVertical: 40 },
-	emptyTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
-	emptyHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, textAlign: "center" },
 	list: { backgroundColor: colors.card, borderRadius: 14, overflow: "hidden" },
 	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
 	iconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },

@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
 import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { InputField, BottomNav, type TabKey } from "../components";
+import { InputField, BottomNav, ScreenHeader, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { getProfile, updateProfile, uploadProfilePicture } from "../services/authApi";
@@ -171,14 +170,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={() => onBack()} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Datos personales</Text>
-			</View>
+			<ScreenHeader title="Datos personales" onBack={() => onBack()} />
 
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
@@ -309,10 +301,6 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	avatarRow: { alignItems: "center", gap: 10, paddingVertical: 12 },
 	avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
 	avatarImage: { width: "100%", height: "100%" },

@@ -8,11 +8,10 @@ import {
 	Text,
 	View,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { InputField } from "../components";
+import { InputField, ScreenHeader } from "../components";
 
 type Props = { onBack: () => void; onSuccess: () => void };
 
@@ -34,14 +33,7 @@ export function ChangePasswordScreen({ onBack, onSuccess }: Props) {
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Nueva contraseña</Text>
-			</View>
+			<ScreenHeader title="Nueva contraseña" onBack={onBack} />
 
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
@@ -95,10 +87,6 @@ export function ChangePasswordScreen({ onBack, onSuccess }: Props) {
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 22 },
 	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20 },
 	checks: { gap: 6, marginTop: 6 },

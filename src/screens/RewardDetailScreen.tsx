@@ -1,11 +1,10 @@
 import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, ScreenHeader, type TabKey } from "../components";
 
 type Props = {
 	reward: Reward;
@@ -26,14 +25,7 @@ export function RewardDetailScreen({ reward, pointsBalance, onBack, onRedeem, ac
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Detalle</Text>
-			</View>
+			<ScreenHeader title="Detalle" onBack={onBack} />
 			<ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
 				<View style={styles.heroWrap}>
 					<View style={styles.hero}>
@@ -102,10 +94,6 @@ function InfoRow({
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	heroWrap: { padding: 16 },
 	hero: { backgroundColor: colors.navy, borderRadius: 16, padding: 20, gap: 8 },
 	heroTitle: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 22, marginTop: 8 },

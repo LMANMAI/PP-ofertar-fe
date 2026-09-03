@@ -7,11 +7,10 @@ import {
 	Text,
 	View,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, ScreenHeader, type TabKey } from "../components";
 import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { REWARDS, POINTS_PER_REFERRAL } from "../data/rewards";
 import type { Session } from "../auth/session";
@@ -69,23 +68,20 @@ export function PointsScreen({
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Mis puntos</Text>
-				<Pressable
-					onPress={onShowHistory}
-					hitSlop={8}
-					accessibilityRole="button"
-					accessibilityLabel="Ver historial de puntos"
-				>
-					<Ionicons name="time-outline" size={22} color={colors.buttonText} />
-				</Pressable>
-			</View>
+			<ScreenHeader
+				title="Mis puntos"
+				onBack={onBack}
+				right={
+					<Pressable
+						onPress={onShowHistory}
+						hitSlop={8}
+						accessibilityRole="button"
+						accessibilityLabel="Ver historial de puntos"
+					>
+						<Ionicons name="time-outline" size={22} color={colors.buttonText} />
+					</Pressable>
+				}
+			/>
 
 			<ScrollView
 				style={styles.scroll}
@@ -220,22 +216,6 @@ export function PointsScreen({
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: {
-		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
-		height: 56,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: {
-		flex: 1,
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 17,
-	},
 	scroll: { flex: 1 },
 	scrollContent: { padding: 16, gap: 14 },
 	balanceCard: {

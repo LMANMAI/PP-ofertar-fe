@@ -1,13 +1,20 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getRecurringProducts, getTickets } from "../services";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
+import {
+	BottomNav,
+	EmptyState,
+	ErrorBanner,
+	ForgottenProductsSheet,
+	forgottenIn,
+	LoadingState,
+	ScreenHeader,
+	type TabKey,
+} from "../components";
 import { hasBeenAnnounced, markAnnounced } from "../store/announcedTickets";
 
 function formatCurrency(value: number | null | undefined): string {
@@ -164,34 +171,18 @@ export function TicketHistoryScreen({
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Historial de tickets</Text>
-			</View>
+			<ScreenHeader title="Historial de tickets" onBack={onBack} />
 
-			{loading && (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
-			)}
+			{loading && <LoadingState />}
 
-			{error && !loading && (
-				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color={colors.orange} />
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			)}
+			{error && !loading && <ErrorBanner message={error} />}
 
 			{!loading && !error && tickets.length === 0 && (
-				<View style={styles.emptyWrap}>
-					<Ionicons name="receipt-outline" size={56} color={colors.border} />
-					<Text style={styles.emptyTitle}>Sin tickets aún</Text>
-					<Text style={styles.emptyHint}>Escaneá tu primer ticket y aparecerá acá</Text>
-				</View>
+				<EmptyState
+					icon="receipt-outline"
+					title="Sin tickets aún"
+					hint="Escaneá tu primer ticket y aparecerá acá"
+				/>
 			)}
 
 			{!loading && tickets.length > 0 && (
@@ -336,16 +327,6 @@ const TicketRow = memo(function TicketRow({
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: 12 },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
-	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 60 },
-	emptyTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18 },
-	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14 },
 	summary: { flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: 16 },
 	summaryDivider: { width: 1, height: 40, backgroundColor: colors.divider, marginHorizontal: 12, alignSelf: "center" },
 	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },

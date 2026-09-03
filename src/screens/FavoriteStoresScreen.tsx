@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView, { Circle, Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import * as Location from "expo-location";
 import { ensureLocationPermission } from "../location/permission";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { getFavoriteStores, getNearbyStores, getStoreChains, updateFavoriteStores } from "../services";
 import type { NearbyStore, StoreChain } from "../services";
@@ -141,19 +140,10 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Mis tiendas favoritas</Text>
-			</View>
+			<ScreenHeader title="Mis tiendas favoritas" onBack={onBack} />
 
 			{loading ? (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
+				<LoadingState />
 			) : (
 				<ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
 					<View style={styles.mapWrap}>
@@ -196,12 +186,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 						</View>
 					)}
 
-					{error && (
-						<View style={styles.errorBanner}>
-							<Ionicons name="warning-outline" size={16} color={colors.orange} />
-							<Text style={styles.errorText}>{error}</Text>
-						</View>
-					)}
+					{error && <ErrorBanner message={error} />}
 
 					<Text style={styles.sectionLabel}>RADIO DE BÚSQUEDA</Text>
 					<View style={styles.radiusRow}>
@@ -259,16 +244,9 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
 	mapWrap: { height: 280, backgroundColor: colors.divider },
 	warnBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, marginBottom: 0, backgroundColor: colors.warningSoft, borderRadius: 10, padding: 10 },
 	warnText: { flex: 1, color: colors.warningSoftText, fontFamily: typography.family.medium, fontSize: 12 },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, marginBottom: 0, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: 10 },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 12 },
 	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16 },
 	sectionHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginHorizontal: 16, marginTop: 4 },
 	radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginTop: 10 },

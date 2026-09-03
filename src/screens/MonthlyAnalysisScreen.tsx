@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getSavingsReport } from "../services";
 import type { SavingsReportResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
 
 function formatCurrency(value: number | null | undefined): string {
 	if (value == null) return "$0";
@@ -88,14 +87,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Análisis mensual</Text>
-			</View>
+			<ScreenHeader title="Análisis mensual" onBack={onBack} />
 
 			<View style={styles.monthSelector}>
 				<Pressable onPress={prevMonth} style={styles.monthArrow} accessibilityRole="button" accessibilityLabel="Mes anterior">
@@ -107,18 +99,9 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 				</Pressable>
 			</View>
 
-			{loading && (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
-			)}
+			{loading && <LoadingState />}
 
-			{error && (
-				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color={colors.dangerSoftText} />
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			)}
+			{error && <ErrorBanner message={error} />}
 
 			{!loading && !error && report && (
 				<ScrollView
@@ -221,16 +204,9 @@ function Tag({ text, tone, styles }: { text: string; tone?: "cyan"; styles: Retu
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	monthSelector: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 12, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
 	monthArrow: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	monthLabel: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textTransform: "capitalize" },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: 12 },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
 	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: 20, gap: 8 },
 	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	heroValue: { color: "#fff", fontFamily: typography.family.bold, fontSize: 34 },

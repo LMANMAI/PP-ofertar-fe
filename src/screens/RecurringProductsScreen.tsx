@@ -1,7 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	AccessibilityInfo,
-	ActivityIndicator,
 	LayoutAnimation,
 	Platform,
 	Pressable,
@@ -11,14 +10,13 @@ import {
 	UIManager,
 	View,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { campaignOfferToOffer, describeCampaignDiscount, getRecurringProducts, offerSavings, sortByOfferRelevance } from "../services";
 import type { CampaignOffer, Offer, RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
 
 function formatCurrency(value: number | null | undefined): string {
 	if (value == null) return "$0";
@@ -133,34 +131,18 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Productos recurrentes</Text>
-			</View>
+			<ScreenHeader title="Productos recurrentes" onBack={onBack} />
 
-			{loading && (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
-			)}
+			{loading && <LoadingState />}
 
-			{error && !loading && (
-				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color={colors.orange} />
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			)}
+			{error && !loading && <ErrorBanner message={error} />}
 
 			{!loading && !error && products.length === 0 && (
-				<View style={styles.emptyWrap}>
-					<Ionicons name="repeat-outline" size={56} color={colors.border} />
-					<Text style={styles.emptyTitle}>Todavía no detectamos productos recurrentes</Text>
-					<Text style={styles.emptyHint}>Escaneá más tickets para que podamos reconocer tus compras habituales</Text>
-				</View>
+				<EmptyState
+					icon="repeat-outline"
+					title="Todavía no detectamos productos recurrentes"
+					hint="Escaneá más tickets para que podamos reconocer tus compras habituales"
+				/>
 			)}
 
 			{!loading && !error && products.length > 0 && (
@@ -460,16 +442,6 @@ const ProductCard = memo(function ProductCard({
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: 12 },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
-	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 60, paddingHorizontal: 40 },
-	emptyTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
-	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
 	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
 	card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 12, borderWidth: 1, borderColor: colors.divider },
 	cardHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
