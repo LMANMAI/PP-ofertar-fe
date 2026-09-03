@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
 	KeyboardAvoidingView,
 	Platform,
@@ -11,13 +11,15 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField } from "../components";
 
 type Props = { onBack: () => void; onSubmit: () => void };
 
 export function PasswordRecoveryScreen({ onBack, onSubmit }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [email, setEmail] = useState("");
 	return (
 		<View style={styles.safeArea}>
@@ -69,7 +71,8 @@ export function PasswordRecoveryScreen({ onBack, onSubmit }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, height: 56, paddingHorizontal: 12, justifyContent: "center" },
@@ -80,4 +83,5 @@ const styles = StyleSheet.create({
 	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center", lineHeight: 20, marginTop: 8 },
 	cta: { marginTop: 18, backgroundColor: colors.navy, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center", width: "100%" },
 	ctaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-});
+	});
+}

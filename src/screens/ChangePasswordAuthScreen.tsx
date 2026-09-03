@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, PasswordStrengthBar, BottomNav, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { changePassword } from "../services/authApi";
@@ -20,6 +20,8 @@ type Props = {
 
 export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [currentPw, setCurrentPw] = useState("");
 	const [newPw, setNewPw] = useState("");
 	const [confirmPw, setConfirmPw] = useState("");
@@ -148,7 +150,8 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -169,4 +172,5 @@ const styles = StyleSheet.create({
 	submitText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
 	errorBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
 	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-});
+	});
+}

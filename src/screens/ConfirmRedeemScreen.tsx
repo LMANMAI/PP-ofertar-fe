@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
 
 type Props = {
@@ -14,6 +15,8 @@ type Props = {
 
 export function ConfirmRedeemScreen({ reward, pointsBalance, onCancel, onConfirm }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const remaining = pointsBalance - reward.points;
 	const canConfirm = remaining >= 0;
 
@@ -30,8 +33,8 @@ export function ConfirmRedeemScreen({ reward, pointsBalance, onCancel, onConfirm
 				</Text>
 
 				<View style={styles.statsRow}>
-					<Stat label="USAS" value={`${reward.points.toLocaleString("es-AR")} pts`} tone="navy" />
-					<Stat label="QUEDA" value={`${remaining.toLocaleString("es-AR")} pts`} tone="cyan" />
+					<Stat label="USAS" value={`${reward.points.toLocaleString("es-AR")} pts`} tone="navy" colors={colors} styles={styles} />
+					<Stat label="QUEDA" value={`${remaining.toLocaleString("es-AR")} pts`} tone="cyan" colors={colors} styles={styles} />
 				</View>
 
 				{canConfirm ? (
@@ -66,7 +69,19 @@ export function ConfirmRedeemScreen({ reward, pointsBalance, onCancel, onConfirm
 	);
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone: "navy" | "cyan" }) {
+function Stat({
+	label,
+	value,
+	tone,
+	colors,
+	styles,
+}: {
+	label: string;
+	value: string;
+	tone: "navy" | "cyan";
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
+}) {
 	return (
 		<View style={[styles.stat, tone === "cyan" && { backgroundColor: "#E8F6FC" }]}>
 			<Text style={[styles.statLabel, tone === "cyan" && { color: colors.navy }]}>{label}</Text>
@@ -75,7 +90,8 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: "nav
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	backdrop: { flex: 1, backgroundColor: "rgba(10,31,68,0.7)", justifyContent: "center", paddingHorizontal: 20 },
 	sheet: { backgroundColor: colors.card, borderRadius: 16, padding: 22, gap: 12, alignItems: "stretch" },
 	iconCircle: { alignSelf: "center", width: 60, height: 60, borderRadius: 30, backgroundColor: "#E8F6FC", alignItems: "center", justifyContent: "center" },
@@ -93,4 +109,5 @@ const styles = StyleSheet.create({
 	confirmText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	cancelBtn: { height: 44, alignItems: "center", justifyContent: "center" },
 	cancelText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
-});
+	});
+}

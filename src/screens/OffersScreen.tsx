@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
+	FlatList,
 	Image,
 	Pressable,
 	ScrollView,
@@ -12,7 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomNav, type TabKey } from "../components";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { ALL_CATEGORIES, getOffers, offerBadge, offerCategories, offerPromo } from "../services";
 import type { Offer, PromoIcon } from "../services";
 import type { Session } from "../auth/session";
@@ -34,6 +35,9 @@ function formatUntil(iso: string | null): string | null {
 
 export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onOpenOffer }: Props) {
 	const insets = useSafeAreaInsets();
+	const isTablet = useIsTablet();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [offers, setOffers] = useState<Offer[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -81,7 +85,7 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 
 			{error && !loading && (
 				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color="#E76F51" />
+					<Ionicons name="warning-outline" size={18} color={colors.orange} />
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
 			)}
@@ -98,40 +102,53 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 			)}
 
 			{!loading && !error && offers.length > 0 && (
-				<ScrollView
+				<FlatList
+					// A restructure, not a stretch: on a tablet-width viewport the same
+					// cards lay out two to a row instead of one full-width column.
+					key={isTablet ? "grid" : "list"}
+					numColumns={isTablet ? 2 : 1}
+					columnWrapperStyle={isTablet ? styles.offerRow : undefined}
 					style={styles.scroll}
 					contentContainerStyle={styles.scrollContent}
 					showsVerticalScrollIndicator={false}
-				>
-					<Text style={styles.intro}>
-						Todo lo que está en oferta en los súper que elegiste como favoritos.
-					</Text>
+					data={visibleOffers}
+					keyExtractor={(o) => o.id}
+					ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+					ListHeaderComponent={
+						<>
+							<Text style={styles.intro}>
+								Todo lo que está en oferta en los súper que elegiste como favoritos.
+							</Text>
 
-					{categories.length > 1 && (
-						<ScrollView
-							horizontal
-							showsHorizontalScrollIndicator={false}
-							contentContainerStyle={styles.chipsRow}
-						>
-							{categories.map((c) => {
-								const active = c === category;
-								return (
-									<Pressable
-										key={c}
-										onPress={() => setCategory(c)}
-										style={[styles.chip, active && styles.chipActive]}
-									>
-										<Text style={[styles.chipText, active && styles.chipTextActive]}>{c}</Text>
-									</Pressable>
-								);
-							})}
-						</ScrollView>
+							{categories.length > 1 && (
+								<ScrollView
+									horizontal
+									showsHorizontalScrollIndicator={false}
+									contentContainerStyle={styles.chipsRow}
+								>
+									{categories.map((c) => {
+										const active = c === category;
+										return (
+											<Pressable
+												key={c}
+												onPress={() => setCategory(c)}
+												style={[styles.chip, active && styles.chipActive]}
+											>
+												<Text style={[styles.chipText, active && styles.chipTextActive]}>{c}</Text>
+											</Pressable>
+										);
+									})}
+								</ScrollView>
+							)}
+						</>
+					}
+					ListHeaderComponentStyle={styles.listHeader}
+					renderItem={({ item: o }) => (
+						<View style={isTablet ? styles.offerCol : undefined}>
+							<OfferCard offer={o} onOpen={() => onOpenOffer(o.id)} colors={colors} styles={styles} />
+						</View>
 					)}
-
-					{visibleOffers.map((o) => (
-						<OfferCard key={o.id} offer={o} onOpen={() => onOpenOffer(o.id)} />
-					))}
-				</ScrollView>
+				/>
 			)}
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
@@ -144,7 +161,17 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 /** Same anatomy as the home carousel card, one size up: the number in its own
  * tile with an icon, and right beside it the thing the list never used to say —
  * whether the percentage comes off the price or off a second unit. */
-function OfferCard({ offer, onOpen }: { offer: Offer; onOpen: () => void }) {
+function OfferCard({
+	offer,
+	onOpen,
+	colors,
+	styles,
+}: {
+	offer: Offer;
+	onOpen: () => void;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
+}) {
 	const { badge, color } = offerBadge(offer.retailerName);
 	const until = formatUntil(offer.activeTo);
 	const promo = offerPromo(offer);
@@ -180,7 +207,7 @@ function OfferCard({ offer, onOpen }: { offer: Offer; onOpen: () => void }) {
 						{offer.province ? ` · ${offer.province}` : ""}
 					</Text>
 				</View>
-				<Ionicons name="chevron-forward" size={16} color="#9CA3A8" />
+				<Ionicons name="chevron-forward" size={16} color={colors.subtleText} />
 			</View>
 
 			<View style={styles.offerBody}>
@@ -262,7 +289,8 @@ function OfferCard({ offer, onOpen }: { offer: Offer; onOpen: () => void }) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -308,8 +336,11 @@ const styles = StyleSheet.create({
 		lineHeight: 18,
 	},
 	scroll: { flex: 1 },
-	scrollContent: { padding: 16, gap: 12 },
-	intro: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
+	scrollContent: { padding: 16 },
+	listHeader: { gap: 12, marginBottom: 12 },
+	offerRow: { gap: 12 },
+	offerCol: { flex: 1 },
+	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
 	chipsRow: { gap: 8, paddingRight: 16 },
 	chip: {
 		paddingHorizontal: 12,
@@ -317,13 +348,13 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		backgroundColor: colors.card,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 	},
 	chipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
 	chipText: {
 		fontFamily: typography.family.medium,
 		fontSize: 11,
-		color: "#6B7280",
+		color: colors.mutedText2,
 		letterSpacing: 0.3,
 	},
 	chipTextActive: { color: colors.buttonText },
@@ -379,7 +410,7 @@ const styles = StyleSheet.create({
 	appliesText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 13, lineHeight: 17 },
 	appliesTextWarm: { color: "#B44A2E" },
 	offerDetail: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 		lineHeight: 16,
@@ -393,7 +424,7 @@ const styles = StyleSheet.create({
 	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
 	priceNow: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
 	priceWas: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.regular,
 		fontSize: 13,
 		textDecorationLine: "line-through",
@@ -404,7 +435,7 @@ const styles = StyleSheet.create({
 	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 10 },
 	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
 	offerValidity: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-	offerApplies: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
+	offerApplies: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
 	offerCaveat: {
 		color: "#64748B",
 		fontFamily: typography.family.regular,
@@ -412,4 +443,5 @@ const styles = StyleSheet.create({
 		lineHeight: 15,
 		fontStyle: "italic",
 	},
-});
+	});
+}

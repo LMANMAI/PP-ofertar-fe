@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Account = { id: string; name: string; email: string; initials: string; color: string };
 
@@ -15,6 +16,8 @@ type Props = { onBack: () => void; onSelect: () => void };
 
 export function GoogleChooseAccountScreen({ onBack, onSelect }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
@@ -58,7 +61,8 @@ export function GoogleChooseAccountScreen({ onBack, onSelect }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	statusBarBg: { backgroundColor: colors.card },
 	header: { height: 56, paddingHorizontal: 12, justifyContent: "center" },
@@ -75,4 +79,5 @@ const styles = StyleSheet.create({
 	addAccount: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#F8F9FB", alignItems: "center", justifyContent: "center" },
 	addText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
 	legal: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 16, marginTop: 32 },
-});
+	});
+}

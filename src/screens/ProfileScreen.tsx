@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
 	Image,
 	Pressable,
@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { BottomNav, type TabKey } from "../components";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { isBiometricAvailable } from "../auth/biometricAuth";
@@ -79,6 +79,8 @@ export function ProfileScreen({
 	onSessionUpdate,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [alertsEnabled, setAlertsEnabled] = useState(true);
 	const [shareData, setShareData] = useState(false);
 	const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -280,7 +282,8 @@ export function ProfileScreen({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 20, height: 56, flexDirection: "row", alignItems: "center", gap: 10 },
@@ -305,4 +308,5 @@ const styles = StyleSheet.create({
 	listDivider: { height: 1, backgroundColor: colors.divider, marginLeft: 60 },
 	logoutButton: { marginTop: 8, height: 48, borderRadius: 10, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
 	logoutText: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
-});
+	});
+}

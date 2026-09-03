@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 type Props = {
 	minLength: boolean;
@@ -14,6 +14,8 @@ type Props = {
 type CheckItem = { key: string; label: string; met: boolean };
 
 export function PasswordStrengthBar({ minLength, uppercase, number, special, matches }: Props) {
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const strength = useMemo(() => {
 		const checks = [minLength, uppercase, number, special];
 		const count = checks.filter(Boolean).length;
@@ -82,7 +84,8 @@ export function PasswordStrengthBar({ minLength, uppercase, number, special, mat
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	wrap: { gap: 8 },
 	barRow: { flexDirection: "row", gap: 4 },
 	segment: { flex: 1, height: 4, borderRadius: 2 },
@@ -92,4 +95,5 @@ const styles = StyleSheet.create({
 	checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 	checkText: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
 	checkTextMet: { color: colors.navy, fontFamily: typography.family.medium },
-});
+	});
+}

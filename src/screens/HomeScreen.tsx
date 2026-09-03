@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
 	ActivityIndicator,
@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomNav, type TabKey, useOnboardingTarget } from "../components";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
 	describeCampaignDiscount,
@@ -42,6 +42,8 @@ function formatUntil(iso: string | null): string | null {
  * saying whether that is the unit or the second unit is worse than no card.
  */
 function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => void }) {
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const { badge, color } = offerBadge(offer.retailerName);
 	const until = formatUntil(offer.activeTo);
 	// Campaigns are worded here from the structured mechanic + percentages.
@@ -144,7 +146,7 @@ function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => vo
 
 			{offer.percentagesUnverified && (
 				<View style={styles.offerCaveatRow}>
-					<Ionicons name="alert-circle-outline" size={11} color="#9CA3A8" />
+					<Ionicons name="alert-circle-outline" size={11} color={colors.subtleText} />
 					<Text style={styles.offerCaveat} numberOfLines={1}>
 						Porcentaje leído de la imagen
 					</Text>
@@ -178,6 +180,9 @@ export function HomeScreen({
 	onOpenOffer,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const isTablet = useIsTablet();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [savings, setSavings] = useState<SavingsReportResponse["summary"] | null>(null);
 	const [recurringProducts, setRecurringProducts] = useState<RecurringProduct[]>([]);
 	const [offers, setOffers] = useState<Offer[]>([]);
@@ -270,7 +275,12 @@ export function HomeScreen({
 
 			<ScrollView
 				style={styles.scroll}
-				contentContainerStyle={styles.scrollContent}
+				contentContainerStyle={[
+					styles.scrollContent,
+					// Capped and centered on tablet width so cards and copy don't
+					// stretch edge to edge — a restructure, not a phone UI scaled up.
+					isTablet && styles.scrollContentTablet,
+				]}
 				showsVerticalScrollIndicator={false}
 			>
 				{/* Savings card */}
@@ -331,7 +341,7 @@ export function HomeScreen({
 				</View>
 				{offers.length === 0 ? (
 					<View style={styles.offersEmpty}>
-						<Ionicons name="pricetags-outline" size={20} color="#9CA3A8" />
+						<Ionicons name="pricetags-outline" size={20} color={colors.subtleText} />
 						<Text style={styles.offersEmptyText}>
 							Todavía no hay ofertas vigentes en los súper que elegiste como favoritos.
 						</Text>
@@ -386,7 +396,7 @@ export function HomeScreen({
 								return (
 									<Pressable key={id} style={styles.productCard} onPress={onOpenRecurring}>
 										<View style={styles.productIconWrap}>
-											<Ionicons name="cart-outline" size={28} color="#9CA3A8" />
+											<Ionicons name="cart-outline" size={28} color={colors.subtleText} />
 										</View>
 										<Text style={styles.productName}>{p.description}</Text>
 										{/* The price belongs to a same-brand, same-type catalog product that
@@ -456,7 +466,8 @@ export function HomeScreen({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -512,6 +523,11 @@ const styles = StyleSheet.create({
 		paddingTop: 18,
 		paddingBottom: 24,
 		gap: 14,
+	},
+	scrollContentTablet: {
+		width: "100%",
+		maxWidth: 640,
+		alignSelf: "center",
 	},
 	savingsCard: {
 		backgroundColor: colors.navy,
@@ -628,12 +644,12 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.card,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 		padding: 14,
 	},
 	offersEmptyText: {
 		flex: 1,
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 		lineHeight: 17,
@@ -707,12 +723,12 @@ const styles = StyleSheet.create({
 	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 6 },
 	priceNow: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
 	priceWas: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.regular,
 		fontSize: 11,
 		textDecorationLine: "line-through",
 	},
-	offerSub: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
+	offerSub: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
 	offerCaveatRow: { flexDirection: "row", alignItems: "center", gap: 4 },
 	offerCaveat: {
 		flex: 1,
@@ -753,7 +769,7 @@ const styles = StyleSheet.create({
 		lineHeight: 17,
 	},
 	productOfferFor: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.regular,
 		fontSize: 10,
 		lineHeight: 14,
@@ -807,4 +823,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 12,
 	},
-});
+	});
+}

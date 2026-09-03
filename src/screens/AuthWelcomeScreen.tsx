@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { Ionicons } from "@expo/vector-icons";
 
 type AuthWelcomeScreenProps = {
@@ -33,6 +34,8 @@ export function AuthWelcomeScreen({
 	onBiometricLogin,
 }: AuthWelcomeScreenProps) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [fontsLoaded] = useFonts({
 		PlusJakartaSans_400Regular,
 		PlusJakartaSans_500Medium,
@@ -127,7 +130,8 @@ export function AuthWelcomeScreen({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		backgroundColor: colors.navy,
@@ -265,4 +269,5 @@ const styles = StyleSheet.create({
 	pressed: {
 		opacity: 0.88,
 	},
-});
+	});
+}

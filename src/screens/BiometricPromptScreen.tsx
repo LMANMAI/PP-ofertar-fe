@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Session } from "../auth/session";
 import { storeToken, setBiometricPreference } from "../auth/biometricAuth";
 
@@ -18,6 +18,8 @@ const CARD_WIDTH = Math.min(SCREEN_WIDTH - 48, 340);
 
 export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [activating, setActivating] = useState(false);
 
 	const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -117,7 +119,8 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	overlay: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
@@ -163,4 +166,5 @@ const styles = StyleSheet.create({
 	enableBtnText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
 	dismissBtn: { paddingVertical: 12, paddingHorizontal: 20 },
 	dismissBtnText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
-});
+	});
+}

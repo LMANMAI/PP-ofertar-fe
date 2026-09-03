@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
 	Image,
@@ -12,7 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getProductoPorEan } from "../services/sepaApi";
 import type { ProductoDetalleResponse } from "../services/sepaApi";
 
@@ -33,6 +33,8 @@ const formatearPrecio = (valor: number | null) =>
 
 export function ScanBarcodeScreen({ onBack }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [permission, requestPermission] = useCameraPermissions();
 	const [estado, setEstado] = useState<Estado>("escaneando");
 	const [producto, setProducto] = useState<ProductoDetalleResponse | null>(null);
@@ -145,7 +147,7 @@ export function ScanBarcodeScreen({ onBack }: Props) {
 					</Pressable>
 				</View>
 			) : (
-				<Resultado producto={producto!} onEscanearOtro={volverAEscanear} />
+				<Resultado producto={producto!} onEscanearOtro={volverAEscanear} colors={colors} styles={styles} />
 			)}
 		</View>
 	);
@@ -154,9 +156,13 @@ export function ScanBarcodeScreen({ onBack }: Props) {
 function Resultado({
 	producto,
 	onEscanearOtro,
+	colors,
+	styles,
 }: {
 	producto: ProductoDetalleResponse;
 	onEscanearOtro: () => void;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
 }) {
 	return (
 		<ScrollView
@@ -258,7 +264,8 @@ function Resultado({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -466,4 +473,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: typography.sizes.body,
 	},
-});
+	});
+}

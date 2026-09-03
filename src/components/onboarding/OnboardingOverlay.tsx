@@ -5,8 +5,8 @@ import {
 	View,
 	useWindowDimensions,
 } from "react-native";
-import type { RefObject } from "react";
-import { colors, typography } from "../../theme/designSystem";
+import { useMemo, type RefObject } from "react";
+import { typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 import type { OnboardingTargetId } from "./OnboardingProvider";
 
 export type SpotlightRect = {
@@ -36,6 +36,8 @@ export function OnboardingOverlay({
 	overlayRef,
 }: Props) {
 	const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const tooltipHeight = 190;
 	const placeAbove = Boolean(
 		spotlight &&
@@ -129,7 +131,8 @@ export function OnboardingOverlay({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	overlay: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
 	shade: {
 		position: "absolute",
@@ -209,4 +212,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: 12,
 	},
-});
+	});
+}

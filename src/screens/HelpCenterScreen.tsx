@@ -3,7 +3,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fro
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
 import { POINTS_PER_REFERRAL } from "../data/rewards";
 
@@ -21,6 +21,8 @@ type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) =
 
 export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [open, setOpen] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
 
@@ -107,7 +109,8 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -125,4 +128,5 @@ const styles = StyleSheet.create({
 	divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: 16 },
 	contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: colors.navy, height: 48, borderRadius: 10 },
 	contactText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-});
+	});
+}

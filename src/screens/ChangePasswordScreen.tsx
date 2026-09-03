@@ -11,13 +11,15 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField } from "../components";
 
 type Props = { onBack: () => void; onSuccess: () => void };
 
 export function ChangePasswordScreen({ onBack, onSuccess }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [pw, setPw] = useState("");
 	const [pw2, setPw2] = useState("");
 
@@ -90,7 +92,8 @@ export function ChangePasswordScreen({ onBack, onSuccess }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -103,4 +106,5 @@ const styles = StyleSheet.create({
 	checkText: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 12 },
 	cta: { marginTop: 18, backgroundColor: colors.navy, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center" },
 	ctaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-});
+	});
+}

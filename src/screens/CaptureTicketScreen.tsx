@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	Image,
@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 /**
  * Phone cameras shoot 3000-4000px wide, which is far more than the OCR model
@@ -39,6 +39,8 @@ type Props = {
 
 export function CaptureTicketScreen({ onBack, onSend }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const cameraRef = useRef<CameraView>(null);
 	const [permission, requestPermission] = useCameraPermissions();
 	const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
@@ -162,6 +164,8 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 									style={styles.deleteButton}
 									onPress={() => handleDelete(photo.id)}
 									hitSlop={6}
+									accessibilityRole="button"
+									accessibilityLabel="Eliminar foto"
 								>
 									<Ionicons name="close-circle" size={20} color="#fff" />
 								</Pressable>
@@ -196,7 +200,8 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: "#000" },
 	permissionWrap: {
 		flex: 1,
@@ -349,4 +354,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: 15,
 	},
-});
+	});
+}

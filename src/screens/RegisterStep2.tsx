@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, PasswordStrengthBar } from "../components";
 import { register } from "../services/authApi";
 import type { Session } from "../auth/session";
@@ -18,6 +18,8 @@ type Props = {
 
 export default function RegisterStep2({ firstName, lastName, email, phone: _phone, onNext, onBack }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [password, setPassword] = useState("");
 	const [repeatPassword, setRepeatPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -136,7 +138,8 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	header: {
 		paddingHorizontal: 12,
@@ -201,4 +204,5 @@ const styles = StyleSheet.create({
 	},
 	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
 	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-});
+	});
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
 	Pressable,
 	ScrollView,
@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { BottomNav, type TabKey } from "../components";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { REWARDS, POINTS_PER_REFERRAL } from "../data/rewards";
 import type { Session } from "../auth/session";
 import { getReferralCode } from "../auth/session";
@@ -41,6 +41,8 @@ export function PointsScreen({
 	onShowHistory,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [copied, setCopied] = useState(false);
 	const referralCode = getReferralCode(session.user);
 
@@ -215,7 +217,8 @@ export function PointsScreen({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -295,4 +298,5 @@ const styles = StyleSheet.create({
 	rewardPointsBadge: { backgroundColor: colors.navy, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4 },
 	rewardPointsBadgeLocked: { backgroundColor: colors.divider },
 	rewardPointsText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 11, letterSpacing: 0.3 },
-});
+	});
+}

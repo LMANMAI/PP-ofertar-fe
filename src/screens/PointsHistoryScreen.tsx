@@ -1,9 +1,10 @@
+import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
@@ -26,6 +27,8 @@ type Props = {
 
 export function PointsHistoryScreen({ entries, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const earned = entries.filter((e) => e.pts > 0).reduce((sum, e) => sum + e.pts, 0);
 	const spent = entries.filter((e) => e.pts < 0).reduce((sum, e) => sum + e.pts, 0);
 
@@ -112,7 +115,8 @@ export function PointsHistoryScreen({ entries, onBack, activeTab, onSelectTab, o
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -135,4 +139,5 @@ const styles = StyleSheet.create({
 	ptsGreen: { color: colors.success },
 	ptsRed: { color: colors.danger },
 	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 62 },
-});
+	});
+}

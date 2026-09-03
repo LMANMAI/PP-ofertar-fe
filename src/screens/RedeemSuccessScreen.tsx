@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
 import { BottomNav, type TabKey } from "../components";
 
@@ -18,6 +19,8 @@ type Props = {
 
 export function RedeemSuccessScreen({ reward, remainingPoints, onSeeMy, onKeepRedeeming, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	return (
 		<View style={styles.safeArea}>
@@ -79,7 +82,8 @@ export function RedeemSuccessScreen({ reward, remainingPoints, onSeeMy, onKeepRe
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, height: 56, paddingHorizontal: 20, justifyContent: "center" },
@@ -102,4 +106,5 @@ const styles = StyleSheet.create({
 	primaryBtn: { width: "100%", backgroundColor: colors.navy, height: 48, borderRadius: 8, alignItems: "center", justifyContent: "center", marginTop: 8 },
 	primaryText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	linkText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14, marginTop: 4 },
-});
+	});
+}

@@ -1,14 +1,17 @@
+import { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
 
 type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
 
 export function PaymentMethodsScreen({ onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
@@ -41,7 +44,8 @@ export function PaymentMethodsScreen({ onBack, activeTab, onSelectTab, onScanPre
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -51,4 +55,5 @@ const styles = StyleSheet.create({
 	emptyIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.softWarm, alignItems: "center", justifyContent: "center", marginBottom: 4 },
 	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
 	emptyBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },
-});
+	});
+}

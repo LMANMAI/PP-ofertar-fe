@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
 	ActivityIndicator,
 	Image,
@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { colors } from "../theme/designSystem";
+import { useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	onDone: () => void;
@@ -16,6 +16,8 @@ type Props = {
 
 export function LoaderScreen({ onDone, durationMs = 1500 }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	useEffect(() => {
 		const t = setTimeout(onDone, durationMs);
@@ -37,7 +39,8 @@ export function LoaderScreen({ onDone, durationMs = 1500 }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	statusBarBg: { backgroundColor: colors.card },
 	center: {
@@ -48,4 +51,5 @@ const styles = StyleSheet.create({
 	},
 	logo: { width: 72, height: 72, borderRadius: 12 },
 	spinner: { marginTop: 24 },
-});
+	});
+}

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { ensureLocationPermission } from "../location/permission";
 
 /** `granted` is what the OS answered, not what the user tapped: the screen
@@ -13,6 +13,8 @@ type Props = { onAllow: (granted: boolean) => void; onSkip: () => void };
 
 export function LocationPermissionScreen({ onAllow, onSkip }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [asking, setAsking] = useState(false);
 
 	const handleAllow = async () => {
@@ -58,6 +60,8 @@ export function LocationPermissionScreen({ onAllow, onSkip }: Props) {
 }
 
 function Feature({ icon, text }: { icon: any; text: string }) {
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	return (
 		<View style={styles.featureRow}>
 			<Ionicons name={icon} size={18} color={colors.cyan} />
@@ -66,7 +70,8 @@ function Feature({ icon, text }: { icon: any; text: string }) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 24 },
 	content: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14 },
 	iconWrap: { width: 120, height: 120, borderRadius: 60, backgroundColor: "#E8F6FC", alignItems: "center", justifyContent: "center", marginBottom: 8 },
@@ -80,4 +85,5 @@ const styles = StyleSheet.create({
 	primaryText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	skipBtn: { height: 44, alignItems: "center", justifyContent: "center" },
 	skipText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
-});
+	});
+}

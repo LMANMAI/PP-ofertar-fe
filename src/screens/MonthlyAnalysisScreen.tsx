@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getSavingsReport } from "../services";
 import type { SavingsReportResponse } from "../services";
 import type { Session } from "../auth/session";
@@ -24,8 +24,6 @@ function yyyyMM(date: Date): string {
 	return `${y}-${m}`;
 }
 
-const CAT_COLORS = ["#7DD4F5", "#0D80CC", colors.success, "#F2B61D", colors.subtleText, "#E76F51"];
-
 type Props = {
 	onBack: () => void;
 	session: Session;
@@ -36,6 +34,12 @@ type Props = {
 
 export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
+	const CAT_COLORS = useMemo(
+		() => [colors.cyan, "#0D80CC", colors.success, "#F2B61D", colors.subtleText, colors.orange],
+		[colors],
+	);
 	const [report, setReport] = useState<SavingsReportResponse | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -94,11 +98,11 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 			</View>
 
 			<View style={styles.monthSelector}>
-				<Pressable onPress={prevMonth} style={styles.monthArrow}>
+				<Pressable onPress={prevMonth} style={styles.monthArrow} accessibilityRole="button" accessibilityLabel="Mes anterior">
 					<Ionicons name="chevron-back" size={18} color={colors.navy} />
 				</Pressable>
 				<Text style={styles.monthLabel}>{formatMonth(selectedMonth)}</Text>
-				<Pressable onPress={nextMonth} style={styles.monthArrow}>
+				<Pressable onPress={nextMonth} style={styles.monthArrow} accessibilityRole="button" accessibilityLabel="Mes siguiente">
 					<Ionicons name="chevron-forward" size={18} color={colors.navy} />
 				</Pressable>
 			</View>
@@ -111,7 +115,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 
 			{error && (
 				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color="#E76F51" />
+					<Ionicons name="warning-outline" size={18} color={colors.orange} />
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
 			)}
@@ -128,12 +132,12 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 							{formatCurrency(report.summary.totalSpent)}
 						</Text>
 						<View style={styles.heroRow}>
-							<Tag text={`${report.summary.ticketCount} tickets`} />
+							<Tag text={`${report.summary.ticketCount} tickets`} styles={styles} />
 							{report.summary.totalSavings != null && report.summary.totalSavings > 0 && (
-								<Tag text={`${formatCurrency(report.summary.totalSavings)} ahorrado`} tone="cyan" />
+								<Tag text={`${formatCurrency(report.summary.totalSavings)} ahorrado`} tone="cyan" styles={styles} />
 							)}
 							{savingsPct && (
-								<Tag text={`${savingsPct}% del total`} tone="cyan" />
+								<Tag text={`${savingsPct}% del total`} tone="cyan" styles={styles} />
 							)}
 						</View>
 					</View>
@@ -206,7 +210,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 	);
 }
 
-function Tag({ text, tone }: { text: string; tone?: "cyan" }) {
+function Tag({ text, tone, styles }: { text: string; tone?: "cyan"; styles: ReturnType<typeof createStyles> }) {
 	return (
 		<View style={[styles.tag, tone === "cyan" ? styles.tagCyan : styles.tagMuted]}>
 			<Text style={[styles.tagText, tone === "cyan" ? styles.tagTextCyan : styles.tagTextMuted]}>{text}</Text>
@@ -214,7 +218,8 @@ function Tag({ text, tone }: { text: string; tone?: "cyan" }) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -272,4 +277,5 @@ const styles = StyleSheet.create({
 		fontSize: 11,
 		marginTop: 1,
 	},
-});
+	});
+}

@@ -1,4 +1,13 @@
-import { useColorScheme } from "react-native";
+import { useColorScheme, useWindowDimensions } from "react-native";
+
+/** Breakpoint above which the phone-width single column restructures into a
+ * tablet layout (grid columns, capped/centered content) instead of stretching. */
+export const TABLET_BREAKPOINT = 768;
+
+export function useIsTablet(): boolean {
+	const { width } = useWindowDimensions();
+	return width >= TABLET_BREAKPOINT;
+}
 
 export const colors = {
 	navy: "#0A1F44",
@@ -15,7 +24,7 @@ export const colors = {
 	buttonText: "#FFFFFF",
 	// Roles recurrentes que antes se repetían como hex sueltos por pantalla.
 	mutedText2: "#6B7280",
-	subtleText: "#9CA3A8",
+	subtleText: "#6A7482",
 	divider: "#E5E7EB",
 	success: "#22C55E",
 	danger: "#EF4444",
@@ -40,7 +49,7 @@ export const darkColors: ColorTokens = {
 	softWarm: "#1B2333",
 	buttonText: "#FFFFFF",
 	mutedText2: "#9AA5BC",
-	subtleText: "#7B879E",
+	subtleText: "#9BA6BC",
 	divider: "#2A3650",
 	success: "#22C55E",
 	danger: "#EF4444",

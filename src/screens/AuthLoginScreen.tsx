@@ -10,7 +10,7 @@ import {
 	Text,
 	View,
 } from "react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { InputField } from "../components";
 
@@ -21,7 +21,7 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { login } from "../services/authApi";
 import type { Session } from "../auth/session";
 
@@ -39,6 +39,8 @@ export function AuthLoginScreen({
 	onForgotPassword,
 }: AuthLoginScreenProps) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [fontsLoaded] = useFonts({
 		PlusJakartaSans_400Regular,
 		PlusJakartaSans_500Medium,
@@ -157,7 +159,8 @@ export function AuthLoginScreen({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	statusBarBg: { backgroundColor: colors.navy },
 	loader: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.card },
@@ -178,4 +181,5 @@ const styles = StyleSheet.create({
 	footerText: { textAlign: "center", color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
 	footerLink: { color: colors.navy, fontFamily: typography.family.medium, textDecorationLine: "underline" },
 	pressed: { opacity: 0.88 },
-});
+	});
+}

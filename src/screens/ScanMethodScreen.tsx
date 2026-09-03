@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	onChoosePhotos: () => void;
@@ -18,6 +19,8 @@ export function ScanMethodScreen({
 	onBack,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	return (
 		<View style={styles.safeArea}>
@@ -46,6 +49,8 @@ export function ScanMethodScreen({
 						description="Capturá cada parte del ticket y envialas en orden."
 						onPress={onChoosePhotos}
 						accent={colors.cyan}
+						colors={colors}
+						styles={styles}
 					/>
 
 					<OptionCard
@@ -55,6 +60,8 @@ export function ScanMethodScreen({
 						onPress={onChoosePdf}
 						accent={colors.orange}
 						badge="Más rápido"
+						colors={colors}
+						styles={styles}
 					/>
 
 					<OptionCard
@@ -63,6 +70,8 @@ export function ScanMethodScreen({
 						description="Apuntá al código de barras y mirá el precio en cada supermercado."
 						onPress={onChooseBarcode}
 						accent={colors.softNavy}
+						colors={colors}
+						styles={styles}
 					/>
 				</View>
 
@@ -84,6 +93,8 @@ function OptionCard({
 	onPress,
 	accent,
 	badge,
+	colors,
+	styles,
 }: {
 	icon: keyof typeof Ionicons.glyphMap;
 	title: string;
@@ -91,6 +102,8 @@ function OptionCard({
 	onPress: () => void;
 	accent: string;
 	badge?: string;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
 }) {
 	return (
 		<Pressable style={styles.card} onPress={onPress}>
@@ -113,7 +126,8 @@ function OptionCard({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -212,4 +226,5 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		lineHeight: 19,
 	},
-});
+	});
+}

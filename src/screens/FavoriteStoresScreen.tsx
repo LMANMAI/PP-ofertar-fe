@@ -6,7 +6,7 @@ import { ensureLocationPermission } from "../location/permission";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { getFavoriteStores, getNearbyStores, getStoreChains, updateFavoriteStores } from "../services";
@@ -41,6 +41,8 @@ type Props = {
 
 export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, onScanPress, onSelectStore }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [chains, setChains] = useState<StoreChain[]>([]);
 	const [favorites, setFavorites] = useState<Set<string>>(new Set());
 	const [radiusKm, setRadiusKm] = useState(5);
@@ -193,7 +195,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 
 					{error && (
 						<View style={styles.errorBanner}>
-							<Ionicons name="warning-outline" size={16} color="#E76F51" />
+							<Ionicons name="warning-outline" size={16} color={colors.orange} />
 							<Text style={styles.errorText}>{error}</Text>
 						</View>
 					)}
@@ -251,31 +253,33 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	mapWrap: { height: 280, backgroundColor: "#E5E7EB" },
+	mapWrap: { height: 280, backgroundColor: colors.divider },
 	warnBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, marginBottom: 0, backgroundColor: "#FFF7ED", borderRadius: 10, padding: 10 },
 	warnText: { flex: 1, color: "#B45A14", fontFamily: typography.family.medium, fontSize: 12 },
 	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, marginBottom: 0, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 10 },
 	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 12 },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16 },
-	sectionHint: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginHorizontal: 16, marginTop: 4 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16 },
+	sectionHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginHorizontal: 16, marginTop: 4 },
 	radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginTop: 10 },
-	radiusChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: "#D8E1EE", backgroundColor: colors.card },
+	radiusChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
 	radiusChipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
 	radiusText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
 	radiusTextOn: { color: "#fff" },
-	chainList: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: "#E5E7EB", marginHorizontal: 16, marginTop: 10, overflow: "hidden" },
+	chainList: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, marginHorizontal: 16, marginTop: 10, overflow: "hidden" },
 	chainRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
 	dot: { width: 12, height: 12, borderRadius: 6 },
 	chainName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	chainMeta: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: "#D8E1EE", alignItems: "center", justifyContent: "center" },
+	chainMeta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
 	checkOn: { backgroundColor: colors.cyan, borderColor: colors.cyan },
-	divider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 38 },
-});
+	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 38 },
+	});
+}

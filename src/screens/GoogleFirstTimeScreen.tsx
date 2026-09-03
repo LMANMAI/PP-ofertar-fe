@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
 	KeyboardAvoidingView,
 	Platform,
@@ -11,13 +11,15 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField } from "../components";
 
 type Props = { onComplete: () => void; onBack: () => void };
 
 export function GoogleFirstTimeScreen({ onComplete, onBack }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [phone, setPhone] = useState("");
 	const [dob, setDob] = useState("");
 	const [accepted, setAccepted] = useState(false);
@@ -95,7 +97,8 @@ export function GoogleFirstTimeScreen({ onComplete, onBack }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -112,4 +115,5 @@ const styles = StyleSheet.create({
 	checkText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19 },
 	cta: { marginTop: 8, backgroundColor: colors.navy, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center" },
 	ctaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-});
+	});
+}

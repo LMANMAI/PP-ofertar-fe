@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getRecurringProducts, getTicket } from "../services";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
@@ -41,6 +41,8 @@ type Props = {
 
 export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [ticket, setTicket] = useState<TicketResponse | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -121,7 +123,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 
 			{error && (
 				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color="#E76F51" />
+					<Ionicons name="warning-outline" size={18} color={colors.orange} />
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
 			)}
@@ -130,14 +132,14 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 				<ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 24 }}>
 					{ticket.status === "FAILED" && (
 						<View style={styles.failedBanner}>
-							<Ionicons name="warning-outline" size={18} color="#E76F51" />
+							<Ionicons name="warning-outline" size={18} color={colors.orange} />
 							<Text style={styles.failedBannerText}>No se pudo procesar este ticket</Text>
 						</View>
 					)}
 
 					<View style={styles.summary}>
 						<View style={styles.summaryHeader}>
-							<View style={[styles.storeBadge, !storeName ? { backgroundColor: "#5C6B84" } : undefined]}>
+							<View style={[styles.storeBadge, !storeName ? { backgroundColor: colors.mutedText } : undefined]}>
 								<Text style={styles.storeBadgeText}>{badge}</Text>
 							</View>
 							<View style={{ flex: 1 }}>
@@ -222,7 +224,8 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -264,4 +267,5 @@ const styles = StyleSheet.create({
 	productPrice: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
 	discountText: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11, marginTop: 2 },
 	divider: { height: 1, backgroundColor: colors.divider },
-});
+	});
+}

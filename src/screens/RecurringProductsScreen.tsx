@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { campaignOfferToOffer, describeCampaignDiscount, getRecurringProducts, offerSavings, sortByOfferRelevance } from "../services";
 import type { CampaignOffer, Offer, RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
@@ -60,6 +60,8 @@ type Props = {
 
 export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTab, onScanPress, onOpenOffer }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [products, setProducts] = useState<RecurringProduct[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -105,7 +107,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 
 			{error && !loading && (
 				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color="#E76F51" />
+					<Ionicons name="warning-outline" size={18} color={colors.orange} />
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
 			)}
@@ -352,7 +354,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 
 										{p.totalDiscounts > 0 && (
 											<View style={styles.historyRow}>
-												<Ionicons name="receipt-outline" size={13} color="#6B7280" />
+												<Ionicons name="receipt-outline" size={13} color={colors.mutedText2} />
 												<Text style={styles.historyText}>
 													Ya llevás {formatCurrency(p.totalDiscounts)} ahorrados en este producto por descuentos
 													de tus tickets
@@ -400,7 +402,8 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -412,13 +415,13 @@ const styles = StyleSheet.create({
 	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 60, paddingHorizontal: 40 },
 	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
 	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
-	intro: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 12, borderWidth: 1, borderColor: "#E5E7EB" },
+	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
+	card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 12, borderWidth: 1, borderColor: colors.divider },
 	cardHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
 	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
 	freq: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	bestRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	bestChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+	bestChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.success, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
 	campaignChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.navy, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
 	bestText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 11 },
 	priceGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -426,37 +429,38 @@ const styles = StyleSheet.create({
 	discountText: { color: "#15803D", fontFamily: typography.family.bold, fontSize: 11 },
 	price: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
 	noOffer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12 },
-	detailBlock: { borderTopWidth: 1, borderTopColor: "#E5E7EB", paddingTop: 10, gap: 8 },
+	detailBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 10, gap: 8 },
 	detailRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	detailLabel: { flex: 1, color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12 },
+	detailLabel: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
 	detailValue: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
 	strikePrice: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 13, textDecorationLine: "line-through" },
 	savingsRow: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#F0FDF4", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
 	savingsText: { flex: 1, color: "#15803D", fontFamily: typography.family.bold, fontSize: 13 },
-	detailNote: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
+	detailNote: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
 	promoRow: { flexDirection: "row", alignItems: "center", gap: 6 },
 	promoText: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-	paidBlock: { borderTopWidth: 1, borderTopColor: "#F1F5F9", paddingTop: 8, gap: 4 },
-	offerProduct: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
+	paidBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: 8, gap: 4 },
+	offerProduct: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
 	paidBetter: { color: "#15803D", fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
 	paidCaveat: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
 	paidWorse: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
-	campaignBlock: { borderTopWidth: 1, borderTopColor: "#F1F5F9", paddingTop: 10, gap: 8 },
+	campaignBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: 10, gap: 8 },
 	campaignTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
 	campaignIntro: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
 	campaignRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
 	campaignHeadline: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-	campaignUntil: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	campaignUntil: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
 	campaignLegal: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, marginTop: 3 },
 	campaignLink: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 11, marginTop: 4, textDecorationLine: "underline" },
 	campaignDisclaimer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, fontStyle: "italic" },
 	historyRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-	historyText: { flex: 1, color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
-	altBlock: { borderTopWidth: 1, borderTopColor: "#E5E7EB", paddingTop: 10, gap: 6 },
+	historyText: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
+	altBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 10, gap: 6 },
 	altTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
 	altRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-	altName: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
+	altName: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
 	altRetailer: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 11, marginTop: 1 },
-	altDiscount: { color: "#22C55E", fontFamily: typography.family.medium, fontSize: 11 },
+	altDiscount: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11 },
 	altPrice: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-});
+	});
+}

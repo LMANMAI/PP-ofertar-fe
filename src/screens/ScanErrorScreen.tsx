@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	errorMessage?: string;
@@ -18,6 +19,8 @@ export function ScanErrorScreen({
 	onBack,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	return (
 		<View style={styles.safeArea}>
@@ -41,7 +44,7 @@ export function ScanErrorScreen({
 				showsVerticalScrollIndicator={false}
 			>
 				<View style={styles.errorCard}>
-					<Ionicons name="close-circle-outline" size={64} color="#E76F51" />
+					<Ionicons name="close-circle-outline" size={64} color={colors.orange} />
 					<Text style={styles.errorTitle}>No pudimos leer el ticket</Text>
 					<Text style={styles.errorBody}>
 						{errorMessage
@@ -52,10 +55,10 @@ export function ScanErrorScreen({
 
 				<View style={styles.tipsCard}>
 					<Text style={styles.tipsTitle}>Consejos para un buen escaneo</Text>
-					<Tip text="Poné el ticket sobre una superficie plana" />
-					<Tip text="Asegurate de tener buena iluminación" />
-					<Tip text="Encuadrá el ticket completo en la pantalla" />
-					<Tip text="Evitá que el ticket esté doblado o mojado" />
+					<Tip text="Poné el ticket sobre una superficie plana" styles={styles} />
+					<Tip text="Asegurate de tener buena iluminación" styles={styles} />
+					<Tip text="Encuadrá el ticket completo en la pantalla" styles={styles} />
+					<Tip text="Evitá que el ticket esté doblado o mojado" styles={styles} />
 				</View>
 
 				<Pressable style={styles.primaryButton} onPress={onRetry}>
@@ -84,7 +87,7 @@ export function ScanErrorScreen({
 	);
 }
 
-function Tip({ text }: { text: string }) {
+function Tip({ text, styles }: { text: string; styles: ReturnType<typeof createStyles> }) {
 	return (
 		<View style={styles.tipRow}>
 			<Ionicons name="ellipse" size={6} color="#9A3412" />
@@ -93,7 +96,8 @@ function Tip({ text }: { text: string }) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -194,4 +198,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.regular,
 		fontSize: 13,
 	},
-});
+	});
+}

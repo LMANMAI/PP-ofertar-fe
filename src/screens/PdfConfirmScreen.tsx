@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	pdfName: string;
@@ -12,6 +13,8 @@ type Props = {
 
 export function PdfConfirmScreen({ pdfName, onSend, onCancel }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	return (
 		<View style={styles.safeArea}>
@@ -53,7 +56,8 @@ export function PdfConfirmScreen({ pdfName, onSend, onCancel }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -139,4 +143,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 14,
 	},
-});
+	});
+}

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
 	Pressable,
 	ScrollView,
@@ -8,7 +9,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
 import { offerBadge } from "../services";
 import type { Offer } from "../services";
@@ -30,6 +31,8 @@ function formatUntil(iso: string | null): string | null {
 
 export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const { badge, color } = offerBadge(offer.retailerName);
 	const until = formatUntil(offer.activeTo);
 
@@ -133,7 +136,8 @@ export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onSca
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -282,4 +286,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 15,
 	},
-});
+	});
+}

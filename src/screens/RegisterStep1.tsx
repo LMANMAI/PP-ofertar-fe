@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import {
@@ -10,7 +10,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Pl
 import { Ionicons } from "@expo/vector-icons";
 import { InputField } from "../components";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	onNext: (data: { firstName: string; lastName: string; email: string; phone: string; referralCode: string }) => void;
@@ -20,6 +20,8 @@ type Props = {
 
 export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [fontsLoaded] = useFonts({
 		PlusJakartaSans_400Regular,
 		PlusJakartaSans_500Medium,
@@ -163,7 +165,8 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	progressWrap: { backgroundColor: colors.navy },
 	progressTrack: { height: 6, backgroundColor: colors.softCyan, width: "100%" },
@@ -266,4 +269,5 @@ const styles = StyleSheet.create({
 	},
 	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
 	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-});
+	});
+}

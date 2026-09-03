@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
 import { BottomNav, type TabKey } from "../components";
 
@@ -18,6 +19,8 @@ type Props = {
 
 export function RewardDetailScreen({ reward, pointsBalance, onBack, onRedeem, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const remaining = pointsBalance - reward.points;
 	const canRedeem = remaining >= 0;
 
@@ -44,9 +47,9 @@ export function RewardDetailScreen({ reward, pointsBalance, onBack, onRedeem, ac
 				</View>
 
 				<View style={styles.infoCard}>
-					<InfoRow icon="cash-outline" label="Costo" value={`${reward.points} puntos`} />
-					<InfoRow icon="calendar-outline" label="Validez" value={reward.validity} />
-					<InfoRow icon="checkmark-done-outline" label="Cómo se aplica" value={reward.where} last />
+					<InfoRow icon="cash-outline" label="Costo" value={`${reward.points} puntos`} colors={colors} styles={styles} />
+					<InfoRow icon="calendar-outline" label="Validez" value={reward.validity} colors={colors} styles={styles} />
+					<InfoRow icon="checkmark-done-outline" label="Cómo se aplica" value={reward.where} last colors={colors} styles={styles} />
 				</View>
 
 				<Text style={styles.sectionLabel}>CONDICIONES</Text>
@@ -80,8 +83,8 @@ export function RewardDetailScreen({ reward, pointsBalance, onBack, onRedeem, ac
 }
 
 function InfoRow({
-	icon, label, value, last,
-}: { icon: any; label: string; value: string; last?: boolean }) {
+	icon, label, value, last, colors, styles,
+}: { icon: any; label: string; value: string; last?: boolean; colors: ColorTokens; styles: ReturnType<typeof createStyles> }) {
 	return (
 		<View>
 			<View style={styles.infoRow}>
@@ -96,7 +99,8 @@ function InfoRow({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -121,4 +125,5 @@ const styles = StyleSheet.create({
 	balRemaining: { color: colors.success, fontFamily: typography.family.regular, fontSize: 13 },
 	cta: { backgroundColor: colors.navy, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8 },
 	ctaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
-});
+	});
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, BottomNav, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
@@ -20,6 +20,8 @@ const MAX_IMAGE_SIZE_MB = 5;
 
 export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [fetching, setFetching] = useState(false);
 	const [first, setFirst] = useState(splitName(session.user.name).firstName);
 	const [last, setLast] = useState(splitName(session.user.name).lastName);
@@ -304,7 +306,8 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -336,4 +339,5 @@ const styles = StyleSheet.create({
 	sheetOptionTextDanger: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
 	sheetCancel: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 20 },
 	sheetCancelText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 15 },
-});
+	});
+}

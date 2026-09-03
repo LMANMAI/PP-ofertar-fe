@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getRecurringProducts, getTickets } from "../services";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
@@ -56,6 +56,9 @@ export function TicketHistoryScreen({
 	onTicketAnnounced,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const isTablet = useIsTablet();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [tickets, setTickets] = useState<TicketResponse[]>([]);
 	const [forgotten, setForgotten] = useState<RecurringProduct[]>([]);
 	const [forgottenVisible, setForgottenVisible] = useState(false);
@@ -155,7 +158,7 @@ export function TicketHistoryScreen({
 
 			{error && !loading && (
 				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color="#E76F51" />
+					<Ionicons name="warning-outline" size={18} color={colors.orange} />
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
 			)}
@@ -170,6 +173,11 @@ export function TicketHistoryScreen({
 
 			{!loading && tickets.length > 0 && (
 				<FlatList
+					// Same restructure as OffersScreen: two columns once the viewport
+					// is tablet-wide, instead of one column stretched edge to edge.
+					key={isTablet ? "grid" : "list"}
+					numColumns={isTablet ? 2 : 1}
+					columnWrapperStyle={isTablet ? { gap: 10 } : undefined}
 					data={tickets}
 					keyExtractor={(t) => String(t.id)}
 					contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 24 }}
@@ -202,7 +210,7 @@ export function TicketHistoryScreen({
 							<Pressable
 								// A ticket still being read has no items or totals yet, so
 								// opening it would show an empty screen.
-								style={[styles.row, isPending && styles.rowPending]}
+								style={[styles.row, isPending && styles.rowPending, isTablet && { flex: 1 }]}
 								onPress={() => !isPending && onSelectTicket(t)}
 								disabled={isPending}
 								accessibilityRole="button"
@@ -244,7 +252,7 @@ export function TicketHistoryScreen({
 											<Text
 												style={[
 													styles.statusText,
-													t.status === "FAILED" && { color: "#E76F51" },
+													t.status === "FAILED" && { color: colors.orange },
 													isPending && { color: "#B45A14" },
 												]}
 											>
@@ -272,7 +280,8 @@ export function TicketHistoryScreen({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -303,4 +312,5 @@ const styles = StyleSheet.create({
 	statusPending: { backgroundColor: "#FFF7ED" },
 	rowPending: { opacity: 0.75 },
 	statusText: { fontFamily: typography.family.medium, fontSize: 10, color: "#15803D" },
-});
+	});
+}

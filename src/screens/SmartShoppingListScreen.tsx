@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { describeCampaignDiscount, getRecurringProducts } from "../services";
 import type { RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
@@ -28,6 +28,8 @@ type Props = {
 
 export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [products, setProducts] = useState<RecurringProduct[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 
 			{error && !loading && (
 				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color="#E76F51" />
+					<Ionicons name="warning-outline" size={18} color={colors.orange} />
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
 			)}
@@ -210,7 +212,8 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
@@ -224,23 +227,24 @@ const styles = StyleSheet.create({
 	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
 	heroCard: { flexDirection: "row", gap: 12, backgroundColor: "#E8F6FC", borderRadius: 14, padding: 16, alignItems: "center" },
 	heroTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
-	heroBody: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2, lineHeight: 16 },
+	heroBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2, lineHeight: 16 },
 	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 4 },
-	list: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: "#E5E7EB", overflow: "hidden" },
+	list: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
 	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
-	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: "#D8E1EE", alignItems: "center", justifyContent: "center" },
+	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
 	checkOn: { backgroundColor: colors.cyan, borderColor: colors.cyan },
 	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
 	nameChecked: { color: "#9CA3A8", textDecorationLine: "line-through" },
-	meta: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
 	offerFor: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, marginTop: 2 },
 	promoChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.navy, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9, maxWidth: 150 },
-	offerChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9 },
+	offerChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.success, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9 },
 	offerChipText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 10 },
-	divider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 48 },
-	footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: "#E5E7EB", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 48 },
+	footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	footerLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	footerValue: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 20, marginTop: 2 },
 	savingsWrap: { alignItems: "flex-end" },
-	savingsValue: { color: "#22C55E", fontFamily: typography.family.bold, fontSize: 20, marginTop: 2 },
-});
+	savingsValue: { color: colors.success, fontFamily: typography.family.bold, fontSize: 20, marginTop: 2 },
+	});
+}

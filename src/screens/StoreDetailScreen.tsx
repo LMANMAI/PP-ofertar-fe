@@ -1,9 +1,10 @@
+import { useMemo } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
 import type { NearbyStore } from "../services";
 
@@ -17,6 +18,8 @@ type Props = {
 
 export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	const openInMaps = () => {
 		if (!store) return;
@@ -116,7 +119,8 @@ export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onSca
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
 	scroll: { flex: 1 },
 	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
 	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
-	mapWrap: { height: 200, backgroundColor: "#E5E7EB" },
+	mapWrap: { height: 200, backgroundColor: colors.divider },
 	content: { padding: 16, gap: 12 },
 	summaryCard: {
 		backgroundColor: colors.card,
@@ -201,4 +205,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 16,
 	},
-});
+	});
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
 	Image,
@@ -11,7 +11,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
 import { getProductoPorEan } from "../services/sepaApi";
 import type { ProductoDetalleResponse } from "../services/sepaApi";
@@ -47,6 +47,8 @@ export function ComparePricesScreen({
 	onScanPress,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [estado, setEstado] = useState<Estado>(barcode ? "buscando" : "sin-codigo");
 	const [producto, setProducto] = useState<ProductoDetalleResponse | null>(null);
 	const [mensajeError, setMensajeError] = useState<string | null>(null);
@@ -111,7 +113,7 @@ export function ComparePricesScreen({
 					</Pressable>
 				</View>
 			) : (
-				<Resultado producto={producto!} fallbackNombre={productName} />
+				<Resultado producto={producto!} fallbackNombre={productName} colors={colors} styles={styles} />
 			)}
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
@@ -124,9 +126,13 @@ export function ComparePricesScreen({
 function Resultado({
 	producto,
 	fallbackNombre,
+	colors,
+	styles,
 }: {
 	producto: ProductoDetalleResponse;
 	fallbackNombre: string;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
 }) {
 	return (
 		<ScrollView style={styles.resultado} contentContainerStyle={styles.resultadoContent}>
@@ -207,7 +213,8 @@ function Resultado({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -385,4 +392,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: typography.sizes.body,
 	},
-});
+	});
+}

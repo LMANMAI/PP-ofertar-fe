@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	Alert,
 	KeyboardAvoidingView,
@@ -13,7 +13,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
@@ -72,6 +72,8 @@ type Props = {
 
 export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSelectProduct, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const initialProducts = ticket ? buildProductsFromTicket(ticket) : [];
 	const [products, setProducts] = useState<Product[]>(initialProducts);
 	const [editing, setEditing] = useState<Product | null>(null);
@@ -216,7 +218,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 				<Text style={styles.headerTitle}>Ticket procesado</Text>
 				{isFailed ? (
 					<View style={styles.failedBadge}>
-						<Ionicons name="alert-circle" size={12} color="#E76F51" />
+						<Ionicons name="alert-circle" size={12} color={colors.orange} />
 						<Text style={styles.failedText}>Error</Text>
 					</View>
 				) : (
@@ -234,7 +236,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 			>
 				{isFailed && (
 					<View style={styles.failedBanner}>
-						<Ionicons name="warning-outline" size={18} color="#E76F51" />
+						<Ionicons name="warning-outline" size={18} color={colors.orange} />
 						<Text style={styles.failedBannerText}>
 							No se pudo procesar este ticket. Reintentá escaneando nuevamente.
 						</Text>
@@ -243,7 +245,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 
 				<View style={styles.summaryCard}>
 					<View style={styles.summaryHeader}>
-						<View style={[styles.storeBadge, supermarket ? undefined : { backgroundColor: "#5C6B84" }]}>
+						<View style={[styles.storeBadge, supermarket ? undefined : { backgroundColor: colors.mutedText }]}>
 							<Text style={styles.storeBadgeText}>{storeBadge}</Text>
 						</View>
 						<View style={{ flex: 1 }}>
@@ -258,12 +260,13 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 						{formatCurrency(displayTotal)}
 					</Text>
 					<View style={styles.tagsRow}>
-						<Tag text={`Productos ${products.length}`} />
-						<Tag text={`Categorías ${categoriesCount}`} />
+						<Tag text={`Productos ${products.length}`} styles={styles} />
+						<Tag text={`Categorías ${categoriesCount}`} styles={styles} />
 						{displaySavings > 0 && displayGross > 0 && (
 							<Tag
 								text={`${((displaySavings / displayGross) * 100).toFixed(1).replace(".", ",")}% ahorrado`}
 								tone="cyan"
+								styles={styles}
 							/>
 						)}
 					</View>
@@ -308,6 +311,8 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 								hitSlop={8}
 								disabled={isLocked}
 								onPress={(e) => { e.stopPropagation(); if (!isLocked) setEditing(p); }}
+								accessibilityRole="button"
+								accessibilityLabel={isLocked ? "Producto bloqueado" : "Editar producto"}
 							>
 								<Ionicons
 									name={isLocked ? "lock-closed-outline" : "create-outline"}
@@ -322,7 +327,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 
 			{isLocked && !isFailed && (
 				<View style={[styles.lockedBar, { paddingBottom: insets.bottom + 12 }]}>
-					<Ionicons name="lock-closed" size={15} color="#6B7280" />
+					<Ionicons name="lock-closed" size={15} color={colors.mutedText2} />
 					<Text style={styles.lockedText}>Ticket confirmado — ya no se puede modificar</Text>
 				</View>
 			)}
@@ -364,6 +369,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 				product={editing}
 				onClose={() => setEditing(null)}
 				onSave={handleSave}
+				styles={styles}
 			/>
 
 			<ForgottenProductsSheet
@@ -379,7 +385,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 	);
 }
 
-function Tag({ text, tone }: { text: string; tone?: "cyan" }) {
+function Tag({ text, tone, styles }: { text: string; tone?: "cyan"; styles: ReturnType<typeof createStyles> }) {
 	return (
 		<View
 			style={[styles.tag, tone === "cyan" ? styles.tagCyan : styles.tagMuted]}
@@ -400,10 +406,12 @@ function EditProductSheet({
 	product,
 	onClose,
 	onSave,
+	styles,
 }: {
 	product: Product | null;
 	onClose: () => void;
 	onSave: (p: Product) => void;
+	styles: ReturnType<typeof createStyles>;
 }) {
 	const [name, setName] = useState("");
 	const [quantity, setQuantity] = useState("");
@@ -493,7 +501,8 @@ function EditProductSheet({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -536,7 +545,7 @@ const styles = StyleSheet.create({
 		borderRadius: 999,
 	},
 	failedText: {
-		color: "#E76F51",
+		color: colors.orange,
 		fontFamily: typography.family.medium,
 		fontSize: 11,
 	},
@@ -728,10 +737,10 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
-		borderTopColor: "#E5E7EB",
+		borderTopColor: colors.divider,
 	},
 	lockedText: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.medium,
 		fontSize: 13,
 	},
@@ -779,4 +788,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.regular,
 		fontSize: 13,
 	},
-});
+	});
+}
