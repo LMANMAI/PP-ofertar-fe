@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
 	FlatList,
@@ -59,8 +59,10 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 	// Built from the offers on screen rather than a fixed list, so the filter
 	// never shows a chip that matches nothing.
 	const categories = useMemo(() => offerCategories(offers), [offers]);
-	const visibleOffers =
-		category === ALL_CATEGORIES ? offers : offers.filter((o) => o.category === category);
+	const visibleOffers = useMemo(
+		() => (category === ALL_CATEGORIES ? offers : offers.filter((o) => o.category === category)),
+		[offers, category],
+	);
 
 	return (
 		<View style={styles.safeArea}>
@@ -145,9 +147,15 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 					ListHeaderComponentStyle={styles.listHeader}
 					renderItem={({ item: o }) => (
 						<View style={isTablet ? styles.offerCol : undefined}>
-							<OfferCard offer={o} onOpen={() => onOpenOffer(o.id)} colors={colors} styles={styles} />
+							<OfferCard offer={o} onOpenOffer={onOpenOffer} colors={colors} styles={styles} />
 						</View>
 					)}
+					// Off-screen rows don't need to stay mounted, and batching the
+					// initial paint keeps the first frame cheap on a 50-offer page.
+					removeClippedSubviews
+					initialNumToRender={8}
+					maxToRenderPerBatch={8}
+					windowSize={7}
 				/>
 			)}
 
@@ -160,15 +168,20 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 
 /** Same anatomy as the home carousel card, one size up: the number in its own
  * tile with an icon, and right beside it the thing the list never used to say —
- * whether the percentage comes off the price or off a second unit. */
-function OfferCard({
+ * whether the percentage comes off the price or off a second unit.
+ *
+ * Memoized, and takes `onOpenOffer` + the offer instead of a pre-bound
+ * `onOpen` closure, so its props stay referentially stable across re-renders
+ * of the list (a fresh `() => onOpenOffer(o.id)` per render would defeat the
+ * memo on every single card, every time). */
+const OfferCard = memo(function OfferCard({
 	offer,
-	onOpen,
+	onOpenOffer,
 	colors,
 	styles,
 }: {
 	offer: Offer;
-	onOpen: () => void;
+	onOpenOffer: (offerId: string) => void;
 	colors: ColorTokens;
 	styles: ReturnType<typeof createStyles>;
 }) {
@@ -194,7 +207,7 @@ function OfferCard({
 
 	return (
 		<Pressable
-			onPress={onOpen}
+			onPress={() => onOpenOffer(offer.id)}
 			style={({ pressed }) => [styles.offerCard, pressed && styles.offerCardPressed]}
 		>
 			<View style={styles.offerHeader}>
@@ -287,7 +300,7 @@ function OfferCard({
 			)}
 		</Pressable>
 	);
-}
+});
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({

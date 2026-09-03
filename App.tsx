@@ -547,7 +547,6 @@ export default function App() {
 					onOpenPersonalData={() => setScreen("personalData")}
 					onOpenPayment={() => setScreen("paymentMethods")}
 					onOpenStores={() => setScreen("favoriteStores")}
-					onOpenSavings={() => { setTab("history"); setScreen("ticketHistory"); }}
 					onOpenPoints={() => setScreen("points")}
 					onOpenHelp={() => setScreen("helpCenter")}
 					onChangePassword={() => setScreen("changePasswordAuth")}

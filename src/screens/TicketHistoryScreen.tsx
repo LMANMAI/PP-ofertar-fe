@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +20,19 @@ function formatDate(iso: string): string {
 	return d.toLocaleDateString("es-AR", {
 		day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
 	});
+}
+
+/** Compares only what TicketRow actually renders — status, totals, item
+ * count, store name — not a deep-equal of the full ticket (line items etc.),
+ * which would cost more than the render it's meant to save. */
+function ticketsAreEqual(a: TicketResponse, b: TicketResponse): boolean {
+	return (
+		a.status === b.status &&
+		a.total === b.total &&
+		a.totalDiscounts === b.totalDiscounts &&
+		a.storeName === b.storeName &&
+		a.items.length === b.items.length
+	);
 }
 
 function storeBadge(name: string | null): { code: string; color: string } {
@@ -69,7 +82,17 @@ export function TicketHistoryScreen({
 	const loadTickets = async () => {
 		try {
 			const data = await getTickets(session.token);
-			setTickets(data);
+			// Keeps each unchanged ticket's object identity across a refetch —
+			// the 5s poll below refetches the whole list on every tick, and
+			// replacing every object wholesale would defeat TicketRow's memo
+			// for every row, not just the one still processing.
+			setTickets((current) => {
+				const previousById = new Map(current.map((t) => [t.id, t]));
+				return data.map((t) => {
+					const previous = previousById.get(t.id);
+					return previous && ticketsAreEqual(previous, t) ? previous : t;
+				});
+			});
 			setError(null);
 			await maybeAnnounceForgotten(data);
 		} catch (err) {
@@ -199,71 +222,23 @@ export function TicketHistoryScreen({
 						</View>
 					}
 					ListHeaderComponentStyle={{ marginBottom: 10 }}
-					renderItem={({ item: t }) => {
-						const badge = storeBadge(t.storeName);
-						const ticketTotal = t.total;
-						// Null while the ticket is still being processed, and the
-						// backend also leaves it null when nothing was discounted.
-						const ticketSavings = t.totalDiscounts ?? 0;
-						const isPending = t.status === "PENDING";
-						return (
-							<Pressable
-								// A ticket still being read has no items or totals yet, so
-								// opening it would show an empty screen.
-								style={[styles.row, isPending && styles.rowPending, isTablet && { flex: 1 }]}
-								onPress={() => !isPending && onSelectTicket(t)}
-								disabled={isPending}
-								accessibilityRole="button"
-								accessibilityLabel={`Ticket de ${t.storeName || "comercio sin nombre"}, ${formatCurrency(ticketTotal)}`}
-							>
-								<View style={[styles.badge, { backgroundColor: badge.color }]}>
-									<Text style={styles.badgeText}>{badge.code}</Text>
-								</View>
-								<View style={{ flex: 1 }}>
-									<Text style={styles.store}>
-										{t.storeName || (isPending ? "Leyendo tu ticket…" : "Ticket sin nombre")}
-									</Text>
-									<Text style={styles.date}>
-										{isPending
-											? "Podés seguir usando la app mientras tanto"
-											: `${formatDate(t.createdAt)} · ${t.items.length} productos`}
-									</Text>
-								</View>
-								<View style={{ alignItems: "flex-end" }}>
-									{isPending ? (
-										<ActivityIndicator size="small" color={colors.cyan} />
-									) : (
-										<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
-									)}
-									<View style={styles.statusRow}>
-{!isPending && ticketSavings != null && ticketSavings > 0 && (
-											<Text style={styles.savings}>-{formatCurrency(ticketSavings)}</Text>
-										)}
-										<View
-											style={[
-												styles.statusBadge,
-												t.status === "FAILED"
-													? styles.statusFailed
-													: isPending
-														? styles.statusPending
-														: styles.statusOk,
-											]}
-										>
-											<Text
-												style={[
-													styles.statusText,
-													t.status === "FAILED" && { color: colors.orange },
-													isPending && { color: colors.warningSoftText },
-												]}
-											>
-												{t.status === "PROCESSED" ? "OK" : t.status === "FAILED" ? "Falló" : "Procesando"}
-											</Text>
-										</View>
-									</View>
-								</View>
-							</Pressable>
-						);
-					}}
+					renderItem={({ item: t }) => (
+						<TicketRow
+							ticket={t}
+							isTablet={isTablet}
+							onSelectTicket={onSelectTicket}
+							colors={colors}
+							styles={styles}
+						/>
+					)}
+					// A ticket still PENDING re-polls every 5s (see the effect above),
+					// which replaces the whole `tickets` array — without memoizing the
+					// row, every visible ticket re-renders on each poll, not just the
+					// one still processing.
+					removeClippedSubviews
+					initialNumToRender={10}
+					maxToRenderPerBatch={10}
+					windowSize={9}
 				/>
 			)}
 
@@ -279,6 +254,84 @@ export function TicketHistoryScreen({
 		</View>
 	);
 }
+
+const TicketRow = memo(function TicketRow({
+	ticket: t,
+	isTablet,
+	onSelectTicket,
+	colors,
+	styles,
+}: {
+	ticket: TicketResponse;
+	isTablet: boolean;
+	onSelectTicket: (ticket: TicketResponse) => void;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
+}) {
+	const badge = storeBadge(t.storeName);
+	const ticketTotal = t.total;
+	// Null while the ticket is still being processed, and the
+	// backend also leaves it null when nothing was discounted.
+	const ticketSavings = t.totalDiscounts ?? 0;
+	const isPending = t.status === "PENDING";
+	return (
+		<Pressable
+			// A ticket still being read has no items or totals yet, so
+			// opening it would show an empty screen.
+			style={[styles.row, isPending && styles.rowPending, isTablet && { flex: 1 }]}
+			onPress={() => !isPending && onSelectTicket(t)}
+			disabled={isPending}
+			accessibilityRole="button"
+			accessibilityLabel={`Ticket de ${t.storeName || "comercio sin nombre"}, ${formatCurrency(ticketTotal)}`}
+		>
+			<View style={[styles.badge, { backgroundColor: badge.color }]}>
+				<Text style={styles.badgeText}>{badge.code}</Text>
+			</View>
+			<View style={{ flex: 1 }}>
+				<Text style={styles.store}>
+					{t.storeName || (isPending ? "Leyendo tu ticket…" : "Ticket sin nombre")}
+				</Text>
+				<Text style={styles.date}>
+					{isPending
+						? "Podés seguir usando la app mientras tanto"
+						: `${formatDate(t.createdAt)} · ${t.items.length} productos`}
+				</Text>
+			</View>
+			<View style={{ alignItems: "flex-end" }}>
+				{isPending ? (
+					<ActivityIndicator size="small" color={colors.cyan} />
+				) : (
+					<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
+				)}
+				<View style={styles.statusRow}>
+					{!isPending && ticketSavings != null && ticketSavings > 0 && (
+						<Text style={styles.savings}>-{formatCurrency(ticketSavings)}</Text>
+					)}
+					<View
+						style={[
+							styles.statusBadge,
+							t.status === "FAILED"
+								? styles.statusFailed
+								: isPending
+									? styles.statusPending
+									: styles.statusOk,
+						]}
+					>
+						<Text
+							style={[
+								styles.statusText,
+								t.status === "FAILED" && { color: colors.orange },
+								isPending && { color: colors.warningSoftText },
+							]}
+						>
+							{t.status === "PROCESSED" ? "OK" : t.status === "FAILED" ? "Falló" : "Procesando"}
+						</Text>
+					</View>
+				</View>
+			</View>
+		</Pressable>
+	);
+});
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({

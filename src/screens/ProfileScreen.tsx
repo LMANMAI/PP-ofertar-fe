@@ -37,7 +37,6 @@ type Props = {
 	onOpenPersonalData: () => void;
 	onOpenPayment: () => void;
 	onOpenStores: () => void;
-	onOpenSavings: () => void;
 	onOpenPoints: () => void;
 	onOpenHelp: () => void;
 	onChangePassword?: () => void;
@@ -54,7 +53,7 @@ type LinkItem = {
 	icon: IonName;
 	label: string;
 	hint?: string;
-	action: keyof Pick<Props, "onOpenPersonalData" | "onOpenPayment" | "onOpenStores" | "onOpenSavings" | "onOpenPoints" | "onChangePassword">;
+	action: keyof Pick<Props, "onOpenPersonalData" | "onOpenPayment" | "onOpenStores" | "onOpenPoints" | "onChangePassword">;
 };
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; icon: IonName }[] = [
@@ -68,7 +67,6 @@ const ACCOUNT_ITEMS: LinkItem[] = [
 	{ id: "points", icon: "people-outline", label: "Puntos y referidos", action: "onOpenPoints" },
 	{ id: "payment", icon: "card-outline", label: "Métodos de pago", action: "onOpenPayment" },
 	{ id: "stores", icon: "location-outline", label: "Mis tiendas favoritas", action: "onOpenStores" },
-	{ id: "savings", icon: "wallet-outline", label: "Mis últimos ahorros", action: "onOpenSavings" },
 	{ id: "password", icon: "lock-closed-outline", label: "Cambiar contraseña", action: "onChangePassword" },
 ];
 
@@ -82,7 +80,6 @@ export function ProfileScreen({
 	onOpenPersonalData,
 	onOpenPayment,
 	onOpenStores,
-	onOpenSavings,
 	onOpenPoints,
 	onOpenHelp,
 	onChangePassword,
@@ -126,7 +123,6 @@ export function ProfileScreen({
 		onOpenPersonalData,
 		onOpenPayment,
 		onOpenStores,
-		onOpenSavings,
 		onOpenPoints,
 		onChangePassword: onChangePassword ?? (() => {}),
 	};
