@@ -25,7 +25,6 @@ import {
 	LoaderScreen,
 	LocationPermissionScreen,
 	LogoutConfirmScreen,
-	LoyaltyLevelsScreen,
 	MonthlyAnalysisScreen,
 	OfferCodeScreen,
 	OfferDetailScreen,
@@ -55,6 +54,7 @@ import {
 } from "./src/screens";
 import type { TabKey } from "./src/components";
 import { LoadingOverlay, OnboardingProvider, Toast } from "./src/components";
+import type { PointsHistoryEntry } from "./src/screens/PointsHistoryScreen";
 import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
@@ -71,7 +71,7 @@ import {
 import { scanTicket } from "./src/services";
 import type { TicketResponse } from "./src/services";
 import { OFFERS } from "./src/data/offers";
-import { REWARDS } from "./src/data/rewards";
+import { REWARDS, POINTS_PER_REFERRAL } from "./src/data/rewards";
 import { colors } from "./src/theme/designSystem";
 
 type Screen =
@@ -108,7 +108,6 @@ type Screen =
 	| "confirmRedeem"
 	| "redeemSuccess"
 	| "pointsHistory"
-	| "loyaltyLevels"
 	| "personalData"
 	| "paymentMethods"
 	| "favoriteStores"
@@ -129,6 +128,7 @@ export default function App() {
 		lastName: string;
 		email: string;
 		phone: string;
+		referralCode: string;
 	} | null>(null);
 	const [compareProduct, setCompareProduct] = useState<string>(
 		"Aceite Natura girasol 1.5L",
@@ -143,6 +143,10 @@ export default function App() {
 	const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
 	const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
 	const [redeemCode, setRedeemCode] = useState<string>("DIA-X4K2-9WM7");
+	const [redeemRemaining, setRedeemRemaining] = useState<number>(0);
+	const [referralPoints, setReferralPoints] = useState<number>(0);
+	const [referralHistory, setReferralHistory] = useState<PointsHistoryEntry[]>([]);
+	const [offerCodes, setOfferCodes] = useState<Record<string, string>>({});
 
 	const [selectedPdf, setSelectedPdf] = useState<{
 		name: string;
@@ -268,10 +272,12 @@ export default function App() {
 	};
 	const activateOffer = (id: string) => {
 		setActivatedOfferIds((prev) => new Set(prev).add(id));
+		setOfferCodes((prev) => (prev[id] ? prev : { ...prev, [id]: generateCode() }));
 		setSelectedOfferId(id);
 		setScreen("offerCode");
 	};
 	const showOfferCode = (id: string) => {
+		setOfferCodes((prev) => (prev[id] ? prev : { ...prev, [id]: generateCode() }));
 		setSelectedOfferId(id);
 		setScreen("offerCode");
 	};
@@ -455,6 +461,24 @@ export default function App() {
 						onBack={() => setScreen("register1")}
 						onNext={(s) => {
 							setSession(s);
+							if (registerData.referralCode) {
+								setReferralPoints((prev) => prev + POINTS_PER_REFERRAL);
+								setReferralHistory((prev) => [
+									{
+										id: `referral-${Date.now()}`,
+										icon: "people-outline",
+										title: `Te registraste con un código de invitación`,
+										date: new Date().toLocaleDateString("es-AR", {
+											day: "numeric",
+											month: "short",
+											hour: "2-digit",
+											minute: "2-digit",
+										}),
+										pts: POINTS_PER_REFERRAL,
+									},
+									...prev,
+								]);
+							}
 							setScreen("accountCreated");
 						}}
 					/>
@@ -583,6 +607,8 @@ export default function App() {
 
 				{screen === "main" && session && tab === "points" && (
 					<PointsScreen
+						session={session}
+						pointsBalance={referralPoints}
 						activeTab={tab}
 						onSelectTab={handleSelectTab}
 						onScanPress={handleScanPress}
@@ -591,13 +617,13 @@ export default function App() {
 							setScreen("rewardDetail");
 						}}
 						onShowHistory={() => setScreen("pointsHistory")}
-						onShowLevels={() => setScreen("loyaltyLevels")}
 					/>
 				)}
 
 				{screen === "main" && session && tab === "profile" && (
 					<ProfileScreen
 						session={session}
+						referralPoints={referralPoints}
 						activeTab={tab}
 						onSelectTab={handleSelectTab}
 						onScanPress={handleScanPress}
@@ -674,7 +700,6 @@ export default function App() {
 					<ScanErrorScreen
 						errorMessage={ocrErrorMsg}
 						onRetry={handleOcrRetry}
-						onManualEntry={() => goMain("home")}
 						onSeeOffers={() => goMain("offers")}
 						onBack={() => goMain("home")}
 					/>
@@ -712,11 +737,7 @@ export default function App() {
 					<OfferDetailScreen
 						offer={findOffer(selectedOfferId)}
 						onBack={() => goMain("offers")}
-						onActivate={() => {
-							const id = selectedOfferId;
-							if (id) setActivatedOfferIds((prev) => new Set(prev).add(id));
-							setScreen("offerCode");
-						}}
+						onActivate={() => activateOffer(selectedOfferId)}
 						activeTab={tab}
 						onSelectTab={handleSelectTab}
 						onScanPress={handleScanPress}
@@ -729,6 +750,7 @@ export default function App() {
 							...findOffer(selectedOfferId),
 							expiresAt: findOffer(selectedOfferId).expiresAtLabel,
 						}}
+						code={offerCodes[selectedOfferId] ?? ""}
 						onBack={() => goMain("offers")}
 						activeTab={tab}
 						onSelectTab={handleSelectTab}
@@ -739,6 +761,7 @@ export default function App() {
 				{screen === "rewardDetail" && selectedRewardId && (
 					<RewardDetailScreen
 						reward={findReward(selectedRewardId)}
+						pointsBalance={referralPoints}
 						onBack={() => goMain("points")}
 						onRedeem={() => setScreen("confirmRedeem")}
 						activeTab={tab}
@@ -750,8 +773,28 @@ export default function App() {
 				{screen === "confirmRedeem" && selectedRewardId && (
 					<ConfirmRedeemScreen
 						reward={findReward(selectedRewardId)}
+						pointsBalance={referralPoints}
 						onCancel={() => setScreen("rewardDetail")}
 						onConfirm={() => {
+							const reward = findReward(selectedRewardId);
+							const remaining = referralPoints - reward.points;
+							setReferralPoints(remaining);
+							setReferralHistory((prev) => [
+								{
+									id: `redeem-${Date.now()}`,
+									icon: reward.icon,
+									title: `Canje: ${reward.title}`,
+									date: new Date().toLocaleDateString("es-AR", {
+										day: "numeric",
+										month: "short",
+										hour: "2-digit",
+										minute: "2-digit",
+									}),
+									pts: -reward.points,
+								},
+								...prev,
+							]);
+							setRedeemRemaining(remaining);
 							setRedeemCode(generateCode());
 							setScreen("redeemSuccess");
 						}}
@@ -762,6 +805,7 @@ export default function App() {
 					<RedeemSuccessScreen
 						reward={findReward(selectedRewardId)}
 						code={redeemCode}
+						remainingPoints={redeemRemaining}
 						onSeeMy={() => setScreen("pointsHistory")}
 						onKeepRedeeming={() => goMain("points")}
 						activeTab={tab}
@@ -772,15 +816,7 @@ export default function App() {
 
 				{screen === "pointsHistory" && (
 					<PointsHistoryScreen
-						onBack={() => goMain("points")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
-
-				{screen === "loyaltyLevels" && (
-					<LoyaltyLevelsScreen
+						entries={referralHistory}
 						onBack={() => goMain("points")}
 						activeTab={tab}
 						onSelectTab={handleSelectTab}

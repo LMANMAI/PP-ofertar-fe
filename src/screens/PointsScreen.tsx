@@ -1,7 +1,9 @@
+import { useState } from "react";
 import {
 	Image,
 	Pressable,
 	ScrollView,
+	Share,
 	StyleSheet,
 	Text,
 	View,
@@ -9,30 +11,55 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { BottomNav, type TabKey } from "../components";
 import { colors, typography } from "../theme/designSystem";
-import { REWARDS, SALDO_PUNTOS } from "../data/rewards";
+import { REWARDS, POINTS_PER_REFERRAL } from "../data/rewards";
+import type { Session } from "../auth/session";
+import { getReferralCode } from "../auth/session";
 
 type Props = {
+	session: Session;
+	pointsBalance: number;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
 	onSelectReward: (rewardId: string) => void;
 	onShowHistory: () => void;
-	onShowLevels: () => void;
 };
 
+const SORTED_REWARDS = [...REWARDS].sort((a, b) => a.points - b.points);
+
 export function PointsScreen({
+	session,
+	pointsBalance,
 	activeTab,
 	onSelectTab,
 	onScanPress,
 	onSelectReward,
 	onShowHistory,
-	onShowLevels,
 }: Props) {
 	const insets = useSafeAreaInsets();
-	const progressToOro = Math.min(100, Math.round((SALDO_PUNTOS / 3000) * 100));
-	const remainingToOro = 3000 - SALDO_PUNTOS;
+	const [copied, setCopied] = useState(false);
+	const referralCode = getReferralCode(session.user);
+
+	const nextReward = SORTED_REWARDS.find((r) => r.points > pointsBalance);
+	const progressToNext = nextReward
+		? Math.min(100, Math.round((pointsBalance / nextReward.points) * 100))
+		: 100;
+	const remainingToNext = nextReward ? nextReward.points - pointsBalance : 0;
+
+	const shareMessage = `Te invito a OfertAR, la app para ahorrar en el super. Registrate con mi código ${referralCode} y ganamos puntos los dos: https://ofertar.app/r/${referralCode}`;
+
+	const handleShare = () => {
+		Share.share({ message: shareMessage }).catch(() => {});
+	};
+
+	const handleCopy = async () => {
+		await Clipboard.setStringAsync(referralCode);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
 
 	return (
 		<View style={styles.safeArea}>
@@ -47,7 +74,12 @@ export function PointsScreen({
 					/>
 					<Text style={styles.headerTitle}>Mis puntos</Text>
 				</View>
-				<Pressable onPress={onShowHistory} hitSlop={8}>
+				<Pressable
+					onPress={onShowHistory}
+					hitSlop={8}
+					accessibilityRole="button"
+					accessibilityLabel="Ver historial de puntos"
+				>
 					<Ionicons name="time-outline" size={22} color={colors.buttonText} />
 				</Pressable>
 			</View>
@@ -57,63 +89,115 @@ export function PointsScreen({
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
 			>
-				<Pressable onPress={onShowLevels} style={styles.balanceCard}>
-					<Text style={styles.balanceLabel}>SALDO DISPONIBLE</Text>
+				<View style={styles.balanceCard}>
+					<Text style={styles.balanceLabel}>PUNTOS POR REFERIR</Text>
 					<Text style={styles.balanceValue}>
-						{SALDO_PUNTOS.toLocaleString("es-AR")} pts
+						{pointsBalance.toLocaleString("es-AR")} pts
 					</Text>
-					<View style={styles.levelChip}>
-						<Ionicons name="star" size={11} color={colors.navy} />
-						<Text style={styles.levelChipText}>Nivel Plata</Text>
-					</View>
-					<View style={styles.progressRow}>
-						<Text style={styles.progressLabel}>Progreso a Oro</Text>
-						<Text style={styles.progressValue}>
-							{remainingToOro.toLocaleString("es-AR")} pts
+					{nextReward ? (
+						<>
+							<View style={styles.progressRow}>
+								<Text style={styles.progressLabel}>
+									Próxima recompensa: {nextReward.title}
+								</Text>
+								<Text style={styles.progressValue}>
+									Faltan {remainingToNext} pts
+								</Text>
+							</View>
+							<View style={styles.progressTrack}>
+								<View style={[styles.progressFill, { width: `${progressToNext}%` }]} />
+							</View>
+						</>
+					) : (
+						<Text style={styles.progressLabel}>
+							Ya desbloqueaste todas las recompensas disponibles.
 						</Text>
-					</View>
-					<View style={styles.progressTrack}>
-						<View style={[styles.progressFill, { width: `${progressToOro}%` }]} />
-					</View>
-					<View style={styles.tapHint}>
-						<Text style={styles.tapHintText}>Ver niveles</Text>
-						<Ionicons name="chevron-forward" size={12} color={colors.cyan} />
-					</View>
-				</Pressable>
+					)}
+				</View>
 
-				<View style={styles.quickActions}>
-					<Pressable style={styles.quickItem} onPress={onShowHistory}>
-						<Ionicons name="time-outline" size={20} color={colors.navy} />
-						<Text style={styles.quickText}>Historial</Text>
+				<View style={styles.referralCard}>
+					<View style={styles.referralHeader}>
+						<Ionicons name="people" size={20} color={colors.cyan} />
+						<Text style={styles.referralTitle}>Referí y ganá</Text>
+					</View>
+					<Text style={styles.referralBody}>
+						Vos y tu amigo ganan {POINTS_PER_REFERRAL} puntos cada uno cuando se
+						registra con tu código.
+					</Text>
+					<Pressable
+						style={styles.codeBox}
+						onPress={handleCopy}
+						accessibilityRole="button"
+						accessibilityLabel="Copiar código de referido"
+					>
+						<Text style={styles.codeText}>{referralCode}</Text>
+						<Ionicons
+							name={copied ? "checkmark" : "copy-outline"}
+							size={16}
+							color={copied ? colors.success : colors.navy}
+						/>
 					</Pressable>
-					<Pressable style={styles.quickItem} onPress={onShowLevels}>
-						<Ionicons name="trophy-outline" size={20} color={colors.navy} />
-						<Text style={styles.quickText}>Niveles</Text>
+					<Pressable
+						style={styles.shareButton}
+						onPress={handleShare}
+						accessibilityRole="button"
+						accessibilityLabel="Compartir código de referido"
+					>
+						<Ionicons name="share-social-outline" size={16} color={colors.buttonText} />
+						<Text style={styles.shareButtonText}>Compartir código</Text>
 					</Pressable>
 				</View>
+
+				<Pressable style={styles.quickItem} onPress={onShowHistory}>
+					<Ionicons name="time-outline" size={20} color={colors.navy} />
+					<Text style={styles.quickText}>Ver historial de puntos</Text>
+					<Ionicons name="chevron-forward" size={16} color={colors.subtleText} />
+				</Pressable>
 
 				<Text style={styles.sectionTitle}>CANJEÁ TUS PUNTOS</Text>
 
 				<View style={styles.rewardsGrid}>
-					{REWARDS.map((r) => (
-						<Pressable
-							key={r.id}
-							style={styles.rewardCard}
-							onPress={() => onSelectReward(r.id)}
-						>
-							<Ionicons name={r.icon} size={24} color={colors.navy} />
-							<Text style={styles.rewardTitle}>{r.title}</Text>
-							<Text style={styles.rewardBrand}>{r.brand}</Text>
-							<View style={styles.rewardFooter}>
-								<View style={styles.rewardPointsBadge}>
-									<Text style={styles.rewardPointsText}>
-										{r.points.toLocaleString("es-AR")} pts
-									</Text>
+					{SORTED_REWARDS.map((r) => {
+						const locked = pointsBalance < r.points;
+						return (
+							<Pressable
+								key={r.id}
+								style={[styles.rewardCard, locked && styles.rewardCardLocked]}
+								onPress={() => onSelectReward(r.id)}
+							>
+								<Ionicons
+									name={locked ? "lock-closed-outline" : r.icon}
+									size={24}
+									color={locked ? colors.subtleText : colors.navy}
+								/>
+								<Text style={[styles.rewardTitle, locked && { color: colors.mutedText2 }]}>
+									{r.title}
+								</Text>
+								<View style={styles.rewardFooter}>
+									<View
+										style={[
+											styles.rewardPointsBadge,
+											locked && styles.rewardPointsBadgeLocked,
+										]}
+									>
+										<Text
+											style={[
+												styles.rewardPointsText,
+												locked && { color: colors.mutedText2 },
+											]}
+										>
+											{r.points.toLocaleString("es-AR")} pts
+										</Text>
+									</View>
+									<Ionicons
+										name="arrow-forward"
+										size={14}
+										color={locked ? colors.subtleText : colors.navy}
+									/>
 								</View>
-								<Ionicons name="arrow-forward" size={14} color={colors.navy} />
-							</View>
-						</Pressable>
-					))}
+							</Pressable>
+						);
+					})}
 				</View>
 			</ScrollView>
 
@@ -163,24 +247,51 @@ const styles = StyleSheet.create({
 	},
 	balanceLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	balanceValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 28, lineHeight: 34 },
-	levelChip: { alignSelf: "flex-start", backgroundColor: colors.cyan, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, flexDirection: "row", alignItems: "center", gap: 4 },
-	levelChipText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 11, letterSpacing: 0.3 },
-	progressRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-	progressLabel: { color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 12 },
+	progressRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, gap: 8 },
+	progressLabel: { flex: 1, color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 12 },
 	progressValue: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 12 },
-	progressTrack: { height: 6, backgroundColor: "#142954", borderRadius: 3, overflow: "hidden" },
+	progressTrack: { height: 6, backgroundColor: "#142954", borderRadius: 3, overflow: "hidden", marginTop: 6 },
 	progressFill: { height: 6, backgroundColor: colors.cyan, borderRadius: 3 },
-	tapHint: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 4 },
-	tapHintText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 11 },
-	quickActions: { flexDirection: "row", gap: 10 },
-	quickItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: colors.card, borderRadius: 12, paddingVertical: 14, borderWidth: 1, borderColor: colors.divider },
-	quickText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
+	referralCard: {
+		backgroundColor: colors.card,
+		borderRadius: 16,
+		padding: 18,
+		gap: 10,
+		borderWidth: 1,
+		borderColor: colors.divider,
+	},
+	referralHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+	referralTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 16 },
+	referralBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19 },
+	codeBox: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		backgroundColor: colors.softNavy,
+		borderRadius: 10,
+		paddingVertical: 12,
+	},
+	codeText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15, letterSpacing: 0.5 },
+	shareButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		backgroundColor: colors.navy,
+		borderRadius: 10,
+		height: 46,
+	},
+	shareButtonText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
+	quickItem: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.card, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.divider },
+	quickText: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
 	sectionTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 4 },
 	rewardsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-	rewardCard: { flexBasis: "47.5%", flexGrow: 1, backgroundColor: "#E8F6FC", borderRadius: 16, padding: 14, gap: 5, minHeight: 117 },
+	rewardCard: { flexBasis: "47.5%", flexGrow: 1, backgroundColor: "#E8F6FC", borderRadius: 16, padding: 14, gap: 5, minHeight: 110 },
+	rewardCardLocked: { backgroundColor: colors.softWarm },
 	rewardTitle: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13, marginTop: 2 },
-	rewardBrand: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11 },
 	rewardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: "auto", paddingTop: 6 },
 	rewardPointsBadge: { backgroundColor: colors.navy, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4 },
+	rewardPointsBadgeLocked: { backgroundColor: colors.divider },
 	rewardPointsText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 11, letterSpacing: 0.3 },
 });

@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, typography } from "../theme/designSystem";
 
 type Props = {
-	onNext: (data: { firstName: string; lastName: string; email: string; phone: string }) => void;
+	onNext: (data: { firstName: string; lastName: string; email: string; phone: string; referralCode: string }) => void;
 	onBack: () => void;
 	onGoToLogin?: () => void;
 };
@@ -30,6 +30,7 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 	const [lastName, setLastName] = useState("");
 	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
+	const [referralCode, setReferralCode] = useState("");
 	const [accepted, setAccepted] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +48,13 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 			setError("Aceptá los Términos y condiciones para continuar");
 			return;
 		}
-		onNext({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), phone: phone.trim() });
+		onNext({
+			firstName: firstName.trim(),
+			lastName: lastName.trim(),
+			email: email.trim(),
+			phone: phone.trim(),
+			referralCode: referralCode.trim(),
+		});
 	};
 
 	if (!fontsLoaded) return null;
@@ -64,7 +71,7 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 						</Pressable>
 						<Text style={styles.headerTitle}>Registrarse</Text>
 					</View>
-					<Text style={styles.stepLabel}>Paso 1 de 3</Text>
+					<Text style={styles.stepLabel}>Paso 1 de 2</Text>
 				</View>
 			</View>
 			<View style={styles.progressWrap}>
@@ -105,6 +112,13 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 						value={phone}
 						onChangeText={setPhone}
 						keyboardType="phone-pad"
+					/>
+					<InputField
+						label="Código de invitación (opcional)"
+						value={referralCode}
+						onChangeText={(t) => setReferralCode(t.toUpperCase())}
+						autoCapitalize="characters"
+						leftIcon="people-outline"
 					/>
 				</View>
 
@@ -153,7 +167,7 @@ const styles = StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	progressWrap: { backgroundColor: colors.navy },
 	progressTrack: { height: 6, backgroundColor: colors.softCyan, width: "100%" },
-	progressFill: { height: 6, backgroundColor: colors.cyan, width: "33%" },
+	progressFill: { height: 6, backgroundColor: colors.cyan, width: "50%" },
 	header: {
 		paddingHorizontal: 12,
 		paddingTop: 12,

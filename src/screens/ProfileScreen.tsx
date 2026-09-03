@@ -22,6 +22,7 @@ type IonName = ComponentProps<typeof Ionicons>["name"];
 
 type Props = {
 	session: Session;
+	referralPoints: number;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
@@ -46,7 +47,7 @@ type LinkItem = {
 
 const ACCOUNT_ITEMS: LinkItem[] = [
 	{ id: "personal", icon: "person-outline", label: "Datos personales", action: "onOpenPersonalData" },
-	{ id: "payment", icon: "card-outline", label: "Métodos de pago", hint: "2 tarjetas guardadas", action: "onOpenPayment" },
+	{ id: "payment", icon: "card-outline", label: "Métodos de pago", action: "onOpenPayment" },
 	{ id: "stores", icon: "location-outline", label: "Mis tiendas favoritas", action: "onOpenStores" },
 	{ id: "savings", icon: "wallet-outline", label: "Mis últimos ahorros", action: "onOpenSavings" },
 	{ id: "password", icon: "lock-closed-outline", label: "Cambiar contraseña", action: "onChangePassword" },
@@ -54,6 +55,7 @@ const ACCOUNT_ITEMS: LinkItem[] = [
 
 export function ProfileScreen({
 	session,
+	referralPoints,
 	activeTab,
 	onSelectTab,
 	onScanPress,
@@ -116,8 +118,10 @@ export function ProfileScreen({
 						</Text>
 						<Text style={styles.profileEmail}>{session.user.email}</Text>
 						<View style={styles.levelBadge}>
-							<Ionicons name="star" size={10} color={colors.navy} />
-							<Text style={styles.levelBadgeText}>Nivel Plata · 2.430 pts</Text>
+							<Ionicons name="people" size={10} color={colors.navy} />
+							<Text style={styles.levelBadgeText}>
+								{referralPoints.toLocaleString("es-AR")} pts por referidos
+							</Text>
 						</View>
 					</View>
 					<Ionicons name="chevron-forward" size={18} color={colors.subtleText} />

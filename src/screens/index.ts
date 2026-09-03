@@ -25,7 +25,6 @@ export { RewardDetailScreen } from "./RewardDetailScreen";
 export { ConfirmRedeemScreen } from "./ConfirmRedeemScreen";
 export { RedeemSuccessScreen } from "./RedeemSuccessScreen";
 export { PointsHistoryScreen } from "./PointsHistoryScreen";
-export { LoyaltyLevelsScreen } from "./LoyaltyLevelsScreen";
 export { ProfileScreen } from "./ProfileScreen";
 export { PersonalDataScreen } from "./PersonalDataScreen";
 export { PaymentMethodsScreen } from "./PaymentMethodsScreen";

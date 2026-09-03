@@ -1,15 +1,17 @@
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { colors, typography } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
-import { SALDO_PUNTOS } from "../data/rewards";
 import { BottomNav, type TabKey } from "../components";
 
 type Props = {
 	reward: Reward;
 	code: string;
+	remainingPoints: number;
 	onSeeMy: () => void;
 	onKeepRedeeming: () => void;
 	activeTab: TabKey;
@@ -17,9 +19,16 @@ type Props = {
 	onScanPress: () => void;
 };
 
-export function RedeemSuccessScreen({ reward, code, onSeeMy, onKeepRedeeming, activeTab, onSelectTab, onScanPress }: Props) {
+export function RedeemSuccessScreen({ reward, code, remainingPoints, onSeeMy, onKeepRedeeming, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
-	const remaining = SALDO_PUNTOS - reward.points;
+	const [copied, setCopied] = useState(false);
+	const remaining = remainingPoints;
+
+	const handleCopy = async () => {
+		await Clipboard.setStringAsync(code);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
 
 	return (
 		<View style={styles.safeArea}>
@@ -46,22 +55,34 @@ export function RedeemSuccessScreen({ reward, code, onSeeMy, onKeepRedeeming, ac
 						</View>
 						<View style={{ flex: 1 }}>
 							<Text style={styles.rewardTitle}>{reward.title}</Text>
-							<Text style={styles.rewardBrand}>{reward.brand}</Text>
+							<Text style={styles.rewardBrand}>{reward.points} pts canjeados</Text>
 						</View>
 					</View>
 					<View style={styles.divider} />
 					<Text style={styles.codeLabel}>TU CÓDIGO</Text>
-					<View style={styles.codeBox}>
+					<Pressable
+						style={styles.codeBox}
+						onPress={handleCopy}
+						accessibilityRole="button"
+						accessibilityLabel="Copiar código"
+					>
 						<Text style={styles.codeText}>{code}</Text>
-						<Ionicons name="copy-outline" size={18} color={colors.cyan} />
+						<Ionicons
+							name={copied ? "checkmark" : "copy-outline"}
+							size={18}
+							color={copied ? colors.success : colors.cyan}
+						/>
+					</Pressable>
+					<View style={styles.validityRow}>
+						<Ionicons name="time-outline" size={12} color={colors.subtleText} />
+						<Text style={styles.validity}>{reward.validity}</Text>
 					</View>
-					<Text style={styles.validity}>⏱ Válido hasta el 9 de junio de 2026</Text>
 				</View>
 
 				<View style={styles.tip}>
-					<Ionicons name="phone-portrait-outline" size={16} color="#15803D" />
+					<Ionicons name="card-outline" size={16} color="#15803D" />
 					<Text style={styles.tipText}>
-						Mostrá este código en caja antes de pagar para aplicar el descuento.
+						El descuento se aplica solo en tu próxima suscripción. Guardá el código por si necesitás soporte.
 					</Text>
 				</View>
 
@@ -99,6 +120,7 @@ const styles = StyleSheet.create({
 	codeLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	codeBox: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#F8F9FB", borderWidth: 1, borderColor: colors.divider, borderRadius: 8, paddingVertical: 12 },
 	codeText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18, letterSpacing: 1 },
+	validityRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 },
 	validity: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 12 },
 	tip: { width: "100%", flexDirection: "row", gap: 8, alignItems: "center", backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: colors.success, borderRadius: 10, padding: 12 },
 	tipText: { flex: 1, color: "#15803D", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },

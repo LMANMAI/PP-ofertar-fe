@@ -8,29 +8,27 @@ import { BottomNav, type TabKey } from "../components";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
 
-type Entry = {
+export type PointsHistoryEntry = {
 	id: string;
 	icon: IonName;
-	iconColor: string;
-	bg: string;
 	title: string;
 	date: string;
-	pts: string;
-	tone: "green" | "red";
+	pts: number;
 };
 
-const ENTRIES: Entry[] = [
-	{ id: "1", icon: "receipt-outline", iconColor: colors.success, bg: "#E0F5EF", title: "Ticket Coto · Av. Cabildo", date: "12 may · 18:42", pts: "+85", tone: "green" },
-	{ id: "2", icon: "gift-outline", iconColor: colors.danger, bg: "#FEE2E2", title: "Canje: $500 en compras Día", date: "8 may · 14:15", pts: "-1.000", tone: "red" },
-	{ id: "3", icon: "receipt-outline", iconColor: colors.success, bg: "#E0F5EF", title: "Ticket Carrefour · Maipú", date: "6 may · 11:08", pts: "+120", tone: "green" },
-	{ id: "4", icon: "trophy-outline", iconColor: colors.success, bg: "#E0F5EF", title: "Bonus subir a Nivel Plata", date: "1 may · 09:00", pts: "+500", tone: "green" },
-	{ id: "5", icon: "receipt-outline", iconColor: colors.success, bg: "#E0F5EF", title: "Ticket Día · Av. Corrientes", date: "29 abr · 19:24", pts: "+72", tone: "green" },
-];
+type Props = {
+	entries: PointsHistoryEntry[];
+	onBack: () => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
+};
 
-type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
-
-export function PointsHistoryScreen({ onBack, activeTab, onSelectTab, onScanPress }: Props) {
+export function PointsHistoryScreen({ entries, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const earned = entries.filter((e) => e.pts > 0).reduce((sum, e) => sum + e.pts, 0);
+	const spent = entries.filter((e) => e.pts < 0).reduce((sum, e) => sum + e.pts, 0);
+
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
@@ -45,34 +43,66 @@ export function PointsHistoryScreen({ onBack, activeTab, onSelectTab, onScanPres
 				<View style={styles.summary}>
 					<View style={styles.summaryItem}>
 						<Text style={styles.summaryLabel}>SUMADOS</Text>
-						<Text style={[styles.summaryValue, { color: colors.success }]}>+777 pts</Text>
+						<Text style={[styles.summaryValue, { color: colors.success }]}>
+							+{earned.toLocaleString("es-AR")} pts
+						</Text>
 					</View>
 					<View style={styles.summaryDivider} />
 					<View style={styles.summaryItem}>
 						<Text style={styles.summaryLabel}>USADOS</Text>
-						<Text style={[styles.summaryValue, { color: colors.danger }]}>-1.000 pts</Text>
+						<Text style={[styles.summaryValue, { color: colors.danger }]}>
+							{spent.toLocaleString("es-AR")} pts
+						</Text>
 					</View>
 				</View>
 
-				<View style={styles.list}>
-					{ENTRIES.map((e, idx) => (
-						<View key={e.id}>
-							<View style={styles.row}>
-								<View style={[styles.iconWrap, { backgroundColor: e.bg }]}>
-									<Ionicons name={e.icon} size={18} color={e.iconColor} />
+				{entries.length === 0 ? (
+					<View style={styles.emptyWrap}>
+						<Ionicons name="people-outline" size={48} color={colors.divider} />
+						<Text style={styles.emptyTitle}>Todavía no ganaste puntos</Text>
+						<Text style={styles.emptyHint}>
+							Compartí tu código de referido para empezar a sumar.
+						</Text>
+					</View>
+				) : (
+					<View style={styles.list}>
+						{entries.map((e, idx) => {
+							const positive = e.pts > 0;
+							return (
+								<View key={e.id}>
+									<View style={styles.row}>
+										<View
+											style={[
+												styles.iconWrap,
+												{ backgroundColor: positive ? "#E0F5EF" : "#FEE2E2" },
+											]}
+										>
+											<Ionicons
+												name={e.icon}
+												size={18}
+												color={positive ? colors.success : colors.danger}
+											/>
+										</View>
+										<View style={{ flex: 1 }}>
+											<Text style={styles.rowTitle}>{e.title}</Text>
+											<Text style={styles.rowDate}>{e.date}</Text>
+										</View>
+										<Text
+											style={[
+												styles.pts,
+												positive ? styles.ptsGreen : styles.ptsRed,
+											]}
+										>
+											{positive ? "+" : ""}
+											{e.pts.toLocaleString("es-AR")}
+										</Text>
+									</View>
+									{idx < entries.length - 1 && <View style={styles.divider} />}
 								</View>
-								<View style={{ flex: 1 }}>
-									<Text style={styles.rowTitle}>{e.title}</Text>
-									<Text style={styles.rowDate}>{e.date}</Text>
-								</View>
-								<Text style={[styles.pts, e.tone === "green" ? styles.ptsGreen : styles.ptsRed]}>
-									{e.pts}
-								</Text>
-							</View>
-							{idx < ENTRIES.length - 1 && <View style={styles.divider} />}
-						</View>
-					))}
-				</View>
+							);
+						})}
+					</View>
+				)}
 			</ScrollView>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
@@ -93,6 +123,9 @@ const styles = StyleSheet.create({
 	summaryDivider: { width: 1, height: 32, backgroundColor: colors.divider },
 	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	summaryValue: { fontFamily: typography.family.bold, fontSize: 16 },
+	emptyWrap: { alignItems: "center", gap: 8, paddingVertical: 40 },
+	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
+	emptyHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, textAlign: "center" },
 	list: { backgroundColor: colors.card, borderRadius: 14, overflow: "hidden" },
 	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
 	iconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },

@@ -66,7 +66,7 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 						</Pressable>
 						<Text style={styles.headerTitle}>Registrarse</Text>
 					</View>
-					<Text style={styles.stepLabel}>Paso 2 de 3</Text>
+					<Text style={styles.stepLabel}>Paso 2 de 2</Text>
 				</View>
 			</View>
 			<View style={styles.progressWrap}>
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
 	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: 4 },
 	progressWrap: { backgroundColor: colors.navy },
 	progressTrack: { height: 6, backgroundColor: colors.softCyan, width: "100%" },
-	progressFill: { height: 6, backgroundColor: colors.cyan, width: "66%" },
+	progressFill: { height: 6, backgroundColor: colors.cyan, width: "100%" },
 	container: {
 		paddingHorizontal: 20,
 		paddingTop: 24,

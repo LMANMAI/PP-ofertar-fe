@@ -4,11 +4,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
-import { SALDO_PUNTOS } from "../data/rewards";
 import { BottomNav, type TabKey } from "../components";
 
 type Props = {
 	reward: Reward;
+	pointsBalance: number;
 	onBack: () => void;
 	onRedeem: () => void;
 	activeTab: TabKey;
@@ -16,9 +16,9 @@ type Props = {
 	onScanPress: () => void;
 };
 
-export function RewardDetailScreen({ reward, onBack, onRedeem, activeTab, onSelectTab, onScanPress }: Props) {
+export function RewardDetailScreen({ reward, pointsBalance, onBack, onRedeem, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
-	const remaining = SALDO_PUNTOS - reward.points;
+	const remaining = pointsBalance - reward.points;
 	const canRedeem = remaining >= 0;
 
 	return (
@@ -36,7 +36,7 @@ export function RewardDetailScreen({ reward, onBack, onRedeem, activeTab, onSele
 					<View style={styles.hero}>
 						<Ionicons name={reward.icon} size={28} color={colors.cyan} />
 						<Text style={styles.heroTitle}>{reward.title}</Text>
-						<Text style={styles.heroSub}>Disponible en {reward.brand}</Text>
+						<Text style={styles.heroSub}>Beneficio de tu suscripción</Text>
 						<View style={styles.heroBadge}>
 							<Text style={styles.heroBadgeText}>{reward.points} pts</Text>
 						</View>
@@ -46,7 +46,7 @@ export function RewardDetailScreen({ reward, onBack, onRedeem, activeTab, onSele
 				<View style={styles.infoCard}>
 					<InfoRow icon="cash-outline" label="Costo" value={`${reward.points} puntos`} />
 					<InfoRow icon="calendar-outline" label="Validez" value={reward.validity} />
-					<InfoRow icon="location-outline" label="Dónde" value={reward.where} last />
+					<InfoRow icon="checkmark-done-outline" label="Cómo se aplica" value={reward.where} last />
 				</View>
 
 				<Text style={styles.sectionLabel}>CONDICIONES</Text>
@@ -59,7 +59,7 @@ export function RewardDetailScreen({ reward, onBack, onRedeem, activeTab, onSele
 
 			<View style={styles.footer}>
 				<View style={{ flex: 1 }}>
-					<Text style={styles.balText}>Tu saldo: {SALDO_PUNTOS.toLocaleString("es-AR")} pts</Text>
+					<Text style={styles.balText}>Tu saldo: {pointsBalance.toLocaleString("es-AR")} pts</Text>
 					<Text style={[styles.balRemaining, !canRedeem && { color: colors.danger }]}>
 						{canRedeem ? `Quedará: ${remaining.toLocaleString("es-AR")} pts` : "Saldo insuficiente"}
 					</Text>

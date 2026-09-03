@@ -4,13 +4,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
-import { SALDO_PUNTOS } from "../data/rewards";
 
-type Props = { reward: Reward; onCancel: () => void; onConfirm: () => void };
+type Props = {
+	reward: Reward;
+	pointsBalance: number;
+	onCancel: () => void;
+	onConfirm: () => void;
+};
 
-export function ConfirmRedeemScreen({ reward, onCancel, onConfirm }: Props) {
+export function ConfirmRedeemScreen({ reward, pointsBalance, onCancel, onConfirm }: Props) {
 	const insets = useSafeAreaInsets();
-	const remaining = SALDO_PUNTOS - reward.points;
+	const remaining = pointsBalance - reward.points;
+	const canConfirm = remaining >= 0;
 
 	return (
 		<View style={[styles.backdrop, { paddingTop: insets.top }]}>
@@ -21,23 +26,36 @@ export function ConfirmRedeemScreen({ reward, onCancel, onConfirm }: Props) {
 				</View>
 				<Text style={styles.title}>Confirmar canje</Text>
 				<Text style={styles.subtitle}>
-					Vas a canjear <Text style={styles.bold}>{reward.title}</Text> en{" "}
-					<Text style={styles.bold}>{reward.brand}</Text>.
+					Vas a canjear <Text style={styles.bold}>{reward.title}</Text>.
 				</Text>
 
 				<View style={styles.statsRow}>
-					<Stat label="USAS" value={`${reward.points} pts`} tone="navy" />
+					<Stat label="USAS" value={`${reward.points.toLocaleString("es-AR")} pts`} tone="navy" />
 					<Stat label="QUEDA" value={`${remaining.toLocaleString("es-AR")} pts`} tone="cyan" />
 				</View>
 
-				<View style={styles.warningBox}>
-					<Ionicons name="information-circle-outline" size={16} color="#B45A14" />
-					<Text style={styles.warningText}>
-						Una vez canjeado, los puntos no se pueden devolver.
-					</Text>
-				</View>
+				{canConfirm ? (
+					<View style={styles.warningBox}>
+						<Ionicons name="information-circle-outline" size={16} color="#B45A14" />
+						<Text style={styles.warningText}>
+							Una vez canjeado, los puntos no se pueden devolver.
+						</Text>
+					</View>
+				) : (
+					<View style={[styles.warningBox, styles.warningBoxDanger]}>
+						<Ionicons name="alert-circle-outline" size={16} color={colors.danger} />
+						<Text style={[styles.warningText, { color: colors.danger }]}>
+							No te alcanzan los puntos para este canje.
+						</Text>
+					</View>
+				)}
 
-				<Pressable style={styles.confirmBtn} onPress={onConfirm}>
+				<Pressable
+					style={[styles.confirmBtn, !canConfirm && { opacity: 0.5 }]}
+					onPress={canConfirm ? onConfirm : undefined}
+					accessibilityRole="button"
+					accessibilityState={{ disabled: !canConfirm }}
+				>
 					<Text style={styles.confirmText}>Confirmar canje</Text>
 				</Pressable>
 				<Pressable style={styles.cancelBtn} onPress={onCancel}>
@@ -69,6 +87,7 @@ const styles = StyleSheet.create({
 	statLabel: { color: "#99B2CC", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	statValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 18, marginTop: 4 },
 	warningBox: { flexDirection: "row", gap: 8, alignItems: "center", backgroundColor: "#FFF7ED", padding: 10, borderRadius: 10 },
+	warningBoxDanger: { backgroundColor: "#FDECEA" },
 	warningText: { flex: 1, color: "#B45A14", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
 	confirmBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: 8 },
 	confirmText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },

@@ -56,20 +56,31 @@ export function HomeScreen({
 	const [savings, setSavings] = useState<
 		SavingsReportResponse["summary"] | null
 	>(null);
+	const [savingsError, setSavingsError] = useState(false);
+	const [loadingSavings, setLoadingSavings] = useState(true);
 
 	function formatCurrencyS(value: number | null | undefined): string {
 		if (value == null) return "$0";
 		return `$${Math.round(value).toLocaleString("es-AR")}`;
 	}
 
-	useEffect(() => {
+	const loadSavings = () => {
+		setLoadingSavings(true);
+		setSavingsError(false);
 		getSavingsReport(session.token)
 			.then((r) => setSavings(r.summary))
-			.catch(() => {});
+			.catch(() => setSavingsError(true))
+			.finally(() => setLoadingSavings(false));
+	};
+
+	useEffect(() => {
+		loadSavings();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session.token]);
 
 	const savingsTickets = savings?.ticketCount ?? 0;
 	const savingsAvg = savings ? formatCurrencyS(savings.averageSavings) : "$0";
+	const isNewUser = savings != null && savingsTickets === 0;
 
 	return (
 		<View style={styles.safeArea}>
@@ -121,14 +132,29 @@ export function HomeScreen({
 				{/* Savings card */}
 				<View style={styles.savingsCard}>
 					<Text style={styles.savingsOverline}>AHORRO DEL MES</Text>
-					{savings ? (
-						<Text style={styles.savingsAmount}>
-							{formatCurrencyS(savings.totalSavings)}
-						</Text>
-					) : (
+					{savingsError ? (
+						<View style={styles.savingsErrorRow}>
+							<Text style={styles.savingsErrorText}>
+								No pudimos cargar tu ahorro
+							</Text>
+							<Pressable
+								onPress={loadSavings}
+								style={styles.savingsRetryBtn}
+								accessibilityRole="button"
+								accessibilityLabel="Reintentar cargar ahorro"
+							>
+								<Ionicons name="refresh" size={14} color={colors.navy} />
+								<Text style={styles.savingsRetryText}>Reintentar</Text>
+							</Pressable>
+						</View>
+					) : loadingSavings ? (
 						<View style={{ paddingVertical: 8 }}>
 							<ActivityIndicator size="small" color={colors.cyan} />
 						</View>
+					) : (
+						<Text style={styles.savingsAmount}>
+							{formatCurrencyS(savings?.totalSavings)}
+						</Text>
 					)}
 					<View style={styles.savingsBottomRow}>
 						<View style={styles.metricsRow}>
@@ -138,7 +164,7 @@ export function HomeScreen({
 							</View>
 							<View style={styles.metricDivider} />
 							<View>
-								<Text style={styles.metricLabel}>PROMEDIO</Text>
+								<Text style={styles.metricLabel}>PROM. POR TICKET</Text>
 								<Text style={[styles.metricValue, { color: colors.cyan }]}>
 									{savingsAvg}
 								</Text>
@@ -257,33 +283,55 @@ export function HomeScreen({
 					</ScrollView>
 				</View>
 
-				{/* Productos seguidos — full width grid */}
-				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>PRODUCTOS QUE COMPRÁS SEGUIDO</Text>
-					<Pressable onPress={onOpenRecurring}>
-						<Text style={styles.sectionLink}>Ver todos</Text>
-					</Pressable>
-				</View>
-				<View style={styles.productsGrid}>
-					{TRACKED_PRODUCTS.map((p) => (
+				{isNewUser ? (
+					<View style={styles.firstRunCard}>
+						<Ionicons name="receipt-outline" size={32} color={colors.cyan} />
+						<Text style={styles.firstRunTitle}>Todavía no escaneaste ningún ticket</Text>
+						<Text style={styles.firstRunBody}>
+							Escaneá tu primer ticket y vamos a mostrarte acá los productos que
+							comprás seguido y cuánto podés ahorrar.
+						</Text>
 						<Pressable
-							key={p.id}
-							style={styles.productCard}
-							onPress={onOpenRecurring}
+							style={styles.firstRunCta}
+							onPress={onScanPress}
+							accessibilityRole="button"
+							accessibilityLabel="Escanear mi primer ticket"
 						>
-							<View style={styles.productIconWrap}>
-								<Ionicons name={p.icon} size={28} color={colors.subtleText} />
-							</View>
-							<Text style={styles.productName}>{p.name}</Text>
-							<View style={styles.productFooter}>
-								<Text style={styles.productPrice}>{p.price}</Text>
-								<View style={styles.productDeltaBadge}>
-									<Text style={styles.productDeltaText}>{p.delta}</Text>
-								</View>
-							</View>
+							<Ionicons name="camera-outline" size={16} color={colors.buttonText} />
+							<Text style={styles.firstRunCtaText}>Escanear mi primer ticket</Text>
 						</Pressable>
-					))}
-				</View>
+					</View>
+				) : savings && savingsTickets > 0 ? (
+					<>
+						{/* Productos seguidos — full width grid */}
+						<View style={styles.sectionHeader}>
+							<Text style={styles.sectionTitle}>PRODUCTOS QUE COMPRÁS SEGUIDO</Text>
+							<Pressable onPress={onOpenRecurring}>
+								<Text style={styles.sectionLink}>Ver todos</Text>
+							</Pressable>
+						</View>
+						<View style={styles.productsGrid}>
+							{TRACKED_PRODUCTS.map((p) => (
+								<Pressable
+									key={p.id}
+									style={styles.productCard}
+									onPress={onOpenRecurring}
+								>
+									<View style={styles.productIconWrap}>
+										<Ionicons name={p.icon} size={28} color={colors.subtleText} />
+									</View>
+									<Text style={styles.productName}>{p.name}</Text>
+									<View style={styles.productFooter}>
+										<Text style={styles.productPrice}>{p.price}</Text>
+										<View style={styles.productDeltaBadge}>
+											<Text style={styles.productDeltaText}>{p.delta}</Text>
+										</View>
+									</View>
+								</Pressable>
+							))}
+						</View>
+					</>
+				) : null}
 
 				{/* Quick actions */}
 				<View style={styles.quickRow}>
@@ -387,6 +435,15 @@ const styles = StyleSheet.create({
 		lineHeight: 42,
 		marginTop: 4,
 	},
+	savingsErrorRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
+	savingsErrorText: { color: "rgba(255,255,255,0.75)", fontFamily: typography.family.regular, fontSize: 13 },
+	savingsRetryBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.cyan, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+	savingsRetryText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
+	firstRunCard: { backgroundColor: colors.card, borderRadius: 16, padding: 20, alignItems: "center", gap: 8, borderWidth: 1, borderColor: colors.divider },
+	firstRunTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15, textAlign: "center", marginTop: 4 },
+	firstRunBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },
+	firstRunCta: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10, marginTop: 6 },
+	firstRunCtaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
 	savingsDeltaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
 	savingsDeltaText: {
 		color: colors.cyan,

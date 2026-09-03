@@ -55,10 +55,6 @@ export function OffersScreen({
 					/>
 					<Text style={styles.headerTitle}>Ofertas para vos</Text>
 				</View>
-				<View style={styles.bellWrap}>
-					<Ionicons name="notifications-outline" size={22} color={colors.buttonText} />
-					<View style={styles.bellDot} />
-				</View>
 			</View>
 
 			<FlatList
@@ -93,6 +89,15 @@ export function OffersScreen({
 					</ScrollView>
 				}
 				ListHeaderComponentStyle={{ marginBottom: 16 }}
+				ListEmptyComponent={
+					<View style={styles.emptyWrap}>
+						<Ionicons name="pricetags-outline" size={40} color={colors.divider} />
+						<Text style={styles.emptyTitle}>
+							Sin ofertas de {category === "Todas" ? "esta categoría" : category} por ahora
+						</Text>
+						<Text style={styles.emptyHint}>Probá con otra categoría o volvé más tarde.</Text>
+					</View>
+				}
 				renderItem={({ item: o }) => {
 					const isExpired = EXPIRED_IDS.has(o.id);
 					const isActivated = activatedIds.has(o.id);
@@ -267,18 +272,11 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 17,
 	},
-	bellWrap: { position: "relative" },
-	bellDot: {
-		position: "absolute",
-		top: -2,
-		right: -2,
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: colors.danger,
-	},
 	scroll: { flex: 1 },
-	scrollContent: { padding: 16, gap: 16 },
+	scrollContent: { padding: 16, gap: 16, flexGrow: 1 },
+	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 60 },
+	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15, textAlign: "center" },
+	emptyHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, textAlign: "center" },
 	chipsRow: { gap: 8, paddingRight: 16 },
 	chip: {
 		paddingHorizontal: 12,

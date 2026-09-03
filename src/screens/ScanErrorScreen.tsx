@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +7,6 @@ import { colors, typography } from "../theme/designSystem";
 type Props = {
 	errorMessage?: string;
 	onRetry: () => void;
-	onManualEntry: () => void;
 	onSeeOffers: () => void;
 	onBack: () => void;
 };
@@ -15,7 +14,6 @@ type Props = {
 export function ScanErrorScreen({
 	errorMessage,
 	onRetry,
-	onManualEntry,
 	onSeeOffers,
 	onBack,
 }: Props) {
@@ -65,21 +63,21 @@ export function ScanErrorScreen({
 					<Text style={styles.primaryButtonText}>Volver a escanear</Text>
 				</Pressable>
 
-				<Pressable style={styles.secondaryButton} onPress={onManualEntry}>
-					<Text style={styles.secondaryButtonText}>
-						Ingresar productos manualmente
-					</Text>
+				<Pressable style={styles.secondaryButton} onPress={onSeeOffers}>
+					<Text style={styles.secondaryButtonText}>Ver dónde ahorrar mientras tanto</Text>
 				</Pressable>
 
-				<Pressable style={styles.supportButton}>
+				<Pressable
+					style={styles.supportButton}
+					onPress={() =>
+						Linking.openURL(
+							"mailto:soporte@ofertar.app?subject=Ayuda%20con%20escaneo%20de%20ticket",
+						)
+					}
+				>
 					<Text style={styles.supportText}>
 						¿Seguís con problemas? Contactar soporte
 					</Text>
-				</Pressable>
-
-				<Pressable style={styles.altPrimaryButton} onPress={onSeeOffers}>
-					<Text style={styles.altPrimaryText}>Ver dónde ahorrar</Text>
-					<Ionicons name="arrow-forward" size={16} color={colors.buttonText} />
 				</Pressable>
 			</ScrollView>
 		</View>
@@ -89,7 +87,7 @@ export function ScanErrorScreen({
 function Tip({ text }: { text: string }) {
 	return (
 		<View style={styles.tipRow}>
-			<Ionicons name="checkmark" size={14} color="#9A3412" />
+			<Ionicons name="ellipse" size={6} color="#9A3412" />
 			<Text style={styles.tipText}>{text}</Text>
 		</View>
 	);
@@ -195,19 +193,5 @@ const styles = StyleSheet.create({
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
 		fontSize: 13,
-	},
-	altPrimaryButton: {
-		backgroundColor: colors.navy,
-		height: 52,
-		borderRadius: 10,
-		alignItems: "center",
-		justifyContent: "center",
-		flexDirection: "row",
-		gap: 8,
-	},
-	altPrimaryText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 15,
 	},
 });

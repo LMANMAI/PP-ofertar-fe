@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { colors, typography } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
 
@@ -17,52 +18,22 @@ type Props = {
 		points: string;
 		expiresAt: string; // "Vence el 20 may · 10 días restantes"
 	};
+	code: string;
 	onBack: () => void;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
 };
 
-// Generador determinista de "QR" pseudoaleatorio para placeholder visual.
-// (Para QR real necesitaríamos react-native-svg + qrcode.)
-const QR_SIZE = 21;
-
-function useQrPattern(seed: string) {
-	return useMemo(() => {
-		const pattern: boolean[][] = [];
-		let s = 0;
-		for (let i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) & 0xffff;
-		for (let y = 0; y < QR_SIZE; y++) {
-			const row: boolean[] = [];
-			for (let x = 0; x < QR_SIZE; x++) {
-				s = (s * 1103515245 + 12345) & 0xffffffff;
-				row.push(((s >> 16) & 1) === 1);
-			}
-			pattern.push(row);
-		}
-		// Posiciones de los 3 finder patterns en QR reales
-		const finder = (cx: number, cy: number) => {
-			for (let y = 0; y < 7; y++) {
-				for (let x = 0; x < 7; x++) {
-					const ring =
-						x === 0 || x === 6 || y === 0 || y === 6 ||
-						(x >= 2 && x <= 4 && y >= 2 && y <= 4);
-					if (cy + y < QR_SIZE && cx + x < QR_SIZE) {
-						pattern[cy + y][cx + x] = ring;
-					}
-				}
-			}
-		};
-		finder(0, 0);
-		finder(QR_SIZE - 7, 0);
-		finder(0, QR_SIZE - 7);
-		return pattern;
-	}, [seed]);
-}
-
-export function OfferCodeScreen({ offer, onBack, activeTab, onSelectTab, onScanPress }: Props) {
+export function OfferCodeScreen({ offer, code, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
-	const qr = useQrPattern(offer.id);
+	const [copied, setCopied] = useState(false);
+
+	const handleCopy = async () => {
+		await Clipboard.setStringAsync(code);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
 
 	return (
 		<View style={styles.safeArea}>
@@ -112,26 +83,23 @@ export function OfferCodeScreen({ offer, onBack, activeTab, onSelectTab, onScanP
 
 					<View style={styles.divider} />
 
-					<View style={styles.qrWrap}>
-						<View style={styles.qrCanvas}>
-							{qr.map((row, y) => (
-								<View key={y} style={styles.qrRow}>
-									{row.map((cell, x) => (
-										<View
-											key={x}
-											style={[
-												styles.qrCell,
-												cell ? styles.qrCellOn : styles.qrCellOff,
-											]}
-										/>
-									))}
-								</View>
-							))}
-						</View>
-					</View>
+					<Text style={styles.codeLabel}>TU CÓDIGO</Text>
+					<Pressable
+						style={styles.codeBox}
+						onPress={handleCopy}
+						accessibilityRole="button"
+						accessibilityLabel="Copiar código"
+					>
+						<Text style={styles.codeText}>{code}</Text>
+						<Ionicons
+							name={copied ? "checkmark" : "copy-outline"}
+							size={18}
+							color={copied ? colors.success : colors.cyan}
+						/>
+					</Pressable>
 
 					<Text style={styles.helper}>
-						Mostrá este código en caja{"\n"}antes de pagar
+						Decile este código al cajero{"\n"}antes de pagar
 					</Text>
 
 					<View style={styles.expiryBanner}>
@@ -242,22 +210,38 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.divider,
 		marginTop: 14,
 	},
-	qrWrap: { alignItems: "center", paddingVertical: 18 },
-	qrCanvas: {
-		padding: 12,
-		backgroundColor: "#fff",
-		borderRadius: 12,
+	codeLabel: {
+		color: colors.subtleText,
+		fontFamily: typography.family.medium,
+		fontSize: 10,
+		letterSpacing: 1.2,
+		marginTop: 18,
 	},
-	qrRow: { flexDirection: "row" },
-	qrCell: { width: 8, height: 8 },
-	qrCellOn: { backgroundColor: "#0A1F44" },
-	qrCellOff: { backgroundColor: "#fff" },
+	codeBox: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 10,
+		backgroundColor: "#F8F9FB",
+		borderWidth: 1,
+		borderColor: colors.divider,
+		borderRadius: 8,
+		paddingVertical: 14,
+		marginTop: 8,
+	},
+	codeText: {
+		color: colors.navy,
+		fontFamily: typography.family.bold,
+		fontSize: 20,
+		letterSpacing: 1,
+	},
 	helper: {
 		textAlign: "center",
 		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 13,
 		lineHeight: 18,
+		marginTop: 14,
 	},
 	expiryBanner: {
 		marginTop: 12,

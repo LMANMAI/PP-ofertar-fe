@@ -65,22 +65,54 @@ export const typography = {
 	sizes: {
 		display: 36,
 		h1: 28,
+		h2: 22,
+		h3: 20,
 		bodyL: 17,
-		overline: 11,
+		subtitle: 16,
 		body: 15,
+		label: 14,
 		caption: 13,
+		micro: 12,
+		overline: 11,
+		tiny: 10,
 	},
 	lineHeights: {
 		display: 44,
 		h1: 36,
+		h2: 28,
+		h3: 26,
 		bodyL: 26,
-		overline: 14,
+		subtitle: 22,
 		body: 22,
+		label: 19,
 		caption: 18,
+		micro: 16,
+		overline: 14,
+		tiny: 13,
 	},
 	weights: {
 		regular: "400",
 		medium: "500",
 		bold: "700",
 	} as const,
+} as const;
+
+// Radios y espaciados recurrentes, para dejar de repetir números sueltos
+// por pantalla (29 radios distintos y ninguna escala de spacing existían
+// antes de esto).
+export const radii = {
+	sm: 8,
+	md: 12,
+	lg: 16,
+	xl: 20,
+	full: 999,
+} as const;
+
+export const space = {
+	xs: 4,
+	sm: 8,
+	md: 12,
+	lg: 16,
+	xl: 20,
+	xxl: 24,
 } as const;

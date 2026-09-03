@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
 	Pressable,
 	ScrollView,
@@ -18,22 +18,37 @@ type Store = {
 	color: string;
 	name: string;
 	price: string;
-	rank: string;
 	rawPrice: number;
+	distanceKm: number;
+	inStock: boolean;
 	delta: string | null;
 	deltaTone: "good" | "bad" | null;
-	best?: boolean;
 };
 
 const STORES: Store[] = [
-	{ id: "dia", code: "DI", color: "#0D80CC", name: "Día", price: "$2.010", rawPrice: 2010, rank: "🥇 Más barato", delta: "-18%", deltaTone: "good", best: true },
-	{ id: "coto", code: "CO", color: "#CC1A1A", name: "Coto", price: "$2.450", rawPrice: 2450, rank: "2°  $2.450", delta: null, deltaTone: null },
-	{ id: "carrefour", code: "CA", color: "#0059A6", name: "Carrefour", price: "$2.580", rawPrice: 2580, rank: "3°  $2.580", delta: "+5%", deltaTone: "bad" },
-	{ id: "jumbo", code: "JU", color: "#00804D", name: "Jumbo", price: "$2.640", rawPrice: 2640, rank: "4°  $2.640", delta: "+8%", deltaTone: "bad" },
-	{ id: "vea", code: "VE", color: "#990000", name: "Vea", price: "$2.720", rawPrice: 2720, rank: "5°  $2.720", delta: "+11%", deltaTone: "bad" },
+	{ id: "dia", code: "DI", color: "#0D80CC", name: "Día", price: "$2.010", rawPrice: 2010, distanceKm: 0.6, inStock: true, delta: "-18%", deltaTone: "good" },
+	{ id: "coto", code: "CO", color: "#CC1A1A", name: "Coto", price: "$2.450", rawPrice: 2450, distanceKm: 1.9, inStock: true, delta: null, deltaTone: null },
+	{ id: "carrefour", code: "CA", color: "#0059A6", name: "Carrefour", price: "$2.580", rawPrice: 2580, distanceKm: 1.2, inStock: true, delta: "+5%", deltaTone: "bad" },
+	{ id: "jumbo", code: "JU", color: "#00804D", name: "Jumbo", price: "$2.640", rawPrice: 2640, distanceKm: 3.4, inStock: false, delta: "+8%", deltaTone: "bad" },
+	{ id: "vea", code: "VE", color: "#990000", name: "Vea", price: "$2.720", rawPrice: 2720, distanceKm: 0.9, inStock: true, delta: "+11%", deltaTone: "bad" },
 ];
 
-const FILTERS = ["Cerca tuyo", "Precio", "Disponibilidad", "Marca"] as const;
+const FILTERS = ["Precio", "Cerca tuyo", "Disponibilidad", "Marca"] as const;
+type Filter = (typeof FILTERS)[number];
+
+function sortStores(filter: Filter): Store[] {
+	const list = [...STORES];
+	switch (filter) {
+		case "Precio":
+			return list.sort((a, b) => a.rawPrice - b.rawPrice);
+		case "Cerca tuyo":
+			return list.sort((a, b) => a.distanceKm - b.distanceKm);
+		case "Disponibilidad":
+			return list.sort((a, b) => Number(b.inStock) - Number(a.inStock));
+		case "Marca":
+			return list.sort((a, b) => a.name.localeCompare(b.name));
+	}
+}
 
 type Props = {
 	productName?: string;
@@ -59,8 +74,21 @@ export function ComparePricesScreen({
 	onScanPress,
 }: Props) {
 	const insets = useSafeAreaInsets();
-	const [filter, setFilter] = useState<string>("Precio");
+	const [filter, setFilter] = useState<Filter>("Precio");
 	const [saved, setSaved] = useState(false);
+	const sortedStores = useMemo(() => sortStores(filter), [filter]);
+	const cheapestPrice = useMemo(
+		() => Math.min(...STORES.map((s) => s.rawPrice)),
+		[],
+	);
+
+	const toggleSaved = () => {
+		setSaved((s) => {
+			const next = !s;
+			if (next) onSave?.();
+			return next;
+		});
+	};
 
 	return (
 		<View style={styles.safeArea}>
@@ -73,7 +101,7 @@ export function ComparePricesScreen({
 				</Pressable>
 				<Text style={styles.headerTitle}>Comparar</Text>
 				<Pressable
-					onPress={() => setSaved((s) => !s)}
+					onPress={toggleSaved}
 					style={styles.favButton}
 					hitSlop={8}
 					accessibilityRole="button"
@@ -135,56 +163,72 @@ export function ComparePricesScreen({
 					})}
 				</ScrollView>
 
-				<Text style={styles.sectionLabel}>ORDENADO POR PRECIO ↑</Text>
+				<Text style={styles.sectionLabel}>ORDENADO POR {filter.toUpperCase()}</Text>
 
-				{STORES.map((s) => (
-					<Pressable
-						key={s.id}
-						onPress={() => onSelectStore(s.id)}
-						style={[styles.storeRow, s.best && styles.storeRowBest]}
-					>
-						<View style={styles.storeLeft}>
-							<View style={[styles.storeBadge, { backgroundColor: s.color }]}>
-								<Text style={styles.storeBadgeText}>{s.code}</Text>
+				{sortedStores.map((s, idx) => {
+					const isCheapest = s.rawPrice === cheapestPrice;
+					const metaText =
+						filter === "Cerca tuyo"
+							? `${s.distanceKm.toFixed(1)} km`
+							: filter === "Disponibilidad"
+								? s.inStock
+									? "Disponible"
+									: "Sin stock"
+								: filter === "Marca"
+									? s.price
+									: `${idx + 1}°`;
+					return (
+						<Pressable
+							key={s.id}
+							onPress={() => onSelectStore(s.id)}
+							style={[styles.storeRow, isCheapest && styles.storeRowBest]}
+						>
+							<View style={styles.storeLeft}>
+								<View style={[styles.storeBadge, { backgroundColor: s.color }]}>
+									<Text style={styles.storeBadgeText}>{s.code}</Text>
+								</View>
+								<View style={{ gap: 3 }}>
+									<Text style={styles.storeName}>{s.name}</Text>
+									<View style={styles.storeMetaRow}>
+										<Ionicons
+											name={filter === "Cerca tuyo" ? "location-sharp" : "information-circle-outline"}
+											size={11}
+											color={colors.subtleText}
+										/>
+										<Text
+											style={[
+												styles.storeMetaText,
+												isCheapest && styles.storeMetaTextBest,
+											]}
+										>
+											{metaText}
+										</Text>
+									</View>
+									{isCheapest && (
+										<View style={styles.bestChip}>
+											<Text style={styles.bestChipText}>Mejor precio</Text>
+										</View>
+									)}
+								</View>
 							</View>
-							<View style={{ gap: 3 }}>
-								<Text style={styles.storeName}>{s.name}</Text>
-								<View style={styles.storeMetaRow}>
-									<Ionicons name="location-sharp" size={11} color={colors.subtleText} />
+							<View style={styles.storeRight}>
+								<Text style={styles.storePrice}>{s.price}</Text>
+								{s.delta && (
 									<Text
 										style={[
-											styles.storeMetaText,
-											s.deltaTone === "bad" && s.id === "vea" && { color: colors.danger },
-											s.best && styles.storeMetaTextBest,
+											styles.storeDelta,
+											s.deltaTone === "good"
+												? styles.storeDeltaGood
+												: styles.storeDeltaBad,
 										]}
 									>
-										{s.rank}
+										{s.delta}
 									</Text>
-								</View>
-								{s.best && (
-									<View style={styles.bestChip}>
-										<Text style={styles.bestChipText}>Mejor precio</Text>
-									</View>
 								)}
 							</View>
-						</View>
-						<View style={styles.storeRight}>
-							<Text style={styles.storePrice}>{s.price}</Text>
-							{s.delta && (
-								<Text
-									style={[
-										styles.storeDelta,
-										s.deltaTone === "good"
-											? styles.storeDeltaGood
-											: styles.storeDeltaBad,
-									]}
-								>
-									{s.delta}
-								</Text>
-							)}
-						</View>
-					</Pressable>
-				))}
+						</Pressable>
+					);
+				})}
 
 				<View style={styles.summaryRow}>
 					<View style={styles.summaryCard}>
@@ -197,19 +241,6 @@ export function ComparePricesScreen({
 						<Text style={styles.summaryHint}>↓ -$710 vs Vea</Text>
 					</View>
 				</View>
-
-				<Pressable
-					style={styles.saveButton}
-					onPress={() => {
-						setSaved(true);
-						onSave?.();
-					}}
-				>
-					<Text style={styles.saveButtonText}>{saved ? "Guardado ✓" : "Guardar"}</Text>
-				</Pressable>
-				<Pressable style={styles.cancelButton} onPress={onBack}>
-					<Text style={styles.cancelButtonText}>Cancelar</Text>
-				</Pressable>
 			</ScrollView>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
@@ -382,32 +413,5 @@ const styles = StyleSheet.create({
 		color: "#1D9E75",
 		fontFamily: typography.family.medium,
 		fontSize: 12,
-	},
-	saveButton: {
-		marginTop: 12,
-		backgroundColor: colors.navy,
-		height: 48,
-		borderRadius: 10,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	saveButtonText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 15,
-	},
-	cancelButton: {
-		borderWidth: 2,
-		borderColor: "#1D3557",
-		height: 48,
-		borderRadius: 10,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: colors.card,
-	},
-	cancelButtonText: {
-		color: "#1D3557",
-		fontFamily: typography.family.medium,
-		fontSize: 15,
 	},
 });
