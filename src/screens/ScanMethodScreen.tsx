@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	onChoosePhotos: () => void;
@@ -135,12 +135,12 @@ function createStyles(colors: ColorTokens) {
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
-		paddingTop: 8,
-		paddingBottom: 16,
+		paddingHorizontal: space.md,
+		paddingTop: space.sm,
+		paddingBottom: space.lg,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: space.sm,
 	},
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
@@ -152,9 +152,9 @@ function createStyles(colors: ColorTokens) {
 	},
 	content: {
 		flex: 1,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 28,
-		paddingBottom: 24,
+		paddingBottom: space.xxl,
 	},
 	title: {
 		color: colors.defaultText,
@@ -167,7 +167,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.regular,
 		fontSize: 14,
 		lineHeight: 20,
-		marginTop: 8,
+		marginTop: space.sm,
 	},
 	cards: { marginTop: 28, gap: 14 },
 	card: {
@@ -178,7 +178,7 @@ function createStyles(colors: ColorTokens) {
 		borderRadius: 16,
 		borderWidth: 1,
 		borderColor: colors.border,
-		paddingHorizontal: 16,
+		paddingHorizontal: space.lg,
 		paddingVertical: 18,
 	},
 	iconWrap: {
@@ -188,8 +188,8 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	cardText: { flex: 1, gap: 4 },
-	cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	cardText: { flex: 1, gap: space.xs },
+	cardTitleRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	cardTitle: {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
@@ -203,7 +203,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	badge: {
 		backgroundColor: colors.successSoft,
-		paddingHorizontal: 8,
+		paddingHorizontal: space.sm,
 		paddingVertical: 3,
 		borderRadius: 6,
 	},
@@ -218,9 +218,9 @@ function createStyles(colors: ColorTokens) {
 		gap: 10,
 		backgroundColor: colors.successSoft,
 		borderRadius: 14,
-		paddingHorizontal: 16,
+		paddingHorizontal: space.lg,
 		paddingVertical: 14,
-		marginTop: 24,
+		marginTop: space.xxl,
 	},
 	ecoTipText: {
 		flex: 1,

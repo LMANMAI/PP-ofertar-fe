@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { campaignOfferToOffer, describeCampaignDiscount, getRecurringProducts, offerSavings, sortByOfferRelevance } from "../services";
 import type { CampaignOffer, Offer, RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
@@ -146,7 +146,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 			)}
 
 			{!loading && !error && products.length > 0 && (
-				<ScrollView contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 24 }}>
+				<ScrollView contentContainerStyle={{ padding: space.lg, gap: 10, paddingBottom: insets.bottom + 24 }}>
 					<Text style={styles.intro}>
 						{offerCount > 0
 							? `${offerCount} de tus ${products.length} productos habituales tienen oferta ahora. Tocá cualquiera para ver el detalle.`
@@ -229,10 +229,10 @@ const ProductCard = memo(function ProductCard({
 			</Pressable>
 
 			{offer ? (
-				<View style={{ gap: 4 }}>
+				<View style={{ gap: space.xs }}>
 					<View style={styles.bestRow}>
 						<View style={styles.bestChip}>
-							<Ionicons name="trophy" size={11} color="#fff" />
+							<Ionicons name="trophy" size={11} color={colors.buttonText} />
 							<Text style={styles.bestText}>Mejor en {offer.retailerName}</Text>
 						</View>
 						<View style={styles.priceGroup}>
@@ -259,7 +259,7 @@ const ProductCard = memo(function ProductCard({
 				// calling it "sin ofertas activas" was hiding a real one.
 				<View style={styles.bestRow}>
 					<View style={styles.campaignChip}>
-						<Ionicons name="megaphone" size={11} color="#fff" />
+						<Ionicons name="megaphone" size={11} color={colors.buttonText} />
 						<Text style={styles.bestText}>
 							{describeCampaignDiscount(campaigns[0]) ?? "Promoción vigente"} en{" "}
 							{campaigns[0].retailerName}
@@ -443,39 +443,39 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 12, borderWidth: 1, borderColor: colors.divider },
+	card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: space.md, borderWidth: 1, borderColor: colors.divider },
 	cardHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
 	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	freq: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	bestRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	bestChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.success, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-	campaignChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.navy, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-	bestText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 11 },
+	bestChip: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.success, paddingHorizontal: 10, paddingVertical: space.xs, borderRadius: 10 },
+	campaignChip: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.navy, paddingHorizontal: 10, paddingVertical: space.xs, borderRadius: 10 },
+	bestText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 11 },
 	priceGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
 	discountBadge: { backgroundColor: colors.successSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
 	discountText: { color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 11 },
 	price: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
 	noOffer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12 },
-	detailBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 10, gap: 8 },
+	detailBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 10, gap: space.sm },
 	detailRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	detailLabel: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
 	detailValue: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	strikePrice: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 13, textDecorationLine: "line-through" },
-	savingsRow: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.successSoft, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
+	savingsRow: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.successSoft, borderRadius: 8, paddingHorizontal: 10, paddingVertical: space.sm },
 	savingsText: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 13 },
 	detailNote: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
 	promoRow: { flexDirection: "row", alignItems: "center", gap: 6 },
 	promoText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
-	paidBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: 8, gap: 4 },
+	paidBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.sm, gap: space.xs },
 	offerProduct: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
 	paidBetter: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
 	paidWorse: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
-	campaignBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: 10, gap: 8 },
+	campaignBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: 10, gap: space.sm },
 	campaignTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
 	campaignRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
 	campaignHeadline: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
 	campaignUntil: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	campaignLink: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 11, marginTop: 4, textDecorationLine: "underline" },
+	campaignLink: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 11, marginTop: space.xs, textDecorationLine: "underline" },
 	campaignDisclaimer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, fontStyle: "italic" },
 	historyRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
 	historyText: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },

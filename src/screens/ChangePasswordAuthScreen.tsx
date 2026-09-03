@@ -3,7 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, PasswordStrengthBar, BottomNav, ScreenHeader, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { changePassword } from "../services/authApi";
@@ -86,7 +86,7 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 			<ScreenHeader title="Cambiar contraseña" onBack={() => onBack()} />
 
 			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-			<ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 140 }} keyboardShouldPersistTaps="handled">
+			<ScrollView contentContainerStyle={{ padding: space.xl, gap: space.lg, paddingBottom: insets.bottom + 140 }} keyboardShouldPersistTaps="handled">
 				<Text style={styles.description}>
 					Elegí una contraseña segura de al menos 8 caracteres con mayúsculas, números y caracteres especiales.
 				</Text>
@@ -145,20 +145,20 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	description: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20, marginBottom: 4 },
+	description: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20, marginBottom: space.xs },
 	submitBtn: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
+		gap: space.sm,
 		backgroundColor: colors.navy,
 		height: 52,
 		borderRadius: 12,
-		marginTop: 4,
+		marginTop: space.xs,
 	},
 	submitBtnDisabled: { opacity: 0.5 },
 	submitText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
-	errorBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	errorBox: { paddingVertical: 10, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	});
 }

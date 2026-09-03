@@ -13,11 +13,11 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
-import { updateTicket, deleteTicket, getRecurringProducts } from "../services";
+import { updateTicket, deleteTicket, getRecurringProducts, offerBadge } from "../services";
 
 /** Only nag about products bought on at least this many separate shopping
  * trips — one-off purchases aren't a habit worth reminding about. */
@@ -106,7 +106,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 	const isLocked = ticket?.reviewed === true;
 	const supermarket = ticket?.storeName?.trim();
 	const storeDisplay = supermarket || "Ticket escaneado";
-	const storeBadge = (supermarket || "TI").slice(0, 2).toUpperCase();
+	const badge = offerBadge(supermarket ?? null);
 	const ticketMeta = ticket?.ticketId
 		? `ID: ${ticket.ticketId}`
 		: ticket?.createdAt
@@ -245,8 +245,8 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 
 				<View style={styles.summaryCard}>
 					<View style={styles.summaryHeader}>
-						<View style={[styles.storeBadge, supermarket ? undefined : { backgroundColor: colors.mutedText }]}>
-							<Text style={styles.storeBadgeText}>{storeBadge}</Text>
+						<View style={[styles.storeBadge, { backgroundColor: badge.color }]}>
+							<Text style={styles.storeBadgeText}>{badge.badge}</Text>
 						</View>
 						<View style={{ flex: 1 }}>
 							<Text style={styles.storeName}>{storeDisplay}</Text>
@@ -507,12 +507,12 @@ function createStyles(colors: ColorTokens) {
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
-		paddingTop: 8,
-		paddingBottom: 16,
+		paddingHorizontal: space.md,
+		paddingTop: space.sm,
+		paddingBottom: space.lg,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: space.sm,
 	},
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
@@ -556,7 +556,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.dangerSoft,
 		borderRadius: 12,
 		padding: 14,
-		marginBottom: 12,
+		marginBottom: space.md,
 	},
 	failedBannerText: {
 		flex: 1,
@@ -565,19 +565,18 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 13,
 	},
 	scroll: { flex: 1 },
-	scrollContent: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 24 },
+	scrollContent: { paddingHorizontal: space.xl, paddingTop: 18, paddingBottom: space.xxl },
 	summaryCard: {
 		backgroundColor: colors.navy,
 		borderRadius: 16,
-		padding: 16,
-		gap: 8,
+		padding: space.lg,
+		gap: space.sm,
 	},
 	summaryHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
 	storeBadge: {
 		width: 32,
 		height: 32,
 		borderRadius: 16,
-		backgroundColor: "#E1352F",
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -609,7 +608,7 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 28,
 		lineHeight: 34,
 	},
-	tagsRow: { flexDirection: "row", gap: 6, marginTop: 8, flexWrap: "wrap" },
+	tagsRow: { flexDirection: "row", gap: 6, marginTop: space.sm, flexWrap: "wrap" },
 	tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
 	tagMuted: { backgroundColor: "rgba(255,255,255,0.12)" },
 	tagCyan: { backgroundColor: colors.cyan },
@@ -622,7 +621,7 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 11,
 		letterSpacing: 1.4,
 		marginTop: 22,
-		marginBottom: 8,
+		marginBottom: space.sm,
 	},
 	productsList: {
 		backgroundColor: colors.card,
@@ -634,7 +633,7 @@ function createStyles(colors: ColorTokens) {
 	productRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 16,
+		paddingHorizontal: space.lg,
 		paddingVertical: 14,
 		borderBottomWidth: 1,
 		borderBottomColor: colors.border,
@@ -643,7 +642,7 @@ function createStyles(colors: ColorTokens) {
 	productNameRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: space.sm,
 		flexWrap: "wrap",
 	},
 	productName: {
@@ -653,7 +652,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	savingsChip: {
 		backgroundColor: colors.successSoft,
-		paddingHorizontal: 8,
+		paddingHorizontal: space.sm,
 		paddingVertical: 2,
 		borderRadius: 999,
 	},
@@ -665,7 +664,7 @@ function createStyles(colors: ColorTokens) {
 	priceRow: {
 		flexDirection: "row",
 		alignItems: "baseline",
-		gap: 8,
+		gap: space.sm,
 		marginTop: 2,
 	},
 	productMeta: {
@@ -681,8 +680,8 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 12,
 	},
 	footer: {
-		paddingHorizontal: 20,
-		paddingTop: 12,
+		paddingHorizontal: space.xl,
+		paddingTop: space.md,
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
 		borderTopColor: colors.border,
@@ -695,7 +694,7 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
-		gap: 8,
+		gap: space.sm,
 	},
 	primaryButtonText: {
 		color: colors.buttonText,
@@ -732,9 +731,9 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
-		paddingTop: 12,
-		paddingHorizontal: 20,
+		gap: space.sm,
+		paddingTop: space.md,
+		paddingHorizontal: space.xl,
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
 		borderTopColor: colors.divider,
@@ -748,7 +747,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.card,
 		borderTopLeftRadius: 20,
 		borderTopRightRadius: 20,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 14,
 		paddingBottom: 28,
 	},
@@ -776,12 +775,12 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 14,
 	},
 	modalForm: { paddingTop: 18, gap: 14 },
-	modalRow: { flexDirection: "row", gap: 12 },
+	modalRow: { flexDirection: "row", gap: space.md },
 	readOnlyInfo: {
 		backgroundColor: colors.softNavy,
 		borderRadius: 8,
-		padding: 12,
-		gap: 4,
+		padding: space.md,
+		gap: space.xs,
 	},
 	readOnlyText: {
 		color: colors.mutedText,

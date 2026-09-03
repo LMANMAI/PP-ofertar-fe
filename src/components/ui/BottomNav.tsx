@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors } from "../../theme/designSystem";
+import { space, typography, useThemeColors } from "../../theme/designSystem";
 import { useOnboardingTarget } from "../onboarding/OnboardingProvider";
 
 export type TabKey = "home" | "offers" | "scan" | "history" | "profile";
@@ -145,7 +145,7 @@ function NavItem({
 const styles = StyleSheet.create({
 	wrap: {
 		borderTopWidth: 1,
-		paddingHorizontal: 8,
+		paddingHorizontal: space.sm,
 		paddingTop: 10,
 		paddingBottom: 10,
 	},
@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
 	item: {
 		flex: 1,
 		alignItems: "center",
-		gap: 4,
-		paddingVertical: 4,
+		gap: space.xs,
+		paddingVertical: space.xs,
 	},
 	itemLabel: {
 		fontFamily: typography.family.medium,

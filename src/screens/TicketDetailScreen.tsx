@@ -3,8 +3,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { getRecurringProducts, getTicket } from "../services";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { getRecurringProducts, getTicket, offerBadge } from "../services";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
 import { BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
@@ -93,9 +93,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 
 	const storeName = ticket?.storeName?.trim();
 	const storeDisplay = storeName || "Ticket escaneado";
-	const badge = storeName
-		? storeName.split(" ").map((w) => w[0] ?? "").join("").toUpperCase().slice(0, 2)
-		: "TI";
+	const badge = offerBadge(storeName ?? null);
 
 	const computedSavings = ticket
 		? ticket.items.reduce((sum, item) => sum + (item.discountAmount ?? 0), 0)
@@ -129,7 +127,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 			)}
 
 			{!loading && !error && ticket && (
-				<ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 24 }}>
+				<ScrollView contentContainerStyle={{ padding: space.lg, gap: 14, paddingBottom: insets.bottom + 24 }}>
 					{ticket.status === "FAILED" && (
 						<View style={styles.failedBanner}>
 							<Ionicons name="warning-outline" size={18} color={colors.orange} />
@@ -139,8 +137,8 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 
 					<View style={styles.summary}>
 						<View style={styles.summaryHeader}>
-							<View style={[styles.storeBadge, !storeName ? { backgroundColor: colors.mutedText } : undefined]}>
-								<Text style={styles.storeBadgeText}>{badge}</Text>
+							<View style={[styles.storeBadge, { backgroundColor: badge.color }]}>
+								<Text style={styles.storeBadgeText}>{badge.badge}</Text>
 							</View>
 							<View style={{ flex: 1 }}>
 								<Text style={styles.storeName}>{storeDisplay}</Text>
@@ -228,40 +226,40 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
+	header: { backgroundColor: colors.navy, paddingHorizontal: space.md, height: 56, flexDirection: "row", alignItems: "center", gap: space.sm },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: 12 },
+	errorBanner: { flexDirection: "row", alignItems: "center", gap: space.sm, margin: space.lg, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: space.md },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
-	failedBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: 12 },
+	failedBanner: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: space.md },
 	failedBannerText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
-	summary: { backgroundColor: colors.navy, borderRadius: 16, padding: 16, gap: 6 },
+	summary: { backgroundColor: colors.navy, borderRadius: 16, padding: space.lg, gap: 6 },
 	summaryHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-	storeBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#E1352F", alignItems: "center", justifyContent: "center" },
-	storeBadgeText: { color: "#fff", fontFamily: typography.family.bold, fontSize: 11 },
-	storeName: { color: "#fff", fontFamily: typography.family.medium, fontSize: 13 },
+	storeBadge: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 11 },
+	storeName: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 13 },
 	storeMeta: { color: "rgba(255,255,255,0.55)", fontFamily: typography.family.regular, fontSize: 11 },
 	totalLabel: { color: "rgba(255,255,255,0.55)", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.3, marginTop: 6 },
-	totalValue: { color: "#fff", fontFamily: typography.family.bold, fontSize: 24 },
+	totalValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 24 },
 	strikethroughSubtotal: {
 		color: "rgba(255,255,255,0.5)",
 		textDecorationLine: "line-through",
 		fontFamily: typography.family.medium,
 		fontSize: 14,
-		marginTop: 4,
+		marginTop: space.xs,
 	},
 	tagsRow: { flexDirection: "row", gap: 6, marginTop: 6 },
 	tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.12)" },
-	tagText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 11 },
+	tagText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 11 },
 	savings: { flexDirection: "row", gap: 10, backgroundColor: colors.successSoft, padding: 14, borderRadius: 12, alignItems: "center" },
 	savingsTitle: { color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 13 },
 	savingsHint: { color: colors.successSoftText, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
 	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	products: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
-	productRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12 },
+	productRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: space.md },
 	productName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
-	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 8, marginTop: 2 },
+	priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.sm, marginTop: 2 },
 	productMeta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
 	originalPrice: { textDecorationLine: "line-through", color: colors.subtleText, opacity: 0.6, fontFamily: typography.family.regular, fontSize: 12 },
 	productPrice: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 14 },

@@ -2,15 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { describeCampaignDiscount, getRecurringProducts } from "../services";
 import type { RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
-
-/** Products bought on fewer separate trips than this are one-offs, not part of
- * the recurring shop — keeping them out avoids a list full of noise. */
-const MIN_TRIPS_TO_BE_HABITUAL = 2;
+import {
+	BottomNav,
+	EmptyState,
+	ErrorBanner,
+	LoadingState,
+	MIN_TRIPS_TO_BE_HABITUAL,
+	ScreenHeader,
+	type TabKey,
+} from "../components";
 
 function formatCurrency(value: number | null | undefined): string {
 	if (value == null) return "$0";
@@ -74,7 +78,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 			<View key={id}>
 				<Pressable style={styles.row} onPress={() => toggle(id)}>
 					<View style={[styles.check, done && styles.checkOn]}>
-						{done && <Ionicons name="checkmark" size={14} color="#fff" />}
+						{done && <Ionicons name="checkmark" size={14} color={colors.buttonText} />}
 					</View>
 					<View style={{ flex: 1 }}>
 						<Text style={[styles.name, done && styles.nameChecked]}>{p.description}</Text>
@@ -90,7 +94,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 					</View>
 					{!done && p.bestOffer && (
 						<View style={styles.offerChip}>
-							<Ionicons name="pricetag" size={10} color="#fff" />
+							<Ionicons name="pricetag" size={10} color={colors.buttonText} />
 							<Text style={styles.offerChipText}>
 								{p.bestOffer.discountPct != null
 									? `${Math.round(p.bestOffer.discountPct)}% ${p.bestOffer.retailerName}`
@@ -102,7 +106,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 					    campaign promotion showed no chip at all here. */}
 					{!done && !p.bestOffer && p.campaignOffers.length > 0 && (
 						<View style={styles.promoChip}>
-							<Ionicons name="megaphone" size={10} color="#fff" />
+							<Ionicons name="megaphone" size={10} color={colors.buttonText} />
 							<Text style={styles.offerChipText} numberOfLines={1}>
 								{describeCampaignDiscount(p.campaignOffers[0]) ?? "Promoción"}
 							</Text>
@@ -131,7 +135,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 			)}
 
 			{!loading && !error && products.length > 0 && (
-				<ScrollView contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 16 }}>
+				<ScrollView contentContainerStyle={{ padding: space.lg, gap: 10, paddingBottom: space.lg }}>
 					<View style={styles.heroCard}>
 						<Ionicons name="bulb-outline" size={20} color={colors.cyan} />
 						<View style={{ flex: 1 }}>
@@ -206,14 +210,14 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	heroCard: { flexDirection: "row", gap: 12, backgroundColor: colors.infoSoft, borderRadius: 14, padding: 16, alignItems: "center" },
+	heroCard: { flexDirection: "row", gap: space.md, backgroundColor: colors.infoSoft, borderRadius: 14, padding: space.lg, alignItems: "center" },
 	heroTitle: { color: colors.infoSoftText, fontFamily: typography.family.bold, fontSize: 14 },
 	heroBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2, lineHeight: 16 },
-	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 4 },
-	sectionLabelDoneRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: space.xs },
+	sectionLabelDoneRow: { flexDirection: "row", alignItems: "center", gap: space.xs, marginTop: space.xs },
 	sectionLabelDone: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	list: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
-	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+	row: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: 14, paddingVertical: space.md },
 	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
 	// Green, not the brand cyan: cyan is this app's generic interactive/link
 	// accent (focus rings, the scan button, "ver más" links) — completion is a
@@ -225,11 +229,11 @@ function createStyles(colors: ColorTokens) {
 	nameChecked: { color: colors.mutedText2, textDecorationLine: "line-through" },
 	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
 	offerFor: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, marginTop: 2 },
-	promoChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.navy, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9, maxWidth: 150 },
-	offerChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.success, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9 },
-	offerChipText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 10 },
+	promoChip: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.navy, paddingHorizontal: space.sm, paddingVertical: 3, borderRadius: 9, maxWidth: 150 },
+	offerChip: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.success, paddingHorizontal: space.sm, paddingVertical: 3, borderRadius: 9 },
+	offerChipText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 10 },
 	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 48 },
-	footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+	footer: { paddingHorizontal: space.xl, paddingTop: space.md, paddingBottom: space.md, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	footerLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	footerValue: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: 2 },
 	footerValueDone: { color: colors.successSoftText },

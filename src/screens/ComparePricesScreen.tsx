@@ -11,7 +11,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
 import { getProductoPorEan } from "../services/sepaApi";
 import type { ProductoDetalleResponse } from "../services/sepaApi";
@@ -219,11 +219,11 @@ function createStyles(colors: ColorTokens) {
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
+		paddingHorizontal: space.md,
 		height: 56,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: space.sm,
 	},
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
@@ -237,7 +237,7 @@ function createStyles(colors: ColorTokens) {
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 12,
+		gap: space.md,
 		paddingHorizontal: 32,
 		backgroundColor: colors.background,
 	},
@@ -255,7 +255,7 @@ function createStyles(colors: ColorTokens) {
 		textAlign: "center",
 	},
 	resultado: { flex: 1 },
-	resultadoContent: { padding: 20, gap: 16 },
+	resultadoContent: { padding: space.xl, gap: space.lg },
 	productoCard: {
 		flexDirection: "row",
 		gap: 14,
@@ -323,7 +323,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.regular,
 		fontSize: typography.sizes.caption,
 	},
-	comerciosWrap: { gap: 8 },
+	comerciosWrap: { gap: space.sm },
 	seccionTitulo: {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
@@ -339,7 +339,7 @@ function createStyles(colors: ColorTokens) {
 		borderWidth: 1,
 		borderColor: colors.border,
 		paddingHorizontal: 14,
-		paddingVertical: 12,
+		paddingVertical: space.md,
 	},
 	comercioMasBarato: { borderColor: colors.cyan, backgroundColor: colors.softCyan },
 	comercioInfo: { flex: 1, gap: 2 },
@@ -361,7 +361,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	badgeBarato: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 8,
+		paddingHorizontal: space.sm,
 		paddingVertical: 2,
 		borderRadius: 6,
 	},
@@ -380,12 +380,12 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
+		gap: space.sm,
 		backgroundColor: colors.navy,
 		borderRadius: 14,
 		paddingVertical: 15,
-		paddingHorizontal: 24,
-		marginTop: 4,
+		paddingHorizontal: space.xxl,
+		marginTop: space.xs,
 	},
 	botonPrimarioTexto: {
 		color: colors.buttonText,

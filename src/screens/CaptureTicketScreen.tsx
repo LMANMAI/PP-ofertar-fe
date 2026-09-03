@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 /**
  * Phone cameras shoot 3000-4000px wide, which is far more than the OCR model
@@ -167,7 +167,7 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 									accessibilityRole="button"
 									accessibilityLabel="Eliminar foto"
 								>
-									<Ionicons name="close-circle" size={20} color="#fff" />
+									<Ionicons name="close-circle" size={20} color={colors.buttonText} />
 								</Pressable>
 							</View>
 						))}
@@ -206,7 +206,7 @@ function createStyles(colors: ColorTokens) {
 	permissionWrap: {
 		flex: 1,
 		backgroundColor: colors.navy,
-		paddingHorizontal: 24,
+		paddingHorizontal: space.xxl,
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 14,
@@ -225,9 +225,9 @@ function createStyles(colors: ColorTokens) {
 		textAlign: "center",
 	},
 	permissionButton: {
-		marginTop: 8,
+		marginTop: space.sm,
 		backgroundColor: colors.cyan,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingVertical: 14,
 		borderRadius: 10,
 	},
@@ -236,7 +236,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.bold,
 		fontSize: 14,
 	},
-	cancelButton: { padding: 12 },
+	cancelButton: { padding: space.md },
 	cancelText: {
 		color: "rgba(255,255,255,0.7)",
 		fontFamily: typography.family.medium,
@@ -245,7 +245,7 @@ function createStyles(colors: ColorTokens) {
 	topBar: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 16,
+		paddingHorizontal: space.lg,
 		paddingBottom: 10,
 		backgroundColor: "rgba(0,0,0,0.55)",
 	},
@@ -275,7 +275,7 @@ function createStyles(colors: ColorTokens) {
 	cornerBL: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 8 },
 	cornerBR: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 8 },
 	frameHint: {
-		marginTop: 16,
+		marginTop: space.lg,
 		color: "rgba(255,255,255,0.85)",
 		fontFamily: typography.family.medium,
 		fontSize: 13,
@@ -283,11 +283,11 @@ function createStyles(colors: ColorTokens) {
 	controlsPanel: {
 		backgroundColor: "rgba(0,0,0,0.85)",
 		paddingTop: 14,
-		paddingHorizontal: 16,
+		paddingHorizontal: space.lg,
 		gap: 14,
 	},
 	thumbnailsStrip: { maxHeight: 72 },
-	thumbnailsContent: { gap: 10, paddingHorizontal: 4 },
+	thumbnailsContent: { gap: 10, paddingHorizontal: space.xs },
 	thumbnailWrap: {
 		width: 58,
 		height: 72,
@@ -304,7 +304,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.navy,
 		borderRadius: 999,
 		minWidth: 18,
-		paddingHorizontal: 4,
+		paddingHorizontal: space.xs,
 		paddingVertical: 2,
 		alignItems: "center",
 	},
@@ -324,7 +324,7 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		paddingHorizontal: 12,
+		paddingHorizontal: space.md,
 	},
 	captureButton: {
 		width: 72,

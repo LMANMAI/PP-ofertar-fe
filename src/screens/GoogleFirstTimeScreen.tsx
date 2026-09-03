@@ -11,7 +11,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField } from "../components";
 
 type Props = { onComplete: () => void; onBack: () => void };
@@ -40,7 +40,7 @@ export function GoogleFirstTimeScreen({ onComplete, onBack }: Props) {
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 			>
 				<ScrollView
-					contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 24 }}
+					contentContainerStyle={{ padding: space.xl, gap: space.lg, paddingBottom: insets.bottom + 24 }}
 					keyboardShouldPersistTaps="handled"
 				>
 					<View style={styles.googleAcc}>
@@ -76,7 +76,7 @@ export function GoogleFirstTimeScreen({ onComplete, onBack }: Props) {
 						accessibilityState={{ checked: accepted }}
 					>
 						<View style={[styles.check, accepted && styles.checkChecked]}>
-							{accepted && <Ionicons name="checkmark" size={14} color="#fff" />}
+							{accepted && <Ionicons name="checkmark" size={14} color={colors.buttonText} />}
 						</View>
 						<Text style={styles.checkText}>
 							Acepto los Términos y la Política de privacidad de OfertAR.
@@ -101,10 +101,10 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
+	header: { backgroundColor: colors.navy, paddingHorizontal: space.md, height: 56, flexDirection: "row", alignItems: "center", gap: space.sm },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	googleAcc: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
+	googleAcc: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
 	googleName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	googleEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 22 },
@@ -113,7 +113,7 @@ function createStyles(colors: ColorTokens) {
 	check: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: "rgba(0,0,0,0.18)", backgroundColor: colors.card, marginTop: 2, alignItems: "center", justifyContent: "center" },
 	checkChecked: { backgroundColor: colors.cyan, borderColor: colors.cyan },
 	checkText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19 },
-	cta: { marginTop: 8, backgroundColor: colors.navy, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+	cta: { marginTop: space.sm, backgroundColor: colors.navy, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center" },
 	ctaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	});
 }

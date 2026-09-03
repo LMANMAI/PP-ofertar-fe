@@ -3,7 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 type Props = {
 	title: string;
@@ -66,13 +66,13 @@ function createStyles(colors: ColorTokens) {
 		statusBarBg: { backgroundColor: colors.navy },
 		header: {
 			backgroundColor: colors.navy,
-			paddingHorizontal: 12,
+			paddingHorizontal: space.md,
 			height: 56,
 			flexDirection: "row",
 			alignItems: "center",
-			gap: 8,
+			gap: space.sm,
 		},
-		headerLogoVariant: { paddingHorizontal: 20, gap: 10 },
+		headerLogoVariant: { paddingHorizontal: space.xl, gap: 10 },
 		backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 		headerLogo: { width: 24, height: 24, borderRadius: 6 },
 		headerTitle: {

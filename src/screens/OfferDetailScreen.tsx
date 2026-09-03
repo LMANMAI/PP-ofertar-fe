@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, ScreenHeader, type TabKey } from "../components";
 import { offerBadge } from "../services";
 import type { Offer } from "../services";
@@ -40,7 +40,7 @@ export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onSca
 
 			<ScrollView
 				style={styles.scroll}
-				contentContainerStyle={{ paddingBottom: 16 }}
+				contentContainerStyle={{ paddingBottom: space.lg }}
 				showsVerticalScrollIndicator={false}
 			>
 				<View style={styles.hero}>
@@ -132,10 +132,10 @@ function createStyles(colors: ColorTokens) {
 	scroll: { flex: 1 },
 	hero: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 18,
 		paddingBottom: 0,
-		gap: 8,
+		gap: space.sm,
 	},
 	heroTop: {
 		flexDirection: "row",
@@ -175,7 +175,7 @@ function createStyles(colors: ColorTokens) {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
 		fontSize: 26,
-		marginTop: 12,
+		marginTop: space.md,
 	},
 	heroSubtitle: {
 		color: "#99B2CC",
@@ -186,7 +186,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: "#071632",
 		marginHorizontal: -20,
 		marginTop: 18,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingVertical: 10,
 		flexDirection: "row",
 		alignItems: "center",
@@ -202,9 +202,9 @@ function createStyles(colors: ColorTokens) {
 		borderWidth: 1,
 		borderColor: colors.divider,
 		borderRadius: 16,
-		marginHorizontal: 16,
-		marginTop: 12,
-		padding: 16,
+		marginHorizontal: space.lg,
+		marginTop: space.md,
+		padding: space.lg,
 	},
 	sectionTitle: {
 		color: colors.defaultText,
@@ -216,7 +216,7 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 10,
-		paddingVertical: 8,
+		paddingVertical: space.sm,
 	},
 	bullet: {
 		width: 6,
@@ -232,7 +232,7 @@ function createStyles(colors: ColorTokens) {
 	divider: {
 		height: 1,
 		backgroundColor: colors.divider,
-		marginVertical: 16,
+		marginVertical: space.lg,
 	},
 	conditionText: {
 		color: colors.mutedText2,
@@ -241,9 +241,9 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 18,
 	},
 	footer: {
-		paddingHorizontal: 16,
-		paddingTop: 12,
-		paddingBottom: 12,
+		paddingHorizontal: space.lg,
+		paddingTop: space.md,
+		paddingBottom: space.md,
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
 		borderTopColor: colors.divider,

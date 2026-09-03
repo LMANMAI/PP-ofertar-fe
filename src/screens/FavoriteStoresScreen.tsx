@@ -5,7 +5,7 @@ import * as Location from "expo-location";
 import { ensureLocationPermission } from "../location/permission";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
 import { BottomNav, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
 import type { Session } from "../auth/session";
@@ -145,7 +145,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 			{loading ? (
 				<LoadingState />
 			) : (
-				<ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+				<ScrollView contentContainerStyle={{ paddingBottom: space.lg }}>
 					<View style={styles.mapWrap}>
 						<MapView
 							provider={PROVIDER_DEFAULT}
@@ -223,7 +223,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 											</Text>
 										</View>
 										<View style={[styles.check, on && styles.checkOn]}>
-											{on && <Ionicons name="checkmark" size={14} color="#fff" />}
+											{on && <Ionicons name="checkmark" size={14} color={colors.buttonText} />}
 										</View>
 									</Pressable>
 									{idx < chains.length - 1 && <View style={styles.divider} />}
@@ -245,17 +245,17 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	mapWrap: { height: 280, backgroundColor: colors.divider },
-	warnBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, marginBottom: 0, backgroundColor: colors.warningSoft, borderRadius: 10, padding: 10 },
+	warnBanner: { flexDirection: "row", alignItems: "center", gap: space.sm, margin: space.lg, marginBottom: 0, backgroundColor: colors.warningSoft, borderRadius: 10, padding: 10 },
 	warnText: { flex: 1, color: colors.warningSoftText, fontFamily: typography.family.medium, fontSize: 12 },
-	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16 },
-	sectionHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginHorizontal: 16, marginTop: 4 },
-	radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginTop: 10 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: space.lg },
+	sectionHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginHorizontal: space.lg, marginTop: space.xs },
+	radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginHorizontal: space.lg, marginTop: 10 },
 	radiusChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
 	radiusChipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
 	radiusText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	radiusTextOn: { color: colors.buttonText },
-	chainList: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, marginHorizontal: 16, marginTop: 10, overflow: "hidden" },
-	chainRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+	chainList: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, marginHorizontal: space.lg, marginTop: 10, overflow: "hidden" },
+	chainRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: 14, paddingVertical: space.md },
 	dot: { width: 12, height: 12, borderRadius: 6 },
 	chainName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	chainMeta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },

@@ -1,8 +1,8 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { getRecurringProducts, getTickets } from "../services";
+import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { getRecurringProducts, getTickets, offerBadge } from "../services";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
 import {
@@ -40,14 +40,6 @@ function ticketsAreEqual(a: TicketResponse, b: TicketResponse): boolean {
 		a.storeName === b.storeName &&
 		a.items.length === b.items.length
 	);
-}
-
-function storeBadge(name: string | null): { code: string; color: string } {
-	if (!name) return { code: "TI", color: "#5C6B84" };
-	const words = name.split(" ");
-	const code = words.map((w) => w[0] ?? "").join("").toUpperCase().slice(0, 2);
-	const color = "#0D80CC";
-	return { code, color };
 }
 
 type Props = {
@@ -194,7 +186,7 @@ export function TicketHistoryScreen({
 					columnWrapperStyle={isTablet ? { gap: 10 } : undefined}
 					data={tickets}
 					keyExtractor={(t) => String(t.id)}
-					contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 24 }}
+					contentContainerStyle={{ padding: space.lg, gap: 10, paddingBottom: insets.bottom + 24 }}
 					ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
 					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.cyan} />}
 					ListHeaderComponent={
@@ -259,7 +251,7 @@ const TicketRow = memo(function TicketRow({
 	colors: ColorTokens;
 	styles: ReturnType<typeof createStyles>;
 }) {
-	const badge = storeBadge(t.storeName);
+	const badge = offerBadge(t.storeName);
 	const ticketTotal = t.total;
 	// Null while the ticket is still being processed, and the
 	// backend also leaves it null when nothing was discounted.
@@ -276,7 +268,7 @@ const TicketRow = memo(function TicketRow({
 			accessibilityLabel={`Ticket de ${t.storeName || "comercio sin nombre"}, ${formatCurrency(ticketTotal)}`}
 		>
 			<View style={[styles.badge, { backgroundColor: badge.color }]}>
-				<Text style={styles.badgeText}>{badge.code}</Text>
+				<Text style={styles.badgeText}>{badge.badge}</Text>
 			</View>
 			<View style={{ flex: 1 }}>
 				<Text style={styles.store}>
@@ -327,14 +319,14 @@ const TicketRow = memo(function TicketRow({
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	summary: { flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: 16 },
-	summaryDivider: { width: 1, height: 40, backgroundColor: colors.divider, marginHorizontal: 12, alignSelf: "center" },
+	summary: { flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: space.lg },
+	summaryDivider: { width: 1, height: 40, backgroundColor: colors.divider, marginHorizontal: space.md, alignSelf: "center" },
 	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
-	summaryValue: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18, marginTop: 4 },
+	summaryValue: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18, marginTop: space.xs },
 	summaryHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
+	row: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
 	badge: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-	badgeText: { color: "#fff", fontFamily: typography.family.bold, fontSize: 12 },
+	badgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 12 },
 	store: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	date: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	total: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 14 },

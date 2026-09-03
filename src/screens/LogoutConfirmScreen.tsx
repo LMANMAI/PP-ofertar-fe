@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = { onCancel: () => void; onConfirm: () => void };
 
@@ -36,13 +36,13 @@ export function LogoutConfirmScreen({ onCancel, onConfirm }: Props) {
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
-	backdrop: { flex: 1, backgroundColor: "rgba(10,31,68,0.7)", justifyContent: "center", paddingHorizontal: 24 },
+	backdrop: { flex: 1, backgroundColor: "rgba(10,31,68,0.7)", justifyContent: "center", paddingHorizontal: space.xxl },
 	sheet: { backgroundColor: colors.card, borderRadius: 16, padding: 22, gap: 10, alignItems: "stretch" },
 	iconCircle: { alignSelf: "center", width: 60, height: 60, borderRadius: 30, backgroundColor: colors.dangerSoft, alignItems: "center", justifyContent: "center" },
-	title: { textAlign: "center", color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: 4 },
+	title: { textAlign: "center", color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: space.xs },
 	subtitle: { textAlign: "center", color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	confirmBtn: { backgroundColor: colors.danger, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: 12 },
-	confirmText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 15 },
+	confirmBtn: { backgroundColor: colors.danger, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: space.md },
+	confirmText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	cancelBtn: { height: 44, alignItems: "center", justifyContent: "center" },
 	cancelText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
 	});

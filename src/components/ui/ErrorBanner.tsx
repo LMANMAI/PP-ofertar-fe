@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 type Props = {
 	message: string;
@@ -24,11 +24,11 @@ function createStyles(colors: ColorTokens) {
 		banner: {
 			flexDirection: "row",
 			alignItems: "center",
-			gap: 8,
-			margin: 16,
+			gap: space.sm,
+			margin: space.lg,
 			backgroundColor: colors.dangerSoft,
 			borderRadius: 10,
-			padding: 12,
+			padding: space.md,
 		},
 		text: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
 	});

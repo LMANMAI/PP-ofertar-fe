@@ -165,16 +165,16 @@ function createStyles(colors: ColorTokens) {
 	statusBarBg: { backgroundColor: colors.navy },
 	loader: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.card },
 	topSection: { backgroundColor: colors.navy },
-	header: { height: 56, backgroundColor: colors.navy, justifyContent: "center", paddingHorizontal: 12 },
+	header: { height: 56, backgroundColor: colors.navy, justifyContent: "center", paddingHorizontal: space.md },
 	backButton: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-	content: { flex: 1, paddingHorizontal: 20, paddingTop: 24, backgroundColor: colors.card },
+	content: { flex: 1, paddingHorizontal: space.xl, paddingTop: space.xxl, backgroundColor: colors.card },
 	title: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 28, lineHeight: 36 },
 	subtitle: { marginTop: space.xs, color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 17, lineHeight: 26 },
 	// xxl (24) is a deliberate, larger break: title+subtitle are the screen's
 	// intro, the form below is the actual task, and the gap should read as a
 	// change of section, not just "next line."
 	form: { marginTop: space.xxl, gap: space.lg },
-	errorBox: { marginTop: space.md, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	errorBox: { marginTop: space.md, paddingVertical: 10, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	forgotButton: { alignSelf: "flex-end", marginTop: space.sm },
 	forgotText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 16, textDecorationLine: "underline" },

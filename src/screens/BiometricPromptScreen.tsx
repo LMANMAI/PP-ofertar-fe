@@ -3,7 +3,7 @@ import { Animated, Dimensions, Easing, Pressable, StyleSheet, Text, View } from 
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Session } from "../auth/session";
 import { storeToken, setBiometricPreference } from "../auth/biometricAuth";
 
@@ -125,7 +125,7 @@ function createStyles(colors: ColorTokens) {
 	statusBarBg: { backgroundColor: colors.navy },
 	overlay: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
 	overlayFill: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)" },
-	center: { ...StyleSheet.absoluteFillObject, zIndex: 2, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+	center: { ...StyleSheet.absoluteFillObject, zIndex: 2, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xxl },
 	card: {
 		backgroundColor: colors.card,
 		borderRadius: 20,
@@ -133,7 +133,7 @@ function createStyles(colors: ColorTokens) {
 		paddingTop: 32,
 		paddingBottom: 28,
 		alignItems: "center",
-		gap: 16,
+		gap: space.lg,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 8 },
 		shadowOpacity: 0.15,
@@ -147,7 +147,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.cyan,
 		alignItems: "center",
 		justifyContent: "center",
-		marginBottom: 4,
+		marginBottom: space.xs,
 	},
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, lineHeight: 28, textAlign: "center" },
 	body: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20, textAlign: "center", marginTop: -4 },
@@ -159,12 +159,12 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.navy,
 		height: 52,
 		borderRadius: 12,
-		paddingHorizontal: 24,
+		paddingHorizontal: space.xxl,
 		width: "100%",
-		marginTop: 4,
+		marginTop: space.xs,
 	},
 	enableBtnText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
-	dismissBtn: { paddingVertical: 12, paddingHorizontal: 20 },
+	dismissBtn: { paddingVertical: space.md, paddingHorizontal: space.xl },
 	dismissBtnText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
 	});
 }

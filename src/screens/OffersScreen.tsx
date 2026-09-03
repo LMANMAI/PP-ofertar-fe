@@ -19,7 +19,7 @@ import {
 	ScreenHeader,
 	type TabKey,
 } from "../components";
-import { typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { ALL_CATEGORIES, getOffers, offerBadge, offerCategories, offerPromo } from "../services";
 import type { Offer, PromoIcon } from "../services";
 import type { Session } from "../auth/session";
@@ -368,18 +368,18 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	scroll: { flex: 1 },
-	scrollContent: { padding: 16 },
-	listHeader: { gap: 12, marginBottom: 12 },
-	offerRow: { gap: 12 },
+	scrollContent: { padding: space.lg },
+	listHeader: { gap: space.md, marginBottom: space.md },
+	offerRow: { gap: space.md },
 	offerCol: { flex: 1 },
 	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	filterBarRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+	filterBarRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginTop: space.xs },
 	filterPill: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 6,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
+		paddingHorizontal: space.md,
+		paddingVertical: space.sm,
 		borderRadius: 20,
 		backgroundColor: colors.card,
 		borderWidth: 1,
@@ -402,7 +402,7 @@ function createStyles(colors: ColorTokens) {
 	clearFiltersText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 13 },
 	offerCard: {
 		borderRadius: 18,
-		paddingHorizontal: 16,
+		paddingHorizontal: space.lg,
 		paddingVertical: 14,
 		gap: 10,
 		backgroundColor: colors.card,
@@ -429,7 +429,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.navy,
 	},
 	amountTileFlat: { paddingVertical: 18 },
-	amountKickerRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+	amountKickerRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
 	amountKicker: {
 		color: colors.cyan,
 		fontFamily: typography.family.medium,
@@ -448,9 +448,9 @@ function createStyles(colors: ColorTokens) {
 	},
 	// Warm for anything not simply taken off the price, so a "50% en la 2da
 	// unidad" never looks like a plain 50% off.
-	appliesChipWarm: { backgroundColor: "#FDECE6" },
+	appliesChipWarm: { backgroundColor: colors.warmChip },
 	appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 13, lineHeight: 17 },
-	appliesTextWarm: { color: "#B44A2E" },
+	appliesTextWarm: { color: colors.warmChipText },
 	offerDetail: {
 		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
@@ -463,7 +463,7 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 13,
 		lineHeight: 18,
 	},
-	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+	priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.sm },
 	priceNow: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18 },
 	priceWas: {
 		color: colors.subtleText,
@@ -472,7 +472,7 @@ function createStyles(colors: ColorTokens) {
 		textDecorationLine: "line-through",
 	},
 	offerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	offerStoreRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+	offerStoreRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.sm },
 	storeBadge: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
 	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 10 },
 	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },

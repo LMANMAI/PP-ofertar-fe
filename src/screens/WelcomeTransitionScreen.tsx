@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = { onDone: () => void; name?: string };
 
@@ -36,7 +36,7 @@ function createStyles(colors: ColorTokens) {
 	statusBarBg: { backgroundColor: colors.navy },
 	center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18 },
 	checkCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: colors.cyan, alignItems: "center", justifyContent: "center" },
-	title: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 24, marginTop: 12 },
+	title: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 24, marginTop: space.md },
 	subtitle: { color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 14 },
 	});
 }

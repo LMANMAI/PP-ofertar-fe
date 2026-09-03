@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	pdfName: string;
@@ -62,12 +62,12 @@ function createStyles(colors: ColorTokens) {
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
-		paddingTop: 8,
-		paddingBottom: 16,
+		paddingHorizontal: space.md,
+		paddingTop: space.sm,
+		paddingBottom: space.lg,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: space.sm,
 	},
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
@@ -79,7 +79,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	content: {
 		flex: 1,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 32,
 		justifyContent: "space-between",
 	},
@@ -91,7 +91,7 @@ function createStyles(colors: ColorTokens) {
 		padding: 32,
 		alignItems: "center",
 		gap: 14,
-		marginTop: 20,
+		marginTop: space.xl,
 	},
 	iconWrap: {
 		width: 90,
@@ -114,7 +114,7 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 14,
 		textAlign: "center",
 	},
-	actions: { gap: 12, paddingBottom: 12 },
+	actions: { gap: space.md, paddingBottom: space.md },
 	primaryButton: {
 		backgroundColor: colors.navy,
 		height: 54,
@@ -122,7 +122,7 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
-		gap: 8,
+		gap: space.sm,
 	},
 	primaryButtonText: {
 		color: colors.buttonText,

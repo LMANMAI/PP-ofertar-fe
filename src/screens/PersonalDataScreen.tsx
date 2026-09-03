@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, BottomNav, ScreenHeader, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
@@ -176,7 +176,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 				style={{ flex: 1 }}
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 			>
-			<ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 120 }} keyboardShouldPersistTaps="handled">
+			<ScrollView contentContainerStyle={{ padding: space.xl, gap: space.lg, paddingBottom: insets.bottom + 120 }} keyboardShouldPersistTaps="handled">
 				<View style={styles.avatarRow}>
 					<View style={styles.avatar}>
 						{picUploading ? (
@@ -211,7 +211,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 				)}
 
 				{fetching ? (
-					<ActivityIndicator size="small" color={colors.cyan} style={{ marginTop: 16 }} />
+					<ActivityIndicator size="small" color={colors.cyan} style={{ marginTop: space.lg }} />
 				) : (
 					<>
 						<InputField label="Nombre" value={first} onChangeText={setFirst} />
@@ -301,31 +301,31 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	avatarRow: { alignItems: "center", gap: 10, paddingVertical: 12 },
+	avatarRow: { alignItems: "center", gap: 10, paddingVertical: space.md },
 	avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
 	avatarImage: { width: "100%", height: "100%" },
 	avatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 26 },
-	avatarEdit: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.infoSoft, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
+	avatarEdit: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.infoSoft, paddingHorizontal: space.md, paddingVertical: 6, borderRadius: 14 },
 	avatarEditText: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: 12 },
-	picFeedbackBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	picFeedbackBox: { paddingVertical: 10, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
 	picFeedbackTextError: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	picFeedbackBoxSuccess: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.successSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	picFeedbackBoxSuccess: { paddingVertical: 10, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.successSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
 	picFeedbackTextSuccess: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	saveBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: 4 },
+	saveBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: space.xs },
 	saveText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-	errorBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	errorBox: { paddingVertical: 10, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-	sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
-	sheetContent: { gap: 20 },
+	sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: space.xxl, paddingTop: space.md, paddingBottom: 40 },
+	sheetContent: { gap: space.xl },
 	sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#D1D5DB", alignSelf: "center" },
-	sheetTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18, textAlign: "center", marginBottom: 4 },
+	sheetTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18, textAlign: "center", marginBottom: space.xs },
 	sheetOptions: { gap: 10 },
 	sheetOption: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.navy, height: 52, borderRadius: 12, paddingHorizontal: 18 },
 	sheetOptionDanger: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
 	sheetOptionText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	sheetOptionTextDanger: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
-	sheetCancel: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 20 },
+	sheetCancel: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: space.xl },
 	sheetCancelText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 15 },
 	});
 }

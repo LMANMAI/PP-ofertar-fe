@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, ScreenHeader } from "../components";
 
 type Props = { onBack: () => void; onSuccess: () => void };
@@ -40,7 +40,7 @@ export function ChangePasswordScreen({ onBack, onSuccess }: Props) {
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 			>
 				<ScrollView
-					contentContainerStyle={{ padding: 24, gap: 14, paddingBottom: insets.bottom + 24 }}
+					contentContainerStyle={{ padding: space.xxl, gap: 14, paddingBottom: insets.bottom + 24 }}
 					keyboardShouldPersistTaps="handled"
 				>
 					<Text style={styles.title}>Elegí una contraseña nueva</Text>
@@ -90,7 +90,7 @@ function createStyles(colors: ColorTokens) {
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 22 },
 	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20 },
 	checks: { gap: 6, marginTop: 6 },
-	checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	checkRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	checkText: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 12 },
 	cta: { marginTop: 18, backgroundColor: colors.navy, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center" },
 	ctaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },

@@ -10,7 +10,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Pl
 import { Ionicons } from "@expo/vector-icons";
 import { InputField } from "../components";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	onNext: (data: { firstName: string; lastName: string; email: string; phone: string; referralCode: string }) => void;
@@ -172,8 +172,8 @@ function createStyles(colors: ColorTokens) {
 	progressTrack: { height: 6, backgroundColor: colors.softCyan, width: "100%" },
 	progressFill: { height: 6, backgroundColor: colors.cyan, width: "50%" },
 	header: {
-		paddingHorizontal: 12,
-		paddingTop: 12,
+		paddingHorizontal: space.md,
+		paddingTop: space.md,
 		paddingBottom: 0,
 		backgroundColor: colors.navy,
 	},
@@ -182,20 +182,20 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		marginBottom: 8,
+		marginBottom: space.sm,
 	},
-	headerLeft: { flexDirection: "row", alignItems: "center", gap: 4 },
+	headerLeft: { flexDirection: "row", alignItems: "center", gap: space.xs },
 	backButton: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 16,
 	},
-	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: 4 },
+	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: space.xs },
 	container: {
-		paddingHorizontal: 20,
-		paddingTop: 24,
-		paddingBottom: 24,
+		paddingHorizontal: space.xl,
+		paddingTop: space.xxl,
+		paddingBottom: space.xxl,
 		backgroundColor: colors.background,
 		flexGrow: 1,
 	},
@@ -213,7 +213,7 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 26,
 		marginBottom: 22,
 	},
-	form: { gap: 16 },
+	form: { gap: space.lg },
 	checkboxRow: {
 		flexDirection: "row",
 		alignItems: "flex-start",
@@ -247,7 +247,7 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
-		gap: 8,
+		gap: space.sm,
 	},
 	primaryButtonText: {
 		color: colors.buttonText,
@@ -267,7 +267,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.medium,
 		textDecorationLine: "underline",
 	},
-	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	errorBox: { marginTop: space.md, paddingVertical: 10, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	});
 }

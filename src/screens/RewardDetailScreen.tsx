@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
 import { BottomNav, ScreenHeader, type TabKey } from "../components";
 
@@ -26,12 +26,12 @@ export function RewardDetailScreen({ reward, pointsBalance, onBack, onRedeem, ac
 	return (
 		<View style={styles.safeArea}>
 			<ScreenHeader title="Detalle" onBack={onBack} />
-			<ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+			<ScrollView contentContainerStyle={{ paddingBottom: space.lg }}>
 				<View style={styles.heroWrap}>
 					<View style={styles.hero}>
 						<Ionicons name={reward.icon} size={28} color={colors.cyan} />
 						<Text style={styles.heroTitle}>{reward.title}</Text>
-						<Text style={styles.heroSub}>Beneficio de tu suscripción</Text>
+						<Text style={styles.heroSub}>Adelanto de beneficio de suscripción</Text>
 						<View style={styles.heroBadge}>
 							<Text style={styles.heroBadgeText}>{reward.points} pts</Text>
 						</View>
@@ -94,24 +94,24 @@ function InfoRow({
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	heroWrap: { padding: 16 },
-	hero: { backgroundColor: colors.navy, borderRadius: 16, padding: 20, gap: 8 },
-	heroTitle: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 22, marginTop: 8 },
+	heroWrap: { padding: space.lg },
+	hero: { backgroundColor: colors.navy, borderRadius: 16, padding: space.xl, gap: space.sm },
+	heroTitle: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 22, marginTop: space.sm },
 	heroSub: { color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 13 },
-	heroBadge: { alignSelf: "flex-start", backgroundColor: colors.cyan, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 14, marginTop: 4 },
+	heroBadge: { alignSelf: "flex-start", backgroundColor: colors.cyan, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 14, marginTop: space.xs },
 	heroBadgeText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 12 },
-	infoCard: { marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14 },
-	infoRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
+	infoCard: { marginHorizontal: space.lg, backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14 },
+	infoRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: space.md },
 	infoLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 13 },
 	infoValue: { color: colors.defaultText, fontFamily: typography.family.regular, fontSize: 14, marginTop: 2 },
 	infoDivider: { height: 1, backgroundColor: colors.divider },
-	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16, marginBottom: 8 },
-	condCard: { marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 4 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: space.lg, marginBottom: space.sm },
+	condCard: { marginHorizontal: space.lg, backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: space.xs },
 	condText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 18 },
-	footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, flexDirection: "row", alignItems: "center", gap: 12 },
+	footer: { paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, flexDirection: "row", alignItems: "center", gap: space.md },
 	balText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13 },
 	balRemaining: { color: colors.success, fontFamily: typography.family.regular, fontSize: 13 },
-	cta: { backgroundColor: colors.navy, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8 },
+	cta: { backgroundColor: colors.navy, paddingHorizontal: space.lg, paddingVertical: space.md, borderRadius: 8 },
 	ctaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
 	});
 }

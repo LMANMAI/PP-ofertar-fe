@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Offer } from "../services";
 
 export type OffersFilterSection = "retailers" | "categories";
@@ -164,7 +164,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.card,
 		borderTopLeftRadius: 20,
 		borderTopRightRadius: 20,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 14,
 		paddingBottom: 28,
 		maxHeight: "82%",
@@ -187,7 +187,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 		lineHeight: 17,
-		paddingVertical: 8,
+		paddingVertical: space.sm,
 	},
 	list: {
 		backgroundColor: colors.background,

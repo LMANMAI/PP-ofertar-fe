@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { RecurringProduct } from "../services";
 
 /**
@@ -69,7 +69,7 @@ function createStyles(colors: ColorTokens) {
 		flex: 1,
 		backgroundColor: "rgba(15,23,42,0.55)",
 		justifyContent: "center",
-		paddingHorizontal: 24,
+		paddingHorizontal: space.xxl,
 	},
 	card: {
 		backgroundColor: colors.card,
@@ -105,9 +105,9 @@ function createStyles(colors: ColorTokens) {
 		borderRadius: 12,
 		borderWidth: 1,
 		borderColor: colors.divider,
-		paddingHorizontal: 12,
-		paddingVertical: 4,
-		marginTop: 4,
+		paddingHorizontal: space.md,
+		paddingVertical: space.xs,
+		marginTop: space.xs,
 	},
 	row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
 	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },

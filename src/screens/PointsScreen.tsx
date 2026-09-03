@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { BottomNav, ScreenHeader, type TabKey } from "../components";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { REWARDS, POINTS_PER_REFERRAL } from "../data/rewards";
 import type { Session } from "../auth/session";
 import { getReferralCode } from "../auth/session";
@@ -217,12 +217,12 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	scroll: { flex: 1 },
-	scrollContent: { padding: 16, gap: 14 },
+	scrollContent: { padding: space.lg, gap: 14 },
 	balanceCard: {
 		backgroundColor: colors.navy,
 		borderRadius: 16,
-		padding: 20,
-		gap: 8,
+		padding: space.xl,
+		gap: space.sm,
 		shadowColor: colors.navy,
 		shadowOffset: { width: 0, height: 8 },
 		shadowOpacity: 0.35,
@@ -231,7 +231,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	balanceLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	balanceValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 28, lineHeight: 34 },
-	progressRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, gap: 8 },
+	progressRow: { flexDirection: "row", justifyContent: "space-between", marginTop: space.sm, gap: space.sm },
 	progressLabel: { flex: 1, color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 12 },
 	progressValue: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 12 },
 	progressTrack: { height: 6, backgroundColor: "#142954", borderRadius: 3, overflow: "hidden", marginTop: 6 },
@@ -244,24 +244,24 @@ function createStyles(colors: ColorTokens) {
 		borderWidth: 1,
 		borderColor: colors.divider,
 	},
-	referralHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+	referralHeader: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	referralTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 16 },
 	referralBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19 },
 	codeBox: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
+		gap: space.sm,
 		backgroundColor: colors.softNavy,
 		borderRadius: 10,
-		paddingVertical: 12,
+		paddingVertical: space.md,
 	},
 	codeText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, letterSpacing: 0.5 },
 	shareButton: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
+		gap: space.sm,
 		backgroundColor: colors.navy,
 		borderRadius: 10,
 		height: 46,
@@ -269,8 +269,8 @@ function createStyles(colors: ColorTokens) {
 	shareButtonText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
 	quickItem: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.card, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.divider },
 	quickText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
-	sectionTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 4 },
-	rewardsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+	sectionTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: space.xs },
+	rewardsGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
 	rewardCard: { flexBasis: "47.5%", flexGrow: 1, backgroundColor: colors.infoSoft, borderRadius: 16, padding: 14, gap: 5, minHeight: 110 },
 	rewardCardLocked: { backgroundColor: colors.softWarm },
 	rewardTitle: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: 13, marginTop: 2 },

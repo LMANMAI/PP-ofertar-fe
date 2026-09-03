@@ -142,7 +142,7 @@ function createStyles(colors: ColorTokens) {
 	background: {
 		flex: 1,
 		backgroundColor: colors.navy,
-		paddingHorizontal: 24,
+		paddingHorizontal: space.xxl,
 		paddingTop: 10,
 		paddingBottom: 10,
 		overflow: "hidden",
@@ -266,8 +266,8 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
-		paddingVertical: 8,
+		gap: space.sm,
+		paddingVertical: space.sm,
 		marginTop: space.md,
 	},
 	biometricButtonText: {

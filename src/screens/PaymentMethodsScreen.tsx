@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, ScreenHeader, type TabKey } from "../components";
 
 type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
@@ -15,7 +15,7 @@ export function PaymentMethodsScreen({ onBack, activeTab, onSelectTab, onScanPre
 		<View style={styles.safeArea}>
 			<ScreenHeader title="Métodos de pago" onBack={onBack} />
 
-			<ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24, flexGrow: 1 }}>
+			<ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 24, flexGrow: 1 }}>
 				<View style={styles.emptyWrap}>
 					<View style={styles.emptyIconWrap}>
 						<Ionicons name="card-outline" size={32} color={colors.subtleText} />
@@ -39,8 +39,8 @@ export function PaymentMethodsScreen({ onBack, activeTab, onSelectTab, onScanPre
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 24, paddingTop: 40 },
-	emptyIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.softWarm, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: space.xxl, paddingTop: 40 },
+	emptyIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.softWarm, alignItems: "center", justifyContent: "center", marginBottom: space.xs },
 	emptyTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
 	emptyBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },
 	});

@@ -6,7 +6,7 @@ import {
 	useWindowDimensions,
 } from "react-native";
 import { useMemo, type RefObject } from "react";
-import { typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 import type { OnboardingTargetId } from "./OnboardingProvider";
 
 export type SpotlightRect = {
@@ -194,7 +194,7 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		marginTop: 16,
+		marginTop: space.lg,
 	},
 	skip: {
 		color: colors.mutedText,
@@ -204,7 +204,7 @@ function createStyles(colors: ColorTokens) {
 	next: {
 		backgroundColor: colors.navy,
 		borderRadius: 9,
-		paddingHorizontal: 16,
+		paddingHorizontal: space.lg,
 		paddingVertical: 10,
 	},
 	nextText: {

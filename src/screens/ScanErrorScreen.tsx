@@ -3,7 +3,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	errorMessage?: string;
@@ -102,12 +102,12 @@ function createStyles(colors: ColorTokens) {
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
-		paddingTop: 8,
-		paddingBottom: 16,
+		paddingHorizontal: space.md,
+		paddingTop: space.sm,
+		paddingBottom: space.lg,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: space.sm,
 	},
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
@@ -117,7 +117,7 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 16,
 	},
 	scroll: { flex: 1 },
-	scrollContent: { paddingHorizontal: 20, paddingTop: 22, gap: 18 },
+	scrollContent: { paddingHorizontal: space.xl, paddingTop: 22, gap: 18 },
 	errorCard: {
 		backgroundColor: colors.card,
 		borderRadius: 16,
@@ -147,16 +147,16 @@ function createStyles(colors: ColorTokens) {
 		borderRadius: 14,
 		borderWidth: 1,
 		borderColor: "#FED7AA",
-		padding: 16,
-		gap: 8,
+		padding: space.lg,
+		gap: space.sm,
 	},
 	tipsTitle: {
 		color: colors.warningSoftText,
 		fontFamily: typography.family.bold,
 		fontSize: 13,
-		marginBottom: 4,
+		marginBottom: space.xs,
 	},
-	tipRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	tipRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	tipText: {
 		flex: 1,
 		color: colors.warningSoftText,
@@ -171,7 +171,7 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
-		gap: 8,
+		gap: space.sm,
 	},
 	primaryButtonText: {
 		color: colors.buttonText,
@@ -192,7 +192,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.medium,
 		fontSize: 14,
 	},
-	supportButton: { alignItems: "center", paddingVertical: 8 },
+	supportButton: { alignItems: "center", paddingVertical: space.sm },
 	supportText: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,

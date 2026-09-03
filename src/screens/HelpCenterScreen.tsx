@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, ScreenHeader, type TabKey } from "../components";
 import { POINTS_PER_REFERRAL } from "../data/rewards";
 
@@ -13,7 +13,7 @@ const FAQS: Faq[] = [
 	{ id: "2", q: "¿Cómo gano puntos?", a: `Si te registrás usando el código de invitación de un amigo, ganás ${POINTS_PER_REFERRAL} puntos. Encontrá tu propio código para compartir en la pestaña Puntos.` },
 	{ id: "3", q: "¿Mis datos están seguros?", a: "Guardamos lo mínimo necesario para que funcione tu cuenta y nunca compartimos tu información personal con terceros." },
 	{ id: "4", q: "¿Cómo veo el detalle de una oferta?", a: "Desde la pestaña Ofertas, tocá cualquier oferta para ver en qué sucursales aplica, hasta cuándo dura y las condiciones." },
-	{ id: "5", q: "¿Para qué sirven los puntos por referidos?", a: "Se canjean por descuentos en tu próxima suscripción a OfertAR, o incluso un mes gratis. Mirá los canjes disponibles en la pestaña Puntos." },
+	{ id: "5", q: "¿Para qué sirven los puntos por referidos?", a: "OfertAR todavía no tiene suscripción paga, así que por ahora es una vista previa: podés guardar tu interés en descuentos o un mes gratis para el día que esa función exista. Mirá los canjes disponibles en la pestaña Puntos." },
 ];
 
 type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
@@ -41,7 +41,7 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 		<View style={styles.safeArea}>
 			<ScreenHeader title="Centro de ayuda" onBack={onBack} />
 
-			<ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 24 }}>
+			<ScrollView contentContainerStyle={{ padding: space.lg, gap: space.md, paddingBottom: insets.bottom + 24 }}>
 				<View style={styles.searchBox}>
 					<Ionicons name="search" size={16} color={colors.subtleText} />
 					<TextInput
@@ -104,17 +104,17 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	searchBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.card, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.divider },
+	searchBox: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.card, padding: space.md, borderRadius: 10, borderWidth: 1, borderColor: colors.divider },
 	searchInput: { flex: 1, color: colors.defaultText, fontFamily: typography.family.regular, fontSize: 14, padding: 0 },
-	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 8 },
-	emptyWrap: { backgroundColor: colors.card, borderRadius: 12, padding: 20, alignItems: "center" },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: space.sm },
+	emptyWrap: { backgroundColor: colors.card, borderRadius: 12, padding: space.xl, alignItems: "center" },
 	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, textAlign: "center" },
 	faqCard: { backgroundColor: colors.card, borderRadius: 12, overflow: "hidden" },
-	faqRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 },
+	faqRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: space.lg },
 	faqQ: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
-	faqA: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 14 },
-	divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: 16 },
-	contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: colors.navy, height: 48, borderRadius: 10 },
+	faqA: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: space.lg, paddingBottom: 14 },
+	divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: space.lg },
+	contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm, backgroundColor: colors.navy, height: 48, borderRadius: 10 },
 	contactText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	});
 }

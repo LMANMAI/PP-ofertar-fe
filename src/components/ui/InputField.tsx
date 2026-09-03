@@ -8,7 +8,7 @@ import {
 	KeyboardTypeOptions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors } from "../../theme/designSystem";
+import { space, typography, useThemeColors } from "../../theme/designSystem";
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -101,7 +101,7 @@ export function InputField({
 
 const styles = StyleSheet.create({
 	wrapper: {
-		gap: 8,
+		gap: space.sm,
 	},
 	label: {
 		fontFamily: typography.family.medium,

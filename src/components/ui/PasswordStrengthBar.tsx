@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 type Props = {
 	minLength: boolean;
@@ -86,13 +86,13 @@ export function PasswordStrengthBar({ minLength, uppercase, number, special, mat
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
-	wrap: { gap: 8 },
-	barRow: { flexDirection: "row", gap: 4 },
+	wrap: { gap: space.sm },
+	barRow: { flexDirection: "row", gap: space.xs },
 	segment: { flex: 1, height: 4, borderRadius: 2 },
 	segmentEmpty: { backgroundColor: colors.divider },
 	label: { fontFamily: typography.family.medium, fontSize: 12, lineHeight: 16 },
-	checklist: { gap: 4, marginTop: 2 },
-	checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	checklist: { gap: space.xs, marginTop: 2 },
+	checkRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	checkText: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
 	checkTextMet: { color: colors.defaultText, fontFamily: typography.family.medium },
 	});

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Reward } from "../data/rewards";
 
 type Props = {
@@ -92,20 +92,20 @@ function Stat({
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
-	backdrop: { flex: 1, backgroundColor: "rgba(10,31,68,0.7)", justifyContent: "center", paddingHorizontal: 20 },
-	sheet: { backgroundColor: colors.card, borderRadius: 16, padding: 22, gap: 12, alignItems: "stretch" },
+	backdrop: { flex: 1, backgroundColor: "rgba(10,31,68,0.7)", justifyContent: "center", paddingHorizontal: space.xl },
+	sheet: { backgroundColor: colors.card, borderRadius: 16, padding: 22, gap: space.md, alignItems: "stretch" },
 	iconCircle: { alignSelf: "center", width: 60, height: 60, borderRadius: 30, backgroundColor: colors.infoSoft, alignItems: "center", justifyContent: "center" },
-	title: { textAlign: "center", color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: 4 },
+	title: { textAlign: "center", color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: space.xs },
 	subtitle: { textAlign: "center", color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20 },
 	bold: { color: colors.defaultText, fontFamily: typography.family.medium },
 	statsRow: { flexDirection: "row", gap: 10, marginTop: 6 },
 	stat: { flex: 1, backgroundColor: colors.navy, borderRadius: 12, padding: 14, alignItems: "center" },
 	statLabel: { color: "#99B2CC", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
-	statValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 18, marginTop: 4 },
-	warningBox: { flexDirection: "row", gap: 8, alignItems: "center", backgroundColor: colors.warningSoft, padding: 10, borderRadius: 10 },
+	statValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 18, marginTop: space.xs },
+	warningBox: { flexDirection: "row", gap: space.sm, alignItems: "center", backgroundColor: colors.warningSoft, padding: 10, borderRadius: 10 },
 	warningBoxDanger: { backgroundColor: colors.dangerSoft },
 	warningText: { flex: 1, color: colors.warningSoftText, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
-	confirmBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: 8 },
+	confirmBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: space.sm },
 	confirmText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	cancelBtn: { height: 44, alignItems: "center", justifyContent: "center" },
 	cancelText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },

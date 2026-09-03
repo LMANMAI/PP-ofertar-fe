@@ -3,13 +3,15 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Account = { id: string; name: string; email: string; initials: string; color: string };
 
-const ACCOUNTS: Account[] = [
-	{ id: "1", name: "Martina Álvarez", email: "martina.a@gmail.com", initials: "MA", color: "#7DD4F5" },
-	{ id: "2", name: "Martina Personal", email: "martina.personal@gmail.com", initials: "MP", color: "#F2B61D" },
+type MockAccount = Omit<Account, "color">;
+
+const ACCOUNTS: MockAccount[] = [
+	{ id: "1", name: "Martina Álvarez", email: "martina.a@gmail.com", initials: "MA" },
+	{ id: "2", name: "Martina Personal", email: "martina.personal@gmail.com", initials: "MP" },
 ];
 
 type Props = { onBack: () => void; onSelect: () => void };
@@ -19,6 +21,9 @@ export function GoogleChooseAccountScreen({ onBack, onSelect }: Props) {
 	const colors = useThemeColors();
 	const isDark = useIsDarkMode();
 	const styles = useMemo(() => createStyles(colors), [colors]);
+	// Mock avatar tints for these placeholder accounts; the first reuses the
+	// brand cyan so it stays a token reference instead of a duplicated literal.
+	const avatarColors = [colors.cyan, "#F2B61D"];
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
@@ -30,14 +35,14 @@ export function GoogleChooseAccountScreen({ onBack, onSelect }: Props) {
 			</View>
 
 			<View style={styles.content}>
-				<Ionicons name="logo-google" size={40} color="#4285F4" style={{ marginBottom: 12 }} />
+				<Ionicons name="logo-google" size={40} color="#4285F4" style={{ marginBottom: space.md }} />
 				<Text style={styles.title}>Elegí una cuenta</Text>
 				<Text style={styles.subtitle}>para continuar con OfertAR</Text>
 
 				<View style={styles.accountList}>
-					{ACCOUNTS.map((a) => (
+					{ACCOUNTS.map((a, idx) => (
 						<Pressable key={a.id} style={styles.accountRow} onPress={onSelect}>
-							<View style={[styles.accAvatar, { backgroundColor: a.color }]}>
+							<View style={[styles.accAvatar, { backgroundColor: avatarColors[idx % avatarColors.length] }]}>
 								<Text style={styles.accAvatarText}>{a.initials}</Text>
 							</View>
 							<View style={{ flex: 1 }}>
@@ -66,18 +71,18 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	statusBarBg: { backgroundColor: colors.card },
-	header: { height: 56, paddingHorizontal: 12, justifyContent: "center" },
+	header: { height: 56, paddingHorizontal: space.md, justifyContent: "center" },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	content: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
+	content: { flex: 1, paddingHorizontal: space.xxl, paddingTop: space.md },
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 24 },
-	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, marginTop: 4 },
-	accountList: { marginTop: 24, gap: 4 },
-	accountRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12, paddingHorizontal: 4 },
+	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, marginTop: space.xs },
+	accountList: { marginTop: space.xxl, gap: space.xs },
+	accountRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: space.md, paddingHorizontal: space.xs },
 	accAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
 	accAvatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
 	accName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	accEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, marginTop: 1 },
-	addAccount: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#F8F9FB", alignItems: "center", justifyContent: "center" },
+	addAccount: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.softWarm, alignItems: "center", justifyContent: "center" },
 	addText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
 	legal: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 16, marginTop: 32 },
 	});

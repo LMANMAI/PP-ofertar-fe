@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -44,7 +44,7 @@ function createStyles(colors: ColorTokens) {
 		wrap: {
 			alignItems: "center",
 			justifyContent: "center",
-			gap: 12,
+			gap: space.md,
 			paddingVertical: 60,
 			paddingHorizontal: 40,
 		},

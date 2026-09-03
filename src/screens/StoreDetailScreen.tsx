@@ -3,7 +3,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
 import { BottomNav, ScreenHeader, type TabKey } from "../components";
 import type { NearbyStore } from "../services";
@@ -40,7 +40,7 @@ export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onSca
 			) : (
 				<ScrollView
 					style={styles.scroll}
-					contentContainerStyle={{ paddingBottom: 16 }}
+					contentContainerStyle={{ paddingBottom: space.lg }}
 					showsVerticalScrollIndicator={false}
 				>
 					<View style={styles.mapWrap}>
@@ -118,16 +118,16 @@ function createStyles(colors: ColorTokens) {
 	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
 	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
 	mapWrap: { height: 200, backgroundColor: colors.divider },
-	content: { padding: 16, gap: 12 },
+	content: { padding: space.lg, gap: space.md },
 	summaryCard: {
 		backgroundColor: colors.card,
 		borderRadius: 16,
-		padding: 16,
-		gap: 12,
+		padding: space.lg,
+		gap: space.md,
 		borderWidth: 1,
 		borderColor: colors.divider,
 	},
-	summaryHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+	summaryHeader: { flexDirection: "row", alignItems: "center", gap: space.md },
 	storeBadge: {
 		width: 36,
 		height: 36,
@@ -146,7 +146,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 	},
-	infoRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	infoRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	infoText: {
 		flex: 1,
 		color: colors.defaultText,
@@ -160,9 +160,9 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 17,
 	},
 	footer: {
-		paddingHorizontal: 16,
-		paddingTop: 12,
-		paddingBottom: 12,
+		paddingHorizontal: space.lg,
+		paddingTop: space.md,
+		paddingBottom: space.md,
 		backgroundColor: colors.card,
 		borderTopWidth: 1,
 		borderTopColor: colors.divider,
@@ -174,7 +174,7 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
-		gap: 8,
+		gap: space.sm,
 	},
 	primaryButtonText: {
 		color: colors.cyan,

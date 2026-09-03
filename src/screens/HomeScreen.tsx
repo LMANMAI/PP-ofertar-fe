@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomNav, type TabKey, useOnboardingTarget } from "../components";
-import { typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
 	describeCampaignDiscount,
@@ -302,7 +302,7 @@ export function HomeScreen({
 							</Pressable>
 						</View>
 					) : loadingSavings ? (
-						<View style={{ paddingVertical: 8 }}>
+						<View style={{ paddingVertical: space.sm }}>
 							<ActivityIndicator size="small" color={colors.cyan} />
 						</View>
 					) : (
@@ -472,9 +472,9 @@ function createStyles(colors: ColorTokens) {
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 10,
-		paddingBottom: 16,
+		paddingBottom: space.lg,
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
@@ -519,9 +519,9 @@ function createStyles(colors: ColorTokens) {
 	},
 	scroll: { flex: 1, backgroundColor: colors.background },
 	scrollContent: {
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 18,
-		paddingBottom: 24,
+		paddingBottom: space.xxl,
 		gap: 14,
 	},
 	scrollContentTablet: {
@@ -532,8 +532,8 @@ function createStyles(colors: ColorTokens) {
 	savingsCard: {
 		backgroundColor: colors.navy,
 		borderRadius: 18,
-		padding: 20,
-		gap: 4,
+		padding: space.xl,
+		gap: space.xs,
 	},
 	savingsOverline: {
 		color: "rgba(255,255,255,0.55)",
@@ -546,18 +546,18 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.bold,
 		fontSize: 36,
 		lineHeight: 42,
-		marginTop: 4,
+		marginTop: space.xs,
 	},
-	savingsErrorRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
+	savingsErrorRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: space.sm },
 	savingsErrorText: { color: "rgba(255,255,255,0.75)", fontFamily: typography.family.regular, fontSize: 13 },
 	savingsRetryBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.cyan, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
 	savingsRetryText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-	firstRunCard: { backgroundColor: colors.card, borderRadius: 16, padding: 20, alignItems: "center", gap: 8, borderWidth: 1, borderColor: colors.divider },
-	firstRunTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textAlign: "center", marginTop: 4 },
+	firstRunCard: { backgroundColor: colors.card, borderRadius: 16, padding: space.xl, alignItems: "center", gap: space.sm, borderWidth: 1, borderColor: colors.divider },
+	firstRunTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textAlign: "center", marginTop: space.xs },
 	firstRunBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },
-	firstRunCta: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10, marginTop: 6 },
+	firstRunCta: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: space.md, borderRadius: 10, marginTop: 6 },
 	firstRunCtaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
-	savingsDeltaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+	savingsDeltaRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
 	savingsDeltaText: {
 		color: colors.cyan,
 		fontFamily: typography.family.medium,
@@ -605,7 +605,7 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		marginTop: 8,
+		marginTop: space.sm,
 	},
 	sectionTitle: {
 		color: colors.mutedText,
@@ -618,7 +618,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.medium,
 		fontSize: 12,
 	},
-	offersRow: { gap: 12, paddingRight: 20 },
+	offersRow: { gap: space.md, paddingRight: space.xl },
 	offerCard: {
 		// Wider than the old 240: the number now sits in a tile beside the
 		// text instead of above it, and the "En la 2da unidad" chip needs room
@@ -659,7 +659,7 @@ function createStyles(colors: ColorTokens) {
 		justifyContent: "space-between",
 		alignItems: "center",
 	},
-	offerStoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	offerStoreRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	storeBadge: {
 		width: 28,
 		height: 28,
@@ -674,20 +674,20 @@ function createStyles(colors: ColorTokens) {
 	},
 	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	offerValidity: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
-	offerBody: { flexDirection: "row", alignItems: "stretch", gap: 12 },
+	offerBody: { flexDirection: "row", alignItems: "stretch", gap: space.md },
 	// The percentage gets its own block instead of being one more line of
 	// text — this is the visual cue the cards were missing.
 	amountTile: {
 		width: 78,
 		borderRadius: 14,
-		paddingVertical: 8,
+		paddingVertical: space.sm,
 		paddingHorizontal: 6,
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 2,
 		backgroundColor: colors.navy,
 	},
-	amountTileFlat: { paddingVertical: 16 },
+	amountTileFlat: { paddingVertical: space.lg },
 	amountKickerRow: { flexDirection: "row", alignItems: "center", gap: 3 },
 	amountKicker: {
 		color: colors.cyan,
@@ -704,16 +704,16 @@ function createStyles(colors: ColorTokens) {
 	appliesChip: {
 		alignSelf: "flex-start",
 		maxWidth: "100%",
-		paddingHorizontal: 8,
-		paddingVertical: 4,
+		paddingHorizontal: space.sm,
+		paddingVertical: space.xs,
 		borderRadius: 8,
 		backgroundColor: colors.softNavy,
 	},
 	// Warm for anything that is not simply taken off the price, so a
 	// "50% en la 2da unidad" never looks like a plain 50% off.
-	appliesChipWarm: { backgroundColor: "#FDECE6" },
+	appliesChipWarm: { backgroundColor: colors.warmChip },
 	appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 11, lineHeight: 15 },
-	appliesTextWarm: { color: "#B44A2E" },
+	appliesTextWarm: { color: colors.warmChipText },
 	offerProduct: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
@@ -729,7 +729,7 @@ function createStyles(colors: ColorTokens) {
 		textDecorationLine: "line-through",
 	},
 	offerSub: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
-	offerCaveatRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+	offerCaveatRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
 	offerCaveat: {
 		flex: 1,
 		color: "#64748B",
@@ -740,7 +740,7 @@ function createStyles(colors: ColorTokens) {
 	// Matches offersRow above, so both carousels on this screen scroll the same.
 	productsRow: {
 		gap: 10,
-		paddingRight: 20,
+		paddingRight: space.xl,
 	},
 	productCard: {
 		// Fixed width now that these scroll horizontally; flex:1 only made sense
@@ -748,7 +748,7 @@ function createStyles(colors: ColorTokens) {
 		width: 150,
 		backgroundColor: colors.card,
 		borderRadius: 14,
-		padding: 12,
+		padding: space.md,
 		gap: 6,
 		borderWidth: 1,
 		borderColor: colors.divider,
@@ -757,7 +757,7 @@ function createStyles(colors: ColorTokens) {
 		width: "100%",
 		aspectRatio: 1,
 		borderRadius: 10,
-		backgroundColor: "#F8F9FB",
+		backgroundColor: colors.softWarm,
 		alignItems: "center",
 		justifyContent: "center",
 		marginBottom: 6,
@@ -796,7 +796,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	productDeltaBadge: {
 		backgroundColor: colors.successSoft,
-		paddingHorizontal: 8,
+		paddingHorizontal: space.sm,
 		paddingVertical: 3,
 		borderRadius: 6,
 	},
@@ -805,16 +805,16 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.medium,
 		fontSize: 11,
 	},
-	quickRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+	quickRow: { flexDirection: "row", gap: 10, marginTop: space.xs },
 	quickItem: {
 		flex: 1,
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
+		gap: space.sm,
 		backgroundColor: colors.card,
 		borderRadius: 10,
-		paddingVertical: 12,
+		paddingVertical: space.md,
 		borderWidth: 1,
 		borderColor: colors.divider,
 	},

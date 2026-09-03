@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getSavingsReport } from "../services";
 import type { SavingsReportResponse } from "../services";
 import type { Session } from "../auth/session";
@@ -106,7 +106,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 			{!loading && !error && report && (
 				<ScrollView
 					style={{ flex: 1 }}
-					contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }}>
+					contentContainerStyle={{ padding: space.lg, gap: 14, paddingBottom: space.xxl }}>
 					<View style={styles.heroCard}>
 						<Text style={styles.heroLabel}>
 							GASTO TOTAL · {formatMonth(selectedMonth).toUpperCase()}
@@ -204,13 +204,13 @@ function Tag({ text, tone, styles }: { text: string; tone?: "cyan"; styles: Retu
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	monthSelector: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 12, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
+	monthSelector: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: space.md, gap: space.md, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
 	monthArrow: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	monthLabel: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textTransform: "capitalize" },
-	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: 20, gap: 8 },
+	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: space.xl, gap: space.sm },
 	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
-	heroValue: { color: "#fff", fontFamily: typography.family.bold, fontSize: 34 },
-	heroRow: { flexDirection: "row", gap: 6, marginTop: 4 },
+	heroValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 34 },
+	heroRow: { flexDirection: "row", gap: 6, marginTop: space.xs },
 	tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
 	tagMuted: { backgroundColor: "rgba(255,255,255,0.12)" },
 	tagCyan: { backgroundColor: colors.cyan },
@@ -219,12 +219,12 @@ function createStyles(colors: ColorTokens) {
 	tagTextCyan: { color: colors.navy },
 	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	catsCard: { backgroundColor: colors.card, borderRadius: 14, padding: 6 },
-	catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.divider },
+	catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
 	catDot: { width: 10, height: 10, borderRadius: 5 },
-	catHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
+	catHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: space.xs },
 	catName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	catAmount: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 12 },
-	catBarTrack: { height: 6, backgroundColor: "#F8F9FB", borderRadius: 3, overflow: "hidden" },
+	catBarTrack: { height: 6, backgroundColor: colors.softWarm, borderRadius: 3, overflow: "hidden" },
 	catBarFill: { height: 6, borderRadius: 3 },
 	catPct: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 13, width: 54, textAlign: "right" },
 	highlightsRow: {

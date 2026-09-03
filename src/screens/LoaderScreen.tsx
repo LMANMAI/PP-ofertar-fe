@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	onDone: () => void;
@@ -51,6 +51,6 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.card,
 	},
 	logo: { width: 72, height: 72, borderRadius: 12 },
-	spinner: { marginTop: 24 },
+	spinner: { marginTop: space.xxl },
 	});
 }

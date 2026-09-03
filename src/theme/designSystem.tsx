@@ -50,6 +50,10 @@ export const colors = {
 	warningSoftText: "#B45A14",
 	infoSoft: "#E8F6FC",
 	infoSoftText: "#0A1F44",
+	// Chip de condición "no es simplemente un % off" (ej. "2da unidad al 50%") —
+	// deliberadamente más cálido que warningSoft para no leerse como alerta.
+	warmChip: "#FDECE6",
+	warmChipText: "#B44A2E",
 } as const;
 
 export type ColorTokens = Record<keyof typeof colors, string>;
@@ -89,6 +93,8 @@ export const darkColors: ColorTokens = {
 	warningSoftText: "#FBBF24",
 	infoSoft: "#12303A",
 	infoSoftText: "#7DD4F5",
+	warmChip: "#3A2118",
+	warmChipText: "#F4A387",
 };
 
 export type ThemePreference = "system" | "light" | "dark";

@@ -13,13 +13,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { BottomNav, type TabKey } from "../components";
-import {
-	typography,
+import { space, typography,
 	useThemeColors,
 	useThemePreference,
 	type ColorTokens,
-	type ThemePreference,
-} from "../theme/designSystem";
+	type ThemePreference, } from "../theme/designSystem";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { isBiometricAvailable } from "../auth/biometricAuth";
@@ -153,7 +151,7 @@ export function ProfileScreen({
 							<Text style={styles.avatarText}>{getInitials(session.user.name)}</Text>
 						)}
 					</View>
-					<View style={{ flex: 1, gap: 4 }}>
+					<View style={{ flex: 1, gap: space.xs }}>
 						<Text style={styles.profileName}>
 							{splitName(session.user.name).firstName} {splitName(session.user.name).lastName}
 						</Text>
@@ -238,7 +236,7 @@ export function ProfileScreen({
 							value={alertsEnabled}
 							onValueChange={setAlertsEnabled}
 							trackColor={{ true: colors.cyan, false: colors.border }}
-							thumbColor="#fff"
+							thumbColor={colors.buttonText}
 						/>
 					</View>
 					<View style={styles.listDivider} />
@@ -256,7 +254,7 @@ export function ProfileScreen({
 							value={alternativeBrands}
 							onValueChange={handleToggleAlternativeBrands}
 							trackColor={{ true: colors.cyan, false: colors.border }}
-							thumbColor="#fff"
+							thumbColor={colors.buttonText}
 							disabled={savingPreference}
 						/>
 					</View>
@@ -272,7 +270,7 @@ export function ProfileScreen({
 							value={shareData}
 							onValueChange={setShareData}
 							trackColor={{ true: colors.cyan, false: colors.border }}
-							thumbColor="#fff"
+							thumbColor={colors.buttonText}
 						/>
 					</View>
 					<View style={styles.listDivider} />
@@ -292,7 +290,7 @@ export function ProfileScreen({
 							value={biometricEnabled}
 							onValueChange={(v) => onToggleBiometric?.(v)}
 							trackColor={{ true: colors.cyan, false: colors.border }}
-							thumbColor="#fff"
+							thumbColor={colors.buttonText}
 							disabled={!biometricAvailable}
 						/>
 					</View>
@@ -329,28 +327,28 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 20, height: 56, flexDirection: "row", alignItems: "center", gap: 10 },
+	header: { backgroundColor: colors.navy, paddingHorizontal: space.xl, height: 56, flexDirection: "row", alignItems: "center", gap: 10 },
 	headerLogo: { width: 24, height: 24, borderRadius: 6 },
 	headerTitle: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	scroll: { flex: 1 },
-	scrollContent: { padding: 16, gap: 12 },
-	profileCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1, borderColor: colors.divider },
+	scrollContent: { padding: space.lg, gap: space.md },
+	profileCard: { backgroundColor: colors.card, borderRadius: 16, padding: space.lg, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1, borderColor: colors.divider },
 	avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
 	avatarImage: { width: "100%", height: "100%" },
 	avatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
 	profileName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 16 },
 	profileEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
-	levelBadge: { alignSelf: "flex-start", backgroundColor: colors.infoSoft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4, flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+	levelBadge: { alignSelf: "flex-start", backgroundColor: colors.infoSoft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4, flexDirection: "row", alignItems: "center", gap: space.xs, marginTop: 2 },
 	levelBadgeText: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: 11, letterSpacing: 0.3 },
-	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 8 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: space.sm },
 	listCard: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
-	listItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, minHeight: 60 },
+	listItem: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.md, minHeight: 60 },
 	listIconWrap: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.infoSoft, alignItems: "center", justifyContent: "center" },
 	listLabel: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	listHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
 	listDivider: { height: 1, backgroundColor: colors.divider, marginLeft: 60 },
-	themeRow: { paddingBottom: 4, minHeight: 0 },
-	themeOptionsRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 14 },
+	themeRow: { paddingBottom: space.xs, minHeight: 0 },
+	themeOptionsRow: { flexDirection: "row", gap: space.sm, paddingHorizontal: space.lg, paddingBottom: 14 },
 	themeOption: {
 		flex: 1,
 		flexDirection: "row",
@@ -366,7 +364,7 @@ function createStyles(colors: ColorTokens) {
 	themeOptionActive: { backgroundColor: colors.navy, borderColor: colors.navy },
 	themeOptionText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 12 },
 	themeOptionTextActive: { color: colors.buttonText },
-	logoutButton: { marginTop: 8, height: 48, borderRadius: 10, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+	logoutButton: { marginTop: space.sm, height: 48, borderRadius: 10, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm },
 	logoutText: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
 	});
 }

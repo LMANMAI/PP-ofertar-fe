@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, PasswordStrengthBar } from "../components";
 import { register } from "../services/authApi";
 import type { Session } from "../auth/session";
@@ -142,8 +142,8 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	header: {
-		paddingHorizontal: 12,
-		paddingTop: 8,
+		paddingHorizontal: space.md,
+		paddingTop: space.sm,
 		paddingBottom: 0,
 		backgroundColor: colors.navy,
 	},
@@ -152,23 +152,23 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		marginBottom: 8,
+		marginBottom: space.sm,
 	},
-	headerLeft: { flexDirection: "row", alignItems: "center", gap: 4 },
+	headerLeft: { flexDirection: "row", alignItems: "center", gap: space.xs },
 	backButton: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 16,
 	},
-	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: 4 },
+	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: space.xs },
 	progressWrap: { backgroundColor: colors.navy },
 	progressTrack: { height: 6, backgroundColor: colors.softCyan, width: "100%" },
 	progressFill: { height: 6, backgroundColor: colors.cyan, width: "100%" },
 	container: {
-		paddingHorizontal: 20,
-		paddingTop: 24,
-		paddingBottom: 24,
+		paddingHorizontal: space.xl,
+		paddingTop: space.xxl,
+		paddingBottom: space.xxl,
 		backgroundColor: colors.background,
 		flexGrow: 1,
 	},
@@ -185,14 +185,14 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 17,
 		lineHeight: 26,
 	},
-	form: { gap: 16 },
+	form: { gap: space.lg },
 	primaryButton: {
 		backgroundColor: colors.navy,
 		height: 52,
 		borderRadius: 10,
 		alignItems: "center",
 		justifyContent: "center",
-		marginTop: 20,
+		marginTop: space.xl,
 	},
 	primaryButtonPressed: { opacity: 0.9 },
 	primaryButtonDisabled: { opacity: 0.55 },
@@ -202,7 +202,7 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 15,
 		lineHeight: 18,
 	},
-	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	errorBox: { marginTop: space.md, paddingVertical: 10, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	});
 }

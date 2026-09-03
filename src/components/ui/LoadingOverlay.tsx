@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 const appIcon = require("../../../assets/icon.png");
 
@@ -164,7 +164,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	content: {
 		alignItems: "center",
-		gap: 20,
+		gap: space.xl,
 		paddingHorizontal: 40,
 	},
 	ringOuter: {

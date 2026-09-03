@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, EmptyState, ScreenHeader, type TabKey } from "../components";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
@@ -34,7 +34,7 @@ export function PointsHistoryScreen({ entries, onBack, activeTab, onSelectTab, o
 	return (
 		<View style={styles.safeArea}>
 			<ScreenHeader title="Historial de puntos" onBack={onBack} />
-			<ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 24 }}>
+			<ScrollView contentContainerStyle={{ padding: space.lg, gap: space.md, paddingBottom: insets.bottom + 24 }}>
 				<View style={styles.summary}>
 					<View style={styles.summaryItem}>
 						<Text style={styles.summaryLabel}>SUMADOS</Text>
@@ -108,13 +108,13 @@ export function PointsHistoryScreen({ entries, onBack, activeTab, onSelectTab, o
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	summary: { backgroundColor: colors.card, borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center" },
-	summaryItem: { flex: 1, alignItems: "center", gap: 4 },
+	summary: { backgroundColor: colors.card, borderRadius: 14, padding: space.lg, flexDirection: "row", alignItems: "center" },
+	summaryItem: { flex: 1, alignItems: "center", gap: space.xs },
 	summaryDivider: { width: 1, height: 32, backgroundColor: colors.divider },
 	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	summaryValue: { fontFamily: typography.family.bold, fontSize: 16 },
 	list: { backgroundColor: colors.card, borderRadius: 14, overflow: "hidden" },
-	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
+	row: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: 14, paddingVertical: 14 },
 	iconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
 	rowTitle: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	rowDate: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },

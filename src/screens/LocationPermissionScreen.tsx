@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { ensureLocationPermission } from "../location/permission";
 
 /** `granted` is what the OS answered, not what the user tapped: the screen
@@ -47,7 +47,7 @@ export function LocationPermissionScreen({ onAllow, onSkip }: Props) {
 			<View style={styles.footer}>
 				<Pressable style={styles.primaryBtn} onPress={handleAllow} disabled={asking}>
 					{asking ? (
-						<ActivityIndicator color="#fff" />
+						<ActivityIndicator color={colors.buttonText} />
 					) : (
 						<Text style={styles.primaryText}>Permitir ubicación</Text>
 					)}
@@ -73,15 +73,15 @@ function Feature({ icon, text }: { icon: any; text: string }) {
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
-	safeArea: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 24 },
+	safeArea: { flex: 1, backgroundColor: colors.background, paddingHorizontal: space.xxl },
 	content: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14 },
-	iconWrap: { width: 120, height: 120, borderRadius: 60, backgroundColor: colors.infoSoft, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+	iconWrap: { width: 120, height: 120, borderRadius: 60, backgroundColor: colors.infoSoft, alignItems: "center", justifyContent: "center", marginBottom: space.sm },
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 24, textAlign: "center" },
 	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center", lineHeight: 20 },
-	featuresCard: { backgroundColor: colors.card, borderRadius: 14, padding: 16, gap: 12, width: "100%", marginTop: 18, borderWidth: 1, borderColor: colors.divider },
+	featuresCard: { backgroundColor: colors.card, borderRadius: 14, padding: space.lg, gap: space.md, width: "100%", marginTop: 18, borderWidth: 1, borderColor: colors.divider },
 	featureRow: { flexDirection: "row", alignItems: "center", gap: 10 },
 	featureText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.regular, fontSize: 13 },
-	footer: { gap: 8 },
+	footer: { gap: space.sm },
 	primaryBtn: { backgroundColor: colors.navy, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center" },
 	primaryText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	skipBtn: { height: 44, alignItems: "center", justifyContent: "center" },
