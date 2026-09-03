@@ -4,15 +4,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Offer } from "../services";
 
-const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20];
-
-export type OffersFilterSection = "retailers" | "categories" | "nearby" | "all";
+export type OffersFilterSection = "retailers" | "categories";
 
 export type OffersFilterState = {
 	retailerSlugs: Set<string>;
 	categories: Set<string>;
-	nearbyOnly: boolean;
-	nearbyRadiusKm: number;
 };
 
 type Retailer = { slug: string; name: string };
@@ -20,16 +16,16 @@ type Retailer = { slug: string; name: string };
 type Props = {
 	visible: boolean;
 	onClose: () => void;
-	/** Which section a quick-access pill opened the sheet on — "all" is the
-	 * "Filtros avanzados" entry point and shows every section at once. */
+	/** Which pill opened the sheet — each one edits only its own dimension. */
 	section: OffersFilterSection;
+	/** The offers left after any filter outside this sheet (e.g. "Cerca
+	 * tuyo") already applied, so the live preview count stays honest about
+	 * what "Aplicar" will actually show. */
 	offers: Offer[];
 	retailers: Retailer[];
 	categories: string[];
 	value: OffersFilterState;
 	onApply: (next: OffersFilterState) => void;
-	nearbyLoading: boolean;
-	nearbyError: string | null;
 };
 
 function matches(o: Offer, draft: OffersFilterState): boolean {
@@ -51,8 +47,6 @@ export function OffersFilterSheet({
 	categories,
 	value,
 	onApply,
-	nearbyLoading,
-	nearbyError,
 }: Props) {
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -71,8 +65,7 @@ export function OffersFilterSheet({
 		[offers, draft],
 	);
 
-	const activeCount =
-		draft.retailerSlugs.size + draft.categories.size + (draft.nearbyOnly ? 1 : 0);
+	const activeCount = section === "retailers" ? draft.retailerSlugs.size : draft.categories.size;
 
 	const toggleRetailer = (slug: string) => {
 		setDraft((d) => {
@@ -92,9 +85,13 @@ export function OffersFilterSheet({
 		});
 	};
 
-	const showNearby = section === "all" || section === "nearby";
-	const showRetailers = section === "all" || section === "retailers";
-	const showCategories = section === "all" || section === "categories";
+	const items = section === "retailers" ? retailers.map((r) => ({ key: r.slug, label: r.name })) : categories.map((c) => ({ key: c, label: c }));
+	const isOn = (key: string) => (section === "retailers" ? draft.retailerSlugs.has(key) : draft.categories.has(key));
+	const toggle = section === "retailers" ? toggleRetailer : toggleCategory;
+	const emptyHint =
+		section === "retailers"
+			? "No hay supermercados distintos en tus ofertas todavía."
+			: "No hay categorías identificadas en tus ofertas todavía.";
 
 	return (
 		<Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -105,16 +102,15 @@ export function OffersFilterSheet({
 							<Text style={styles.cancel}>Cerrar</Text>
 						</Pressable>
 						<Text style={styles.title}>
-							{section === "all" ? "Filtros avanzados" : "Filtrar"}
+							{section === "retailers" ? "Supermercados" : "Categorías"}
 						</Text>
 						<Pressable
 							onPress={() =>
-								setDraft({
-									retailerSlugs: new Set(),
-									categories: new Set(),
-									nearbyOnly: false,
-									nearbyRadiusKm: draft.nearbyRadiusKm,
-								})
+								setDraft((d) =>
+									section === "retailers"
+										? { ...d, retailerSlugs: new Set() }
+										: { ...d, categories: new Set() },
+								)
 							}
 							hitSlop={8}
 							disabled={activeCount === 0}
@@ -126,107 +122,24 @@ export function OffersFilterSheet({
 					</View>
 
 					<ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-						{showNearby && (
-							<View style={styles.section}>
-								<Text style={styles.sectionTitle}>SUCURSALES CERCANAS</Text>
-								<Pressable
-									style={[styles.nearbyRow, draft.nearbyOnly && styles.nearbyRowOn]}
-									onPress={() => setDraft((d) => ({ ...d, nearbyOnly: !d.nearbyOnly }))}
-								>
-									<Ionicons
-										name="navigate"
-										size={16}
-										color={draft.nearbyOnly ? colors.buttonText : colors.cyan}
-									/>
-									<Text style={[styles.nearbyText, draft.nearbyOnly && styles.nearbyTextOn]}>
-										Solo ofertas con sucursal cerca tuyo
-									</Text>
-									<View style={[styles.check, draft.nearbyOnly && styles.checkOn]}>
-										{draft.nearbyOnly && <Ionicons name="checkmark" size={13} color={colors.navy} />}
-									</View>
-								</Pressable>
-
-								{draft.nearbyOnly && (
-									<View style={styles.radiusRow}>
-										{RADIUS_OPTIONS.map((km) => {
-											const active = draft.nearbyRadiusKm === km;
-											return (
-												<Pressable
-													key={km}
-													style={[styles.radiusChip, active && styles.radiusChipOn]}
-													onPress={() => setDraft((d) => ({ ...d, nearbyRadiusKm: km }))}
-												>
-													<Text style={[styles.radiusText, active && styles.radiusTextOn]}>
-														{km} km
-													</Text>
-												</Pressable>
-											);
-										})}
-									</View>
-								)}
-
-								{draft.nearbyOnly && nearbyLoading && (
-									<Text style={styles.nearbyHint}>Buscando sucursales cerca tuyo…</Text>
-								)}
-								{draft.nearbyOnly && nearbyError && !nearbyLoading && (
-									<Text style={styles.nearbyError}>{nearbyError}</Text>
-								)}
-							</View>
-						)}
-
-						{showRetailers && (
-							<View style={styles.section}>
-								<Text style={styles.sectionTitle}>SUPERMERCADOS</Text>
-								{retailers.length === 0 ? (
-									<Text style={styles.emptyHint}>
-										No hay supermercados distintos en tus ofertas todavía.
-									</Text>
-								) : (
-									<View style={styles.list}>
-										{retailers.map((r, idx) => {
-											const on = draft.retailerSlugs.has(r.slug);
-											return (
-												<View key={r.slug}>
-													<Pressable style={styles.listRow} onPress={() => toggleRetailer(r.slug)}>
-														<Text style={styles.listLabel}>{r.name}</Text>
-														<View style={[styles.check, on && styles.checkOn]}>
-															{on && <Ionicons name="checkmark" size={13} color={colors.navy} />}
-														</View>
-													</Pressable>
-													{idx < retailers.length - 1 && <View style={styles.listDivider} />}
+						{items.length === 0 ? (
+							<Text style={styles.emptyHint}>{emptyHint}</Text>
+						) : (
+							<View style={styles.list}>
+								{items.map((item, idx) => {
+									const on = isOn(item.key);
+									return (
+										<View key={item.key}>
+											<Pressable style={styles.listRow} onPress={() => toggle(item.key)}>
+												<Text style={styles.listLabel}>{item.label}</Text>
+												<View style={[styles.check, on && styles.checkOn]}>
+													{on && <Ionicons name="checkmark" size={13} color={colors.navy} />}
 												</View>
-											);
-										})}
-									</View>
-								)}
-							</View>
-						)}
-
-						{showCategories && (
-							<View style={styles.section}>
-								<Text style={styles.sectionTitle}>CATEGORÍAS</Text>
-								{categories.length === 0 ? (
-									<Text style={styles.emptyHint}>
-										No hay categorías identificadas en tus ofertas todavía.
-									</Text>
-								) : (
-									<View style={styles.list}>
-										{categories.map((c, idx) => {
-											const on = draft.categories.has(c);
-											return (
-												<View key={c}>
-													<Pressable style={styles.listRow} onPress={() => toggleCategory(c)}>
-														<Text style={styles.listLabel}>{c}</Text>
-														<View style={[styles.check, on && styles.checkOn]}>
-															{on && <Ionicons name="checkmark" size={13} color={colors.navy} />}
-														</View>
-													</Pressable>
-													{idx < categories.length - 1 && <View style={styles.listDivider} />}
-												</View>
-											);
-										})}
-									</View>
-								)}
+											</Pressable>
+											{idx < items.length - 1 && <View style={styles.listDivider} />}
+										</View>
+									);
+								})}
 							</View>
 						)}
 					</ScrollView>
@@ -268,19 +181,13 @@ function createStyles(colors: ColorTokens) {
 	title: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 16 },
 	clear: { color: colors.orange, fontFamily: typography.family.bold, fontSize: 14 },
 	clearDisabled: { color: colors.subtleText },
-	body: { paddingTop: 6 },
-	section: { paddingVertical: 14, gap: 10 },
-	sectionTitle: {
-		color: colors.subtleText,
-		fontFamily: typography.family.medium,
-		fontSize: 10,
-		letterSpacing: 1.2,
-	},
+	body: { paddingTop: 10 },
 	emptyHint: {
 		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 		lineHeight: 17,
+		paddingVertical: 8,
 	},
 	list: {
 		backgroundColor: colors.background,
@@ -308,34 +215,6 @@ function createStyles(colors: ColorTokens) {
 		justifyContent: "center",
 	},
 	checkOn: { backgroundColor: colors.cyan, borderColor: colors.cyan },
-	nearbyRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 10,
-		backgroundColor: colors.background,
-		borderWidth: 1,
-		borderColor: colors.divider,
-		borderRadius: 12,
-		paddingHorizontal: 14,
-		paddingVertical: 13,
-	},
-	nearbyRowOn: { backgroundColor: colors.navy, borderColor: colors.navy },
-	nearbyText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
-	nearbyTextOn: { color: colors.buttonText },
-	radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-	radiusChip: {
-		paddingHorizontal: 14,
-		paddingVertical: 7,
-		borderRadius: 16,
-		borderWidth: 1,
-		borderColor: colors.divider,
-		backgroundColor: colors.background,
-	},
-	radiusChipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
-	radiusText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
-	radiusTextOn: { color: colors.buttonText },
-	nearbyHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
-	nearbyError: { color: colors.dangerSoftText, fontFamily: typography.family.regular, fontSize: 12 },
 	applyButton: {
 		marginTop: 14,
 		backgroundColor: colors.navy,

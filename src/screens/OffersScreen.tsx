@@ -33,6 +33,10 @@ type Props = {
 	onOpenOffer: (offerId: string) => void;
 };
 
+// "Cerca tuyo" is a plain toggle, not an adjustable-radius sheet — fixed at a
+// sensible default so tapping it is a single, immediate action.
+const NEARBY_RADIUS_KM = 5;
+
 function formatUntil(iso: string | null): string | null {
 	if (!iso) return null;
 	const d = new Date(iso);
@@ -52,11 +56,10 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 	const [filter, setFilter] = useState<OffersFilterState>({
 		retailerSlugs: new Set(),
 		categories: new Set(),
-		nearbyOnly: false,
-		nearbyRadiusKm: 5,
 	});
 	const [filterVisible, setFilterVisible] = useState(false);
-	const [filterSection, setFilterSection] = useState<OffersFilterSection>("all");
+	const [filterSection, setFilterSection] = useState<OffersFilterSection>("retailers");
+	const [nearbyOnly, setNearbyOnly] = useState(false);
 	const [nearbyRetailerSlugs, setNearbyRetailerSlugs] = useState<Set<string> | null>(null);
 	const [nearbyLoading, setNearbyLoading] = useState(false);
 	const [nearbyError, setNearbyError] = useState<string | null>(null);
@@ -80,7 +83,7 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 	// which chains actually have a branch within the radius, then filter
 	// offers to those chains. Refetches whenever the toggle or radius changes.
 	useEffect(() => {
-		if (!filter.nearbyOnly) return;
+		if (!nearbyOnly) return;
 		let cancelled = false;
 		(async () => {
 			setNearbyLoading(true);
@@ -99,7 +102,7 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 					session.token,
 					pos.coords.latitude,
 					pos.coords.longitude,
-					filter.nearbyRadiusKm,
+					NEARBY_RADIUS_KM,
 				);
 				if (!cancelled) setNearbyRetailerSlugs(new Set(stores.map((s) => s.chainSlug)));
 			} catch {
@@ -114,7 +117,7 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 		return () => {
 			cancelled = true;
 		};
-	}, [filter.nearbyOnly, filter.nearbyRadiusKm, session.token]);
+	}, [nearbyOnly, session.token]);
 
 	// Built from the offers on screen rather than a fixed list, so a filter
 	// never offers a chip or checkbox that matches nothing.
@@ -134,23 +137,25 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 			.sort((a, b) => a.name.localeCompare(b.name, "es"));
 	}, [offers]);
 
+	// "Cerca tuyo" applies first — the filter sheet's live preview count is
+	// computed against whatever is left after it, so "Ver N ofertas" never
+	// promises a number the nearby filter would immediately shrink.
+	const nearbyFilteredOffers = useMemo(() => {
+		if (!nearbyOnly || !nearbyRetailerSlugs) return offers;
+		return offers.filter((o) => o.retailerSlug && nearbyRetailerSlugs.has(o.retailerSlug));
+	}, [offers, nearbyOnly, nearbyRetailerSlugs]);
+
 	const visibleOffers = useMemo(() => {
-		return offers.filter((o) => {
+		return nearbyFilteredOffers.filter((o) => {
 			if (filter.retailerSlugs.size > 0 && (!o.retailerSlug || !filter.retailerSlugs.has(o.retailerSlug))) {
 				return false;
 			}
 			if (filter.categories.size > 0 && (!o.category || !filter.categories.has(o.category))) {
 				return false;
 			}
-			if (filter.nearbyOnly && nearbyRetailerSlugs && (!o.retailerSlug || !nearbyRetailerSlugs.has(o.retailerSlug))) {
-				return false;
-			}
 			return true;
 		});
-	}, [offers, filter, nearbyRetailerSlugs]);
-
-	const activeFilterCount =
-		filter.retailerSlugs.size + filter.categories.size + (filter.nearbyOnly ? 1 : 0);
+	}, [nearbyFilteredOffers, filter]);
 
 	const openFilter = (section: OffersFilterSection) => {
 		setFilterSection(section);
@@ -205,9 +210,10 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 					</Text>
 					<Pressable
 						style={styles.clearFiltersButton}
-						onPress={() =>
-							setFilter({ retailerSlugs: new Set(), categories: new Set(), nearbyOnly: false, nearbyRadiusKm: filter.nearbyRadiusKm })
-						}
+						onPress={() => {
+							setFilter({ retailerSlugs: new Set(), categories: new Set() });
+							setNearbyOnly(false);
+						}}
 					>
 						<Text style={styles.clearFiltersText}>Limpiar filtros</Text>
 					</Pressable>
@@ -254,21 +260,19 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 								</Pressable>
 
 								<Pressable
-									style={[styles.filterPill, filter.nearbyOnly && styles.filterPillActive]}
-									onPress={() =>
-										setFilter((f) => ({ ...f, nearbyOnly: !f.nearbyOnly }))
-									}
+									style={[styles.filterPill, nearbyOnly && styles.filterPillActive]}
+									onPress={() => setNearbyOnly((v) => !v)}
 								>
-									{filter.nearbyOnly && nearbyLoading ? (
+									{nearbyOnly && nearbyLoading ? (
 										<ActivityIndicator size="small" color={colors.buttonText} />
 									) : (
 										<Ionicons
 											name="navigate-outline"
 											size={14}
-											color={filter.nearbyOnly ? colors.buttonText : colors.defaultText}
+											color={nearbyOnly ? colors.buttonText : colors.defaultText}
 										/>
 									)}
-									<Text style={[styles.filterPillText, filter.nearbyOnly && styles.filterPillTextActive]}>
+									<Text style={[styles.filterPillText, nearbyOnly && styles.filterPillTextActive]}>
 										Cerca tuyo
 									</Text>
 								</Pressable>
@@ -291,23 +295,9 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 										Categorías{filter.categories.size > 0 ? ` (${filter.categories.size})` : ""}
 									</Text>
 								</Pressable>
-
-								<Pressable
-									style={[styles.filterPill, styles.filterPillAdvanced]}
-									onPress={() => openFilter("all")}
-									accessibilityRole="button"
-									accessibilityLabel="Filtros avanzados"
-								>
-									<Ionicons name="options-outline" size={16} color={colors.buttonText} />
-									{activeFilterCount > 0 && (
-										<View style={styles.filterCountBadge}>
-											<Text style={styles.filterCountText}>{activeFilterCount}</Text>
-										</View>
-									)}
-								</Pressable>
 							</View>
 
-							{nearbyError && filter.nearbyOnly && (
+							{nearbyError && nearbyOnly && (
 								<Text style={styles.nearbyErrorHint}>{nearbyError}</Text>
 							)}
 						</>
@@ -335,7 +325,7 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 				visible={filterVisible}
 				onClose={() => setFilterVisible(false)}
 				section={filterSection}
-				offers={offers}
+				offers={nearbyFilteredOffers}
 				retailers={retailers}
 				categories={categories}
 				value={filter}
@@ -343,8 +333,6 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 					setFilter(next);
 					setFilterVisible(false);
 				}}
-				nearbyLoading={nearbyLoading}
-				nearbyError={nearbyError}
 			/>
 		</View>
 	);
@@ -557,26 +545,6 @@ function createStyles(colors: ColorTokens) {
 		color: colors.defaultText,
 	},
 	filterPillTextActive: { color: colors.buttonText },
-	filterPillAdvanced: {
-		marginLeft: "auto",
-		paddingHorizontal: 10,
-		backgroundColor: colors.navy,
-		borderColor: colors.navy,
-		position: "relative",
-	},
-	filterCountBadge: {
-		position: "absolute",
-		top: -5,
-		right: -5,
-		minWidth: 16,
-		height: 16,
-		borderRadius: 8,
-		backgroundColor: colors.orange,
-		alignItems: "center",
-		justifyContent: "center",
-		paddingHorizontal: 3,
-	},
-	filterCountText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 9 },
 	nearbyErrorHint: {
 		color: colors.dangerSoftText,
 		fontFamily: typography.family.regular,
