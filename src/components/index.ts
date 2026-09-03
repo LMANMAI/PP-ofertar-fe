@@ -8,6 +8,8 @@ export { ScreenHeader } from "./ui/ScreenHeader";
 export { EmptyState } from "./ui/EmptyState";
 export { ErrorBanner } from "./ui/ErrorBanner";
 export { LoadingState } from "./ui/LoadingState";
+export { Tag } from "./ui/Tag";
+export { ConfirmSheet } from "./ui/ConfirmSheet";
 export {
 	OnboardingProvider,
 	useOnboardingTarget,

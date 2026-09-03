@@ -14,13 +14,11 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { InputField, BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
+import { InputField, BottomNav, ConfirmSheet, ForgottenProductsSheet, forgottenIn, Tag, type TabKey } from "../components";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
 import { updateTicket, deleteTicket, getRecurringProducts, offerBadge } from "../services";
-
-/** Only nag about products bought on at least this many separate shopping
- * trips — one-off purchases aren't a habit worth reminding about. */
+import { formatCurrencyExact, formatQuantity, formatTicketTimestamp } from "../utils/format";
 
 type Product = {
 	id: number | null;
@@ -32,19 +30,6 @@ type Product = {
 	discountAmount: number | null;
 	barcode: string | null;
 };
-
-function formatCurrency(value: number | null): string {
-	if (value == null) return "$0,00";
-	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-// A whole number is units; a fraction only ever comes from a line the
-// supermarket weighed, so it reads as kilos rather than "0,52 u".
-function formatQuantity(value: number | null | undefined): string {
-	if (value == null) return "1 u";
-	if (Number.isInteger(value)) return `${value} u`;
-	return `${value.toLocaleString("es-AR", { maximumFractionDigits: 3 })} kg`;
-}
 
 function buildProductsFromTicket(ticket: TicketResponse): Product[] {
 	return ticket.items.map((item) => ({
@@ -111,9 +96,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 	const ticketMeta = ticket?.ticketId
 		? `ID: ${ticket.ticketId}`
 		: ticket?.createdAt
-			? new Date(ticket.createdAt).toLocaleDateString("es-AR", {
-				day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-			})
+			? formatTicketTimestamp(ticket.createdAt)
 			: "";
 	const categoriesCount = ticket
 		? new Set(ticket.items.map((i) => i.category).filter(Boolean)).size
@@ -249,16 +232,15 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 					</View>
 					<Text style={styles.totalLabel}>GASTO</Text>
 					<Text style={styles.totalValue}>
-						{formatCurrency(displayTotal)}
+						{formatCurrencyExact(displayTotal)}
 					</Text>
 					<View style={styles.tagsRow}>
-						<Tag text={`Productos ${products.length}`} styles={styles} />
-						<Tag text={`Categorías ${categoriesCount}`} styles={styles} />
+						<Tag text={`Productos ${products.length}`} />
+						<Tag text={`Categorías ${categoriesCount}`} />
 						{displaySavings > 0 && displayGross > 0 && (
 							<Tag
 								text={`${((displaySavings / displayGross) * 100).toFixed(1).replace(".", ",")}% ahorrado`}
 								tone="cyan"
-								styles={styles}
 							/>
 						)}
 					</View>
@@ -284,18 +266,18 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 									{p.discountAmount != null && p.discountAmount > 0 && (
 										<View style={styles.savingsChip}>
 											<Text style={styles.savingsChipText}>
-												Ahorraste {formatCurrency(p.discountAmount)}
+												Ahorraste {formatCurrencyExact(p.discountAmount)}
 											</Text>
 										</View>
 									)}
 								</View>
 								<View style={styles.priceRow}>
 									<Text style={styles.productMeta}>
-										{formatQuantity(p.quantity)} · {formatCurrency(p.unitPrice)}
+										{formatQuantity(p.quantity)} · {formatCurrencyExact(p.unitPrice)}
 									</Text>
 									{p.discountAmount != null && p.discountAmount > 0
 										&& p.originalPrice != null && p.originalPrice > p.unitPrice && (
-										<Text style={styles.originalPrice}>{formatCurrency(p.originalPrice / p.quantity)}</Text>
+										<Text style={styles.originalPrice}>{formatCurrencyExact(p.originalPrice / p.quantity)}</Text>
 									)}
 								</View>
 							</View>
@@ -377,7 +359,6 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 					setConfirmDiscardVisible(false);
 					performDiscard();
 				}}
-				colors={colors}
 				styles={styles}
 			/>
 
@@ -388,62 +369,37 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 	);
 }
 
-/** Same branded confirm-sheet shape as LogoutConfirmScreen/ConfirmRedeemScreen
- * (icon circle + title + subtitle + danger action + cancel), instead of a bare
- * native Alert — this is the one moment the user is about to lose scanned
- * ticket data, and every other confirm-before-loss moment in the app looks
- * like this, not like an OS dialog. */
+/** Same branded confirm-sheet shape as LogoutConfirmScreen/ConfirmRedeemScreen,
+ * instead of a bare native Alert — this is the one moment the user is about
+ * to lose scanned ticket data, and every other confirm-before-loss moment in
+ * the app looks like this, not like an OS dialog. */
 function DiscardConfirmSheet({
 	visible,
 	onCancel,
 	onConfirm,
-	colors,
 	styles,
 }: {
 	visible: boolean;
 	onCancel: () => void;
 	onConfirm: () => void;
-	colors: ColorTokens;
 	styles: ReturnType<typeof createStyles>;
 }) {
 	return (
 		<Modal visible={visible} animationType="fade" transparent onRequestClose={onCancel}>
 			<View style={styles.discardBackdrop}>
-				<View style={styles.discardSheet}>
-					<View style={styles.discardIconCircle}>
-						<Ionicons name="trash-outline" size={28} color={colors.dangerSoftText} />
-					</View>
-					<Text style={styles.discardTitle}>¿Descartar este ticket?</Text>
-					<Text style={styles.discardSubtitle}>
-						Se borra de tu historial y no lo vas a poder recuperar.
-					</Text>
-
-					<Pressable style={styles.discardConfirmBtn} onPress={onConfirm}>
-						<Text style={styles.discardConfirmText}>Descartar</Text>
-					</Pressable>
-					<Pressable style={styles.discardCancelBtn} onPress={onCancel}>
-						<Text style={styles.discardCancelText}>Seguir editando</Text>
-					</Pressable>
-				</View>
+				<ConfirmSheet
+					icon="trash-outline"
+					iconTone="danger"
+					title="¿Descartar este ticket?"
+					subtitle="Se borra de tu historial y no lo vas a poder recuperar."
+					confirmLabel="Descartar"
+					confirmTone="danger"
+					onConfirm={onConfirm}
+					cancelLabel="Seguir editando"
+					onCancel={onCancel}
+				/>
 			</View>
 		</Modal>
-	);
-}
-
-function Tag({ text, tone, styles }: { text: string; tone?: "cyan"; styles: ReturnType<typeof createStyles> }) {
-	return (
-		<View
-			style={[styles.tag, tone === "cyan" ? styles.tagCyan : styles.tagMuted]}
-		>
-			<Text
-				style={[
-					styles.tagText,
-					tone === "cyan" ? styles.tagTextCyan : styles.tagTextMuted,
-				]}
-			>
-				{text}
-			</Text>
-		</View>
 	);
 }
 
@@ -532,10 +488,10 @@ function EditProductSheet({
 									<Text style={styles.readOnlyText}>Categoría: {product.category}</Text>
 								)}
 								{product.originalPrice != null && product.originalPrice > 0 && (
-									<Text style={styles.readOnlyText}>Precio original: {formatCurrency(product.originalPrice)}</Text>
+									<Text style={styles.readOnlyText}>Precio original: {formatCurrencyExact(product.originalPrice)}</Text>
 								)}
 								{product.discountAmount != null && product.discountAmount > 0 && (
-									<Text style={styles.readOnlyText}>Descuento: {formatCurrency(product.discountAmount)}</Text>
+									<Text style={styles.readOnlyText}>Descuento: {formatCurrencyExact(product.discountAmount)}</Text>
 								)}
 							</View>
 						)}
@@ -654,12 +610,6 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 34,
 	},
 	tagsRow: { flexDirection: "row", gap: 6, marginTop: space.sm, flexWrap: "wrap" },
-	tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-	tagMuted: { backgroundColor: "rgba(255,255,255,0.12)" },
-	tagCyan: { backgroundColor: colors.cyan },
-	tagText: { fontFamily: typography.family.medium, fontSize: 11 },
-	tagTextMuted: { color: "rgba(255,255,255,0.85)" },
-	tagTextCyan: { color: colors.navy },
 	sectionTitle: {
 		color: colors.mutedText,
 		fontFamily: typography.family.medium,
@@ -773,14 +723,6 @@ function createStyles(colors: ColorTokens) {
 		justifyContent: "flex-end",
 	},
 	discardBackdrop: { flex: 1, backgroundColor: "rgba(10,31,68,0.7)", justifyContent: "center", paddingHorizontal: space.xxl },
-	discardSheet: { backgroundColor: colors.card, borderRadius: 16, padding: 22, gap: space.sm, alignItems: "stretch" },
-	discardIconCircle: { alignSelf: "center", width: 60, height: 60, borderRadius: 30, backgroundColor: colors.dangerSoft, alignItems: "center", justifyContent: "center" },
-	discardTitle: { textAlign: "center", color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: space.xs },
-	discardSubtitle: { textAlign: "center", color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	discardConfirmBtn: { backgroundColor: colors.danger, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: space.md },
-	discardConfirmText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-	discardCancelBtn: { height: 44, alignItems: "center", justifyContent: "center" },
-	discardCancelText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
 	lockedBar: {
 		flexDirection: "row",
 		alignItems: "center",

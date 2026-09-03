@@ -17,26 +17,12 @@ import { campaignOfferToOffer, describeCampaignDiscount, getRecurringProducts, o
 import type { CampaignOffer, Offer, RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
 import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
-
-function formatCurrency(value: number | null | undefined): string {
-	if (value == null) return "$0";
-	return `$${Math.round(value).toLocaleString("es-AR")}`;
-}
+import { formatCurrency, formatLongDate } from "../utils/format";
 
 function formatFrequency(purchaseCount: number, ticketCount: number): string {
 	const times = purchaseCount === 1 ? "1 vez" : `${purchaseCount} veces`;
 	const trips = ticketCount === 1 ? "1 compra" : `${ticketCount} compras`;
 	return `Comprado ${times} en ${trips}`;
-}
-
-/** Retailers publish these as ISO strings, but the field is free text in the
- * scraper's schema — anything unparseable is dropped rather than rendered to
- * the user as "Invalid Date". */
-function formatDate(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
 }
 
 function daysUntil(iso: string | null): number | null {
@@ -336,7 +322,7 @@ const ProductCard = memo(function ProductCard({
 										    receipt is scanned today. */}
 										<Text style={styles.detailLabel}>
 											En tu último ticket escaneado
-											{formatDate(p.lastPaidAt) ? ` (${formatDate(p.lastPaidAt)})` : ""}
+											{formatLongDate(p.lastPaidAt) ? ` (${formatLongDate(p.lastPaidAt)})` : ""}
 										</Text>
 										<Text style={styles.detailValue}>{formatCurrency(p.lastPaidPrice)}</Text>
 									</View>
@@ -359,7 +345,7 @@ const ProductCard = memo(function ProductCard({
 						<View style={styles.campaignBlock}>
 							<Text style={styles.campaignTitle}>OTRAS PROMOCIONES VIGENTES</Text>
 							{campaigns.map((c, i) => {
-								const until = formatDate(c.activeTo);
+								const until = formatLongDate(c.activeTo);
 								const days = daysUntil(c.activeTo);
 								const discount = describeCampaignDiscount(c);
 								const full = campaignOfferToOffer(c);

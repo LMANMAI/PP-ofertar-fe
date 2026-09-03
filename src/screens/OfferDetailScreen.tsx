@@ -11,6 +11,7 @@ import { space, typography, useThemeColors, type ColorTokens } from "../theme/de
 import { BottomNav, ScreenHeader, type TabKey } from "../components";
 import { offerBadge } from "../services";
 import type { Offer } from "../services";
+import { formatLongDate } from "../utils/format";
 
 type Props = {
 	offer: Offer;
@@ -20,19 +21,12 @@ type Props = {
 	onScanPress: () => void;
 };
 
-function formatUntil(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
-}
-
 export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	const { badge, color } = offerBadge(offer.retailerName);
-	const until = formatUntil(offer.activeTo);
+	const until = formatLongDate(offer.activeTo, { year: true });
 
 	return (
 		<View style={styles.safeArea}>
@@ -160,17 +154,6 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.medium,
 		fontSize: 14,
 	},
-	pointsBadge: {
-		backgroundColor: colors.cyan,
-		paddingHorizontal: 14,
-		paddingVertical: 6,
-		borderRadius: 20,
-	},
-	pointsBadgeText: {
-		color: colors.navy,
-		fontFamily: typography.family.medium,
-		fontSize: 11,
-	},
 	heroTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
@@ -239,26 +222,6 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 		lineHeight: 18,
-	},
-	footer: {
-		paddingHorizontal: space.lg,
-		paddingTop: space.md,
-		paddingBottom: space.md,
-		backgroundColor: colors.card,
-		borderTopWidth: 1,
-		borderTopColor: colors.divider,
-	},
-	activateButton: {
-		backgroundColor: colors.navy,
-		height: 48,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	activateButtonText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 15,
 	},
 	});
 }

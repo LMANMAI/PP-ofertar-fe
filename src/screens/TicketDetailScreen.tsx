@@ -17,26 +17,7 @@ import {
 	type TabKey,
 } from "../components";
 import { hasBeenAnnounced, markAnnounced } from "../store/announcedTickets";
-
-function formatCurrency(value: number | null | undefined): string {
-	if (value == null) return "$0,00";
-	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-// A whole number is units; a fraction only ever comes from a line the
-// supermarket weighed, so it reads as kilos rather than "0,52 u".
-function formatQuantity(value: number | null | undefined): string {
-	if (value == null) return "1 u";
-	if (Number.isInteger(value)) return `${value} u`;
-	return `${value.toLocaleString("es-AR", { maximumFractionDigits: 3 })} kg`;
-}
-
-function formatDate(iso: string): string {
-	const d = new Date(iso);
-	return d.toLocaleDateString("es-AR", {
-		day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-	});
-}
+import { formatCurrencyExact, formatQuantity, formatTicketTimestamp } from "../utils/format";
 
 type Props = {
 	ticketId: number;
@@ -142,16 +123,16 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 							</View>
 							<View style={{ flex: 1 }}>
 								<Text style={styles.storeName}>{storeDisplay}</Text>
-								<Text style={styles.storeMeta}>{formatDate(ticket.createdAt)}</Text>
+								<Text style={styles.storeMeta}>{formatTicketTimestamp(ticket.createdAt)}</Text>
 							</View>
 						</View>
 						<Text style={styles.totalLabel}>GASTO</Text>
 						{ticket.subtotal != null && ticket.total != null && ticket.subtotal > ticket.total && (
 							<Text style={styles.strikethroughSubtotal}>
-								{formatCurrency(ticket.subtotal)}
+								{formatCurrencyExact(ticket.subtotal)}
 							</Text>
 						)}
-						<Text style={styles.totalValue}>{formatCurrency(ticket.total)}</Text>
+						<Text style={styles.totalValue}>{formatCurrencyExact(ticket.total)}</Text>
 						<View style={styles.tagsRow}>
 							<View style={styles.tag}><Text style={styles.tagText}>{ticket.items.length} productos</Text></View>
 						{computedSavings > 0 && ticket.subtotal != null && ticket.subtotal > 0 && (
@@ -169,7 +150,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 							<Ionicons name="trending-down-outline" size={18} color={colors.success} />
 							<View style={{ flex: 1 }}>
 								<Text style={styles.savingsTitle}>
-									Ahorraste {formatCurrency(computedSavings)} este ticket
+									Ahorraste {formatCurrencyExact(computedSavings)} este ticket
 								</Text>
 								<Text style={styles.savingsHint}>
 									{discountedCount} de {ticket.items.length} productos con descuento
@@ -187,18 +168,18 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 										<Text style={styles.productName}>{item.description}</Text>
 										<View style={styles.priceRow}>
 											<Text style={styles.productMeta}>
-												{formatQuantity(item.quantity)} · {formatCurrency(item.unitPrice)}
+												{formatQuantity(item.quantity)} · {formatCurrencyExact(item.unitPrice)}
 											</Text>
 											{item.discountAmount != null && item.discountAmount > 0
 												&& item.originalPrice != null && item.originalPrice > item.unitPrice && (
-												<Text style={styles.originalPrice}>{formatCurrency(item.originalPrice / item.quantity)}</Text>
+												<Text style={styles.originalPrice}>{formatCurrencyExact(item.originalPrice / item.quantity)}</Text>
 											)}
 										</View>
 									</View>
 									<View style={{ alignItems: "flex-end" }}>
-										<Text style={styles.productPrice}>{formatCurrency(item.subtotal)}</Text>
+										<Text style={styles.productPrice}>{formatCurrencyExact(item.subtotal)}</Text>
 										{item.discountAmount != null && item.discountAmount > 0 && (
-											<Text style={styles.discountText}>-{formatCurrency(item.discountAmount)}</Text>
+											<Text style={styles.discountText}>-{formatCurrencyExact(item.discountAmount)}</Text>
 										)}
 									</View>
 								</View>

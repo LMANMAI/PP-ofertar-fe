@@ -24,13 +24,7 @@ import {
 	sortByOfferRelevance,
 } from "../services";
 import type { Offer, PromoIcon, RecurringProduct, SavingsReportResponse } from "../services";
-
-function formatUntil(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
-}
+import { formatLongDate } from "../utils/format";
 
 /** One offer in the home carousel. Informational only: there is no activation
  * or points behind these, so the card states what is on offer, where, until
@@ -45,7 +39,7 @@ function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => vo
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	const { badge, color } = offerBadge(offer.retailerName);
-	const until = formatUntil(offer.activeTo);
+	const until = formatLongDate(offer.activeTo);
 	// Campaigns are worded here from the structured mechanic + percentages.
 	// A backend that predates those fields returns null and the card falls
 	// back to the headline string it already sent.
@@ -557,12 +551,6 @@ function createStyles(colors: ColorTokens) {
 	firstRunBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },
 	firstRunCta: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: space.md, borderRadius: 10, marginTop: 6 },
 	firstRunCtaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
-	savingsDeltaRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
-	savingsDeltaText: {
-		color: colors.cyan,
-		fontFamily: typography.family.medium,
-		fontSize: 12,
-	},
 	savingsBottomRow: {
 		flexDirection: "row",
 		alignItems: "center",

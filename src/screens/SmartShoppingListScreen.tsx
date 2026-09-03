@@ -15,11 +15,7 @@ import {
 	ScreenHeader,
 	type TabKey,
 } from "../components";
-
-function formatCurrency(value: number | null | undefined): string {
-	if (value == null) return "$0";
-	return `$${Math.round(value).toLocaleString("es-AR")}`;
-}
+import { formatCurrency } from "../utils/format";
 
 type Props = {
 	onBack: () => void;

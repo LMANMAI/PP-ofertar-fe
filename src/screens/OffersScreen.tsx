@@ -23,6 +23,7 @@ import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from
 import { ALL_CATEGORIES, getOffers, offerBadge, offerCategories, offerPromo } from "../services";
 import type { Offer, PromoIcon } from "../services";
 import type { Session } from "../auth/session";
+import { formatLongDate } from "../utils/format";
 
 type Props = {
 	session: Session;
@@ -31,13 +32,6 @@ type Props = {
 	onScanPress: () => void;
 	onOpenOffer: (offerId: string) => void;
 };
-
-function formatUntil(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
-}
 
 export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onOpenOffer }: Props) {
 	const insets = useSafeAreaInsets();
@@ -248,7 +242,7 @@ const OfferCard = memo(function OfferCard({
 	styles: ReturnType<typeof createStyles>;
 }) {
 	const { badge, color } = offerBadge(offer.retailerName);
-	const until = formatUntil(offer.activeTo);
+	const until = formatLongDate(offer.activeTo);
 	const promo = offerPromo(offer);
 	const catalogPct =
 		offer.kind === "catalog" && offer.discountPct != null && offer.discountPct >= 1
@@ -392,14 +386,6 @@ function createStyles(colors: ColorTokens) {
 		color: colors.defaultText,
 	},
 	filterPillTextActive: { color: colors.buttonText },
-	clearFiltersButton: {
-		marginTop: 6,
-		backgroundColor: colors.navy,
-		paddingHorizontal: 18,
-		paddingVertical: 10,
-		borderRadius: 10,
-	},
-	clearFiltersText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 13 },
 	offerCard: {
 		borderRadius: 18,
 		paddingHorizontal: space.lg,

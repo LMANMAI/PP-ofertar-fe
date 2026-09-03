@@ -16,18 +16,7 @@ import {
 	type TabKey,
 } from "../components";
 import { hasBeenAnnounced, markAnnounced } from "../store/announcedTickets";
-
-function formatCurrency(value: number | null | undefined): string {
-	if (value == null) return "$0";
-	return `$${Math.round(value).toLocaleString("es-AR")}`;
-}
-
-function formatDate(iso: string): string {
-	const d = new Date(iso);
-	return d.toLocaleDateString("es-AR", {
-		day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-	});
-}
+import { formatCurrency, formatTicketTimestamp } from "../utils/format";
 
 /** Compares only what TicketRow actually renders — status, totals, item
  * count, store name — not a deep-equal of the full ticket (line items etc.),
@@ -277,7 +266,7 @@ const TicketRow = memo(function TicketRow({
 				<Text style={styles.date}>
 					{isPending
 						? "Podés seguir usando la app mientras tanto"
-						: `${formatDate(t.createdAt)} · ${t.items.length} productos`}
+						: `${formatTicketTimestamp(t.createdAt)} · ${t.items.length} productos`}
 				</Text>
 			</View>
 			<View style={{ alignItems: "flex-end" }}>

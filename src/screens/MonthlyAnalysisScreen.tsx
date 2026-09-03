@@ -6,12 +6,8 @@ import { space, typography, useThemeColors, type ColorTokens } from "../theme/de
 import { getSavingsReport } from "../services";
 import type { SavingsReportResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
-
-function formatCurrency(value: number | null | undefined): string {
-	if (value == null) return "$0";
-	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, Tag, type TabKey } from "../components";
+import { formatCurrencyExact } from "../utils/format";
 
 function formatMonth(date: Date): string {
 	return date.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
@@ -131,15 +127,15 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 							GASTO TOTAL · {formatMonth(selectedMonth).toUpperCase()}
 						</Text>
 						<Text style={styles.heroValue}>
-							{formatCurrency(report.summary.totalSpent)}
+							{formatCurrencyExact(report.summary.totalSpent)}
 						</Text>
 						<View style={styles.heroRow}>
-							<Tag text={`${report.summary.ticketCount} tickets`} styles={styles} />
+							<Tag text={`${report.summary.ticketCount} tickets`} />
 							{report.summary.totalSavings != null && report.summary.totalSavings > 0 && (
-								<Tag text={`${formatCurrency(report.summary.totalSavings)} ahorrado`} tone="cyan" styles={styles} />
+								<Tag text={`${formatCurrencyExact(report.summary.totalSavings)} ahorrado`} tone="cyan" />
 							)}
 							{savingsPct && (
-								<Tag text={`${savingsPct}% del total`} tone="cyan" styles={styles} />
+								<Tag text={`${savingsPct}% del total`} tone="cyan" />
 							)}
 						</View>
 					</View>
@@ -154,7 +150,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 										<View style={{ flex: 1 }}>
 											<View style={styles.catHeader}>
 												<Text style={styles.catName}>{c.category}</Text>
-												<Text style={styles.catAmount}>{formatCurrency(c.totalDiscounts)}</Text>
+												<Text style={styles.catAmount}>{formatCurrencyExact(c.totalDiscounts)}</Text>
 											</View>
 											<View style={styles.catBarTrack}>
 												<View style={[styles.catBarFill, { width: `${(c.totalDiscounts / maxPercent) * 100}%`, backgroundColor: CAT_COLORS[idx % CAT_COLORS.length] }]} />
@@ -177,7 +173,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 										<View style={{ flex: 1 }}>
 											<Text style={styles.catName}>{s.storeName}</Text>
 										</View>
-										<Text style={styles.catAmount}>{formatCurrency(s.totalDiscounts)}</Text>
+										<Text style={styles.catAmount}>{formatCurrencyExact(s.totalDiscounts)}</Text>
 									</View>
 								))}
 							</View>
@@ -189,7 +185,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 								<Ionicons name="trending-up-outline" size={16} color={colors.success} />
 								<View>
 									<Text style={styles.highlightValue}>
-										{formatCurrency(report.summary.averageSavings)}
+										{formatCurrencyExact(report.summary.averageSavings)}
 									</Text>
 									<Text style={styles.highlightLabel}>prom. por ticket</Text>
 								</View>
@@ -212,14 +208,6 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 	);
 }
 
-function Tag({ text, tone, styles }: { text: string; tone?: "cyan"; styles: ReturnType<typeof createStyles> }) {
-	return (
-		<View style={[styles.tag, tone === "cyan" ? styles.tagCyan : styles.tagMuted]}>
-			<Text style={[styles.tagText, tone === "cyan" ? styles.tagTextCyan : styles.tagTextMuted]}>{text}</Text>
-		</View>
-	);
-}
-
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
@@ -231,12 +219,6 @@ function createStyles(colors: ColorTokens) {
 	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	heroValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 34 },
 	heroRow: { flexDirection: "row", gap: 6, marginTop: space.xs },
-	tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-	tagMuted: { backgroundColor: "rgba(255,255,255,0.12)" },
-	tagCyan: { backgroundColor: colors.cyan },
-	tagText: { fontFamily: typography.family.medium, fontSize: 11 },
-	tagTextMuted: { color: "rgba(255,255,255,0.85)" },
-	tagTextCyan: { color: colors.navy },
 	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	catsCard: { backgroundColor: colors.card, borderRadius: 14, padding: 6 },
 	catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
