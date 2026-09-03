@@ -10,4 +10,6 @@ export {
 } from "./onboarding/OnboardingProvider";
 export type { TabKey } from "./ui/BottomNav";
 export { ForgottenProductsSheet } from "./ForgottenProductsSheet";
+export { OffersFilterSheet } from "./OffersFilterSheet";
+export type { OffersFilterSection, OffersFilterState } from "./OffersFilterSheet";
 export { forgottenIn, MIN_TRIPS_TO_BE_HABITUAL, MAX_FORGOTTEN_SHOWN } from "./forgottenProducts";

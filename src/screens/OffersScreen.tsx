@@ -4,7 +4,6 @@ import {
 	FlatList,
 	Image,
 	Pressable,
-	ScrollView,
 	StyleSheet,
 	Text,
 	View,
@@ -12,11 +11,19 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomNav, type TabKey } from "../components";
+import * as Location from "expo-location";
+import {
+	BottomNav,
+	OffersFilterSheet,
+	type OffersFilterSection,
+	type OffersFilterState,
+	type TabKey,
+} from "../components";
 import { typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { ALL_CATEGORIES, getOffers, offerBadge, offerCategories, offerPromo } from "../services";
+import { ALL_CATEGORIES, getNearbyStores, getOffers, offerBadge, offerCategories, offerPromo } from "../services";
 import type { Offer, PromoIcon } from "../services";
 import type { Session } from "../auth/session";
+import { ensureLocationPermission } from "../location/permission";
 
 type Props = {
 	session: Session;
@@ -41,7 +48,18 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 	const [offers, setOffers] = useState<Offer[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [category, setCategory] = useState<string>(ALL_CATEGORIES);
+
+	const [filter, setFilter] = useState<OffersFilterState>({
+		retailerSlugs: new Set(),
+		categories: new Set(),
+		nearbyOnly: false,
+		nearbyRadiusKm: 5,
+	});
+	const [filterVisible, setFilterVisible] = useState(false);
+	const [filterSection, setFilterSection] = useState<OffersFilterSection>("all");
+	const [nearbyRetailerSlugs, setNearbyRetailerSlugs] = useState<Set<string> | null>(null);
+	const [nearbyLoading, setNearbyLoading] = useState(false);
+	const [nearbyError, setNearbyError] = useState<string | null>(null);
 
 	useEffect(() => {
 		setLoading(true);
@@ -56,13 +74,88 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 			.finally(() => setLoading(false));
 	}, [session.token]);
 
-	// Built from the offers on screen rather than a fixed list, so the filter
-	// never shows a chip that matches nothing.
-	const categories = useMemo(() => offerCategories(offers), [offers]);
-	const visibleOffers = useMemo(
-		() => (category === ALL_CATEGORIES ? offers : offers.filter((o) => o.category === category)),
-		[offers, category],
+	// Offers only carry a chain (retailerSlug), never a branch — there is no
+	// per-store location on an Offer. "Cerca tuyo" is answered honestly by
+	// reusing the same nearby-branches lookup FavoriteStoresScreen uses: find
+	// which chains actually have a branch within the radius, then filter
+	// offers to those chains. Refetches whenever the toggle or radius changes.
+	useEffect(() => {
+		if (!filter.nearbyOnly) return;
+		let cancelled = false;
+		(async () => {
+			setNearbyLoading(true);
+			setNearbyError(null);
+			try {
+				const { granted } = await ensureLocationPermission();
+				if (!granted) {
+					if (!cancelled) {
+						setNearbyError("Activá la ubicación para filtrar por sucursales cercanas.");
+						setNearbyRetailerSlugs(null);
+					}
+					return;
+				}
+				const pos = await Location.getCurrentPositionAsync({});
+				const stores = await getNearbyStores(
+					session.token,
+					pos.coords.latitude,
+					pos.coords.longitude,
+					filter.nearbyRadiusKm,
+				);
+				if (!cancelled) setNearbyRetailerSlugs(new Set(stores.map((s) => s.chainSlug)));
+			} catch {
+				if (!cancelled) {
+					setNearbyError("No pudimos obtener tu ubicación.");
+					setNearbyRetailerSlugs(null);
+				}
+			} finally {
+				if (!cancelled) setNearbyLoading(false);
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [filter.nearbyOnly, filter.nearbyRadiusKm, session.token]);
+
+	// Built from the offers on screen rather than a fixed list, so a filter
+	// never offers a chip or checkbox that matches nothing.
+	const categories = useMemo(
+		() => offerCategories(offers).filter((c) => c !== ALL_CATEGORIES),
+		[offers],
 	);
+	const retailers = useMemo(() => {
+		const bySlug = new Map<string, string>();
+		for (const o of offers) {
+			if (o.retailerSlug && o.retailerName && !bySlug.has(o.retailerSlug)) {
+				bySlug.set(o.retailerSlug, o.retailerName);
+			}
+		}
+		return [...bySlug.entries()]
+			.map(([slug, name]) => ({ slug, name }))
+			.sort((a, b) => a.name.localeCompare(b.name, "es"));
+	}, [offers]);
+
+	const visibleOffers = useMemo(() => {
+		return offers.filter((o) => {
+			if (filter.retailerSlugs.size > 0 && (!o.retailerSlug || !filter.retailerSlugs.has(o.retailerSlug))) {
+				return false;
+			}
+			if (filter.categories.size > 0 && (!o.category || !filter.categories.has(o.category))) {
+				return false;
+			}
+			if (filter.nearbyOnly && nearbyRetailerSlugs && (!o.retailerSlug || !nearbyRetailerSlugs.has(o.retailerSlug))) {
+				return false;
+			}
+			return true;
+		});
+	}, [offers, filter, nearbyRetailerSlugs]);
+
+	const activeFilterCount =
+		filter.retailerSlugs.size + filter.categories.size + (filter.nearbyOnly ? 1 : 0);
+
+	const openFilter = (section: OffersFilterSection) => {
+		setFilterSection(section);
+		setFilterVisible(true);
+	};
 
 	return (
 		<View style={styles.safeArea}>
@@ -103,7 +196,25 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 				</View>
 			)}
 
-			{!loading && !error && offers.length > 0 && (
+			{!loading && !error && offers.length > 0 && visibleOffers.length === 0 && (
+				<View style={styles.emptyWrap}>
+					<Ionicons name="filter-outline" size={56} color={colors.border} />
+					<Text style={styles.emptyTitle}>Ninguna oferta coincide con estos filtros</Text>
+					<Text style={styles.emptyHint}>
+						Probá sacando algún filtro para ver más resultados.
+					</Text>
+					<Pressable
+						style={styles.clearFiltersButton}
+						onPress={() =>
+							setFilter({ retailerSlugs: new Set(), categories: new Set(), nearbyOnly: false, nearbyRadiusKm: filter.nearbyRadiusKm })
+						}
+					>
+						<Text style={styles.clearFiltersText}>Limpiar filtros</Text>
+					</Pressable>
+				</View>
+			)}
+
+			{!loading && !error && offers.length > 0 && visibleOffers.length > 0 && (
 				<FlatList
 					// A restructure, not a stretch: on a tablet-width viewport the same
 					// cards lay out two to a row instead of one full-width column.
@@ -122,25 +233,82 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 								Todo lo que está en oferta en los súper que elegiste como favoritos.
 							</Text>
 
-							{categories.length > 1 && (
-								<ScrollView
-									horizontal
-									showsHorizontalScrollIndicator={false}
-									contentContainerStyle={styles.chipsRow}
+							<View style={styles.filterBarRow}>
+								<Pressable
+									style={[styles.filterPill, filter.retailerSlugs.size > 0 && styles.filterPillActive]}
+									onPress={() => openFilter("retailers")}
 								>
-									{categories.map((c) => {
-										const active = c === category;
-										return (
-											<Pressable
-												key={c}
-												onPress={() => setCategory(c)}
-												style={[styles.chip, active && styles.chipActive]}
-											>
-												<Text style={[styles.chipText, active && styles.chipTextActive]}>{c}</Text>
-											</Pressable>
-										);
-									})}
-								</ScrollView>
+									<Ionicons
+										name="storefront-outline"
+										size={14}
+										color={filter.retailerSlugs.size > 0 ? colors.buttonText : colors.defaultText}
+									/>
+									<Text
+										style={[
+											styles.filterPillText,
+											filter.retailerSlugs.size > 0 && styles.filterPillTextActive,
+										]}
+									>
+										Supermercados{filter.retailerSlugs.size > 0 ? ` (${filter.retailerSlugs.size})` : ""}
+									</Text>
+								</Pressable>
+
+								<Pressable
+									style={[styles.filterPill, filter.nearbyOnly && styles.filterPillActive]}
+									onPress={() =>
+										setFilter((f) => ({ ...f, nearbyOnly: !f.nearbyOnly }))
+									}
+								>
+									{filter.nearbyOnly && nearbyLoading ? (
+										<ActivityIndicator size="small" color={colors.buttonText} />
+									) : (
+										<Ionicons
+											name="navigate-outline"
+											size={14}
+											color={filter.nearbyOnly ? colors.buttonText : colors.defaultText}
+										/>
+									)}
+									<Text style={[styles.filterPillText, filter.nearbyOnly && styles.filterPillTextActive]}>
+										Cerca tuyo
+									</Text>
+								</Pressable>
+
+								<Pressable
+									style={[styles.filterPill, filter.categories.size > 0 && styles.filterPillActive]}
+									onPress={() => openFilter("categories")}
+								>
+									<Ionicons
+										name="pricetags-outline"
+										size={14}
+										color={filter.categories.size > 0 ? colors.buttonText : colors.defaultText}
+									/>
+									<Text
+										style={[
+											styles.filterPillText,
+											filter.categories.size > 0 && styles.filterPillTextActive,
+										]}
+									>
+										Categorías{filter.categories.size > 0 ? ` (${filter.categories.size})` : ""}
+									</Text>
+								</Pressable>
+
+								<Pressable
+									style={[styles.filterPill, styles.filterPillAdvanced]}
+									onPress={() => openFilter("all")}
+									accessibilityRole="button"
+									accessibilityLabel="Filtros avanzados"
+								>
+									<Ionicons name="options-outline" size={16} color={colors.buttonText} />
+									{activeFilterCount > 0 && (
+										<View style={styles.filterCountBadge}>
+											<Text style={styles.filterCountText}>{activeFilterCount}</Text>
+										</View>
+									)}
+								</Pressable>
+							</View>
+
+							{nearbyError && filter.nearbyOnly && (
+								<Text style={styles.nearbyErrorHint}>{nearbyError}</Text>
 							)}
 						</>
 					}
@@ -162,6 +330,22 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
+
+			<OffersFilterSheet
+				visible={filterVisible}
+				onClose={() => setFilterVisible(false)}
+				section={filterSection}
+				offers={offers}
+				retailers={retailers}
+				categories={categories}
+				value={filter}
+				onApply={(next) => {
+					setFilter(next);
+					setFilterVisible(false);
+				}}
+				nearbyLoading={nearbyLoading}
+				nearbyError={nearbyError}
+			/>
 		</View>
 	);
 }
@@ -354,23 +538,59 @@ function createStyles(colors: ColorTokens) {
 	offerRow: { gap: 12 },
 	offerCol: { flex: 1 },
 	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	chipsRow: { gap: 8, paddingRight: 16 },
-	chip: {
+	filterBarRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+	filterPill: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
 		paddingHorizontal: 12,
-		paddingVertical: 6,
+		paddingVertical: 8,
 		borderRadius: 20,
 		backgroundColor: colors.card,
 		borderWidth: 1,
 		borderColor: colors.divider,
 	},
-	chipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
-	chipText: {
+	filterPillActive: { backgroundColor: colors.navy, borderColor: colors.navy },
+	filterPillText: {
 		fontFamily: typography.family.medium,
-		fontSize: 11,
-		color: colors.mutedText2,
-		letterSpacing: 0.3,
+		fontSize: 12,
+		color: colors.defaultText,
 	},
-	chipTextActive: { color: colors.buttonText },
+	filterPillTextActive: { color: colors.buttonText },
+	filterPillAdvanced: {
+		marginLeft: "auto",
+		paddingHorizontal: 10,
+		backgroundColor: colors.navy,
+		borderColor: colors.navy,
+		position: "relative",
+	},
+	filterCountBadge: {
+		position: "absolute",
+		top: -5,
+		right: -5,
+		minWidth: 16,
+		height: 16,
+		borderRadius: 8,
+		backgroundColor: colors.orange,
+		alignItems: "center",
+		justifyContent: "center",
+		paddingHorizontal: 3,
+	},
+	filterCountText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 9 },
+	nearbyErrorHint: {
+		color: colors.dangerSoftText,
+		fontFamily: typography.family.regular,
+		fontSize: 11,
+		marginTop: 6,
+	},
+	clearFiltersButton: {
+		marginTop: 6,
+		backgroundColor: colors.navy,
+		paddingHorizontal: 18,
+		paddingVertical: 10,
+		borderRadius: 10,
+	},
+	clearFiltersText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 13 },
 	offerCard: {
 		borderRadius: 18,
 		paddingHorizontal: 16,

@@ -123,7 +123,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
-				<Text style={styles.headerTitle}>Lista inteligente</Text>
+				<Text style={styles.headerTitle}>Consumo inteligente</Text>
 			</View>
 
 			{loading && (

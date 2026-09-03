@@ -448,7 +448,7 @@ export function HomeScreen({
 					</Pressable>
 					<Pressable style={styles.quickItem} onPress={onOpenSmartList}>
 						<Ionicons name="bulb-outline" size={18} color={colors.defaultText} />
-						<Text style={styles.quickLabel}>Mi lista</Text>
+						<Text style={styles.quickLabel}>Mis consumos</Text>
 					</Pressable>
 				</View>
 			</ScrollView>
