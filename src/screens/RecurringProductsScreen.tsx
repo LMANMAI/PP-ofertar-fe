@@ -209,7 +209,7 @@ const ProductCard = memo(function ProductCard({
 					<Ionicons
 						name={isExpanded ? "chevron-up" : "chevron-down"}
 						size={18}
-						color="#9CA3A8"
+						color={colors.subtleText}
 					/>
 				)}
 			</Pressable>
@@ -306,7 +306,7 @@ const ProductCard = memo(function ProductCard({
 								// sat next to a different chain's promotion and read as if both
 								// belonged to the same offer.
 								<View style={styles.promoRow}>
-									<Ionicons name="megaphone-outline" size={13} color={colors.defaultText} />
+									<Ionicons name="megaphone-outline" size={13} color={colors.infoSoftText} />
 									<Text style={styles.promoText}>
 										{offer.retailerName}: {offer.promoLabel}
 									</Text>
@@ -367,11 +367,11 @@ const ProductCard = memo(function ProductCard({
 											{until && (
 												<Text style={styles.campaignUntil}>
 													Vigente hasta el {until}
-													{days != null && days >= 0 && days <= 7
-														? days === 0
-															? " · vence hoy"
-															: ` · quedan ${days} día${days === 1 ? "" : "s"}`
-														: ""}
+													{days != null && days >= 0 && days <= 7 && (
+														<Text style={styles.campaignUrgent}>
+															{days === 0 ? " · vence hoy" : ` · quedan ${days} día${days === 1 ? "" : "s"}`}
+														</Text>
+													)}
 												</Text>
 											)}
 											{openable && (
@@ -395,7 +395,7 @@ const ProductCard = memo(function ProductCard({
 
 					{p.totalDiscounts > 0 && (
 						<View style={styles.historyRow}>
-							<Ionicons name="receipt-outline" size={13} color={colors.mutedText2} />
+							<Ionicons name="receipt-outline" size={13} color={colors.successSoftText} />
 							<Text style={styles.historyText}>
 								Ya llevás {formatCurrency(p.totalDiscounts)} ahorrados en este producto por descuentos
 								de tus tickets
@@ -410,7 +410,7 @@ const ProductCard = memo(function ProductCard({
 					<Text style={styles.altTitle}>TAMBIÉN EN OFERTA (OTRAS MARCAS)</Text>
 					{p.alternativeOffers.map((alt, i) => (
 						<View key={`${alt.productName}-${i}`} style={styles.altRow}>
-							<Ionicons name="swap-horizontal-outline" size={13} color="#9CA3A8" />
+							<Ionicons name="swap-horizontal-outline" size={13} color={colors.subtleText} />
 							{/* Two lines and the retailer named: on one line the product
 							    got cut mid-word, and the price was shown without saying
 							    which supermarket it was from. */}
@@ -450,14 +450,14 @@ function createStyles(colors: ColorTokens) {
 	discountBadge: { backgroundColor: colors.successSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
 	discountText: { color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 11 },
 	price: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
-	noOffer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12 },
+	noOffer: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
 	detailBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 10, gap: space.sm },
 	detailGroup: { gap: space.sm },
-	detailGroupTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
+	detailGroupTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
 	detailRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	detailLabel: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
 	detailValue: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
-	strikePrice: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 13, textDecorationLine: "line-through" },
+	strikePrice: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 13, textDecorationLine: "line-through" },
 	savingsRow: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.successSoft, borderRadius: 8, paddingHorizontal: 10, paddingVertical: space.sm },
 	savingsText: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 13 },
 	detailNote: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
@@ -466,21 +466,22 @@ function createStyles(colors: ColorTokens) {
 	paidBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.sm, gap: space.xs },
 	offerProduct: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
 	paidBetter: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
-	paidWorse: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
+	paidWorse: { color: colors.warningSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
 	campaignBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: 10, gap: space.sm },
-	campaignTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
+	campaignTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
 	campaignRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
 	campaignHeadline: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
 	campaignUntil: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	campaignUrgent: { color: colors.warningSoftText, fontFamily: typography.family.medium },
 	campaignLink: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 11, marginTop: space.xs, textDecorationLine: "underline" },
-	campaignDisclaimer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, fontStyle: "italic" },
+	campaignDisclaimer: { color: colors.warningSoftText, fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, fontStyle: "italic" },
 	historyRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-	historyText: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
+	historyText: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
 	altBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 10, gap: 6 },
-	altTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
+	altTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
 	altRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
 	altName: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
-	altRetailer: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 11, marginTop: 1 },
+	altRetailer: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 11, marginTop: 1 },
 	altDiscount: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11 },
 	altPrice: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
 	});
