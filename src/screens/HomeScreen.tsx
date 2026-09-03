@@ -319,7 +319,7 @@ export function HomeScreen({
 							</View>
 						</View>
 						<Pressable style={styles.savingsCta} onPress={onOpenHistory}>
-							<Text style={styles.savingsCtaText}>Ver mis tickets</Text>
+							<Text style={styles.savingsCtaText} numberOfLines={1}>Ver mis tickets</Text>
 						</Pressable>
 					</View>
 				</View>
@@ -560,7 +560,7 @@ function createStyles(colors: ColorTokens) {
 		borderTopWidth: 1,
 		borderTopColor: "rgba(255,255,255,0.1)",
 	},
-	metricsRow: { flexDirection: "row", alignItems: "center", gap: 18 },
+	metricsRow: { flexDirection: "row", alignItems: "center", gap: 18, flexShrink: 1 },
 	metricDivider: {
 		width: 1,
 		height: 28,
@@ -580,14 +580,16 @@ function createStyles(colors: ColorTokens) {
 	},
 	savingsCta: {
 		backgroundColor: colors.orange,
-		paddingHorizontal: space.mdPlus,
-		paddingVertical: space.smPlus,
+		paddingHorizontal: space.md,
+		paddingVertical: space.sm,
 		borderRadius: 10,
+		flexShrink: 0,
+		marginLeft: space.sm,
 	},
 	savingsCtaText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 13,
+		fontSize: 12,
 	},
 	sectionHeader: {
 		flexDirection: "row",
