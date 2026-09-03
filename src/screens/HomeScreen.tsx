@@ -467,7 +467,7 @@ function createStyles(colors: ColorTokens) {
 	header: {
 		backgroundColor: colors.navy,
 		paddingHorizontal: space.xl,
-		paddingTop: 10,
+		paddingTop: space.smPlus,
 		paddingBottom: space.lg,
 		flexDirection: "row",
 		alignItems: "center",
@@ -479,7 +479,7 @@ function createStyles(colors: ColorTokens) {
 		borderBottomLeftRadius: 18,
 		borderBottomRightRadius: 18,
 	},
-	headerLogo: { width: 32, height: 32, borderRadius: 8, marginRight: 10 },
+	headerLogo: { width: 32, height: 32, borderRadius: 8, marginRight: space.smPlus },
 	headerLeft: { flex: 1 },
 	greeting: {
 		color: colors.buttonText,
@@ -516,7 +516,7 @@ function createStyles(colors: ColorTokens) {
 		paddingHorizontal: space.xl,
 		paddingTop: 18,
 		paddingBottom: space.xxl,
-		gap: 14,
+		gap: space.mdPlus,
 	},
 	scrollContentTablet: {
 		width: "100%",
@@ -544,19 +544,19 @@ function createStyles(colors: ColorTokens) {
 	},
 	savingsErrorRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: space.sm },
 	savingsErrorText: { color: "rgba(255,255,255,0.75)", fontFamily: typography.family.regular, fontSize: 13 },
-	savingsRetryBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.cyan, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+	savingsRetryBtn: { flexDirection: "row", alignItems: "center", gap: space.xsPlus, backgroundColor: colors.cyan, paddingHorizontal: space.smPlus, paddingVertical: space.xsPlus, borderRadius: 8 },
 	savingsRetryText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
 	firstRunCard: { backgroundColor: colors.card, borderRadius: 16, padding: space.xl, alignItems: "center", gap: space.sm, borderWidth: 1, borderColor: colors.divider },
 	firstRunTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textAlign: "center", marginTop: space.xs },
 	firstRunBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },
-	firstRunCta: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: space.md, borderRadius: 10, marginTop: 6 },
+	firstRunCta: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: space.md, borderRadius: 10, marginTop: space.xsPlus },
 	firstRunCtaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
 	savingsBottomRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		marginTop: 14,
-		paddingTop: 14,
+		marginTop: space.mdPlus,
+		paddingTop: space.mdPlus,
 		borderTopWidth: 1,
 		borderTopColor: "rgba(255,255,255,0.1)",
 	},
@@ -580,8 +580,8 @@ function createStyles(colors: ColorTokens) {
 	},
 	savingsCta: {
 		backgroundColor: colors.orange,
-		paddingHorizontal: 14,
-		paddingVertical: 10,
+		paddingHorizontal: space.mdPlus,
+		paddingVertical: space.smPlus,
 		borderRadius: 10,
 	},
 	savingsCtaText: {
@@ -613,8 +613,8 @@ function createStyles(colors: ColorTokens) {
 		// to read on one line.
 		width: 262,
 		borderRadius: 18,
-		padding: 14,
-		gap: 10,
+		padding: space.mdPlus,
+		gap: space.smPlus,
 		backgroundColor: colors.card,
 		borderWidth: 1,
 		borderColor: colors.border,
@@ -628,12 +628,12 @@ function createStyles(colors: ColorTokens) {
 	offersEmpty: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 10,
+		gap: space.smPlus,
 		backgroundColor: colors.card,
 		borderRadius: 12,
 		borderWidth: 1,
 		borderColor: colors.divider,
-		padding: 14,
+		padding: space.mdPlus,
 	},
 	offersEmptyText: {
 		flex: 1,
@@ -669,7 +669,7 @@ function createStyles(colors: ColorTokens) {
 		width: 78,
 		borderRadius: 14,
 		paddingVertical: space.sm,
-		paddingHorizontal: 6,
+		paddingHorizontal: space.xsPlus,
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 2,
@@ -688,7 +688,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.bold,
 		fontSize: 24,
 	},
-	offerBodyRight: { flex: 1, justifyContent: "center", gap: 6 },
+	offerBodyRight: { flex: 1, justifyContent: "center", gap: space.xsPlus },
 	appliesChip: {
 		alignSelf: "flex-start",
 		maxWidth: "100%",
@@ -708,7 +708,7 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 12,
 		lineHeight: 16,
 	},
-	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+	priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.xsPlus },
 	priceNow: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
 	priceWas: {
 		color: colors.subtleText,
@@ -727,7 +727,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	// Matches offersRow above, so both carousels on this screen scroll the same.
 	productsRow: {
-		gap: 10,
+		gap: space.smPlus,
 		paddingRight: space.xl,
 	},
 	productCard: {
@@ -737,7 +737,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.card,
 		borderRadius: 14,
 		padding: space.md,
-		gap: 6,
+		gap: space.xsPlus,
 		borderWidth: 1,
 		borderColor: colors.divider,
 	},
@@ -748,7 +748,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.softWarm,
 		alignItems: "center",
 		justifyContent: "center",
-		marginBottom: 6,
+		marginBottom: space.xsPlus,
 	},
 	productName: {
 		color: colors.defaultText,
@@ -793,7 +793,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.medium,
 		fontSize: 11,
 	},
-	quickRow: { flexDirection: "row", gap: 10, marginTop: space.xs },
+	quickRow: { flexDirection: "row", gap: space.smPlus, marginTop: space.xs },
 	quickItem: {
 		flex: 1,
 		flexDirection: "row",

@@ -63,10 +63,10 @@ function createStyles(colors: ColorTokens) {
 			lineHeight: 18,
 		},
 		action: {
-			marginTop: 6,
+			marginTop: space.xsPlus,
 			backgroundColor: colors.navy,
 			paddingHorizontal: 18,
-			paddingVertical: 10,
+			paddingVertical: space.smPlus,
 			borderRadius: 10,
 		},
 		actionText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 13 },

@@ -114,8 +114,8 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 14,
-		gap: 10,
+		paddingHorizontal: space.mdPlus,
+		gap: space.smPlus,
 	},
 	leftIcon: {
 		width: 18,

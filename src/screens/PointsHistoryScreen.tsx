@@ -114,7 +114,7 @@ function createStyles(colors: ColorTokens) {
 	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	summaryValue: { fontFamily: typography.family.bold, fontSize: 16 },
 	list: { backgroundColor: colors.card, borderRadius: 14, overflow: "hidden" },
-	row: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: 14, paddingVertical: 14 },
+	row: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.mdPlus, paddingVertical: space.mdPlus },
 	iconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
 	rowTitle: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	rowDate: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },

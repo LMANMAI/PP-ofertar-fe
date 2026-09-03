@@ -224,8 +224,14 @@ export const radii = {
 
 export const space = {
 	xs: 4,
+	// The half-steps below were already the app's de-facto convention for
+	// tight icon/chip/card spacing (6/10/14 shows up 90+ times across the
+	// screens) — named here instead of left as bare numbers.
+	xsPlus: 6,
 	sm: 8,
+	smPlus: 10,
 	md: 12,
+	mdPlus: 14,
 	lg: 16,
 	xl: 20,
 	xxl: 24,

@@ -131,7 +131,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 			)}
 
 			{!loading && !error && products.length > 0 && (
-				<ScrollView contentContainerStyle={{ padding: space.lg, gap: 10, paddingBottom: space.lg }}>
+				<ScrollView contentContainerStyle={{ padding: space.lg, gap: space.smPlus, paddingBottom: space.lg }}>
 					<View style={styles.heroCard}>
 						<Ionicons name="bulb-outline" size={20} color={colors.cyan} />
 						<View style={{ flex: 1 }}>
@@ -213,7 +213,7 @@ function createStyles(colors: ColorTokens) {
 	sectionLabelDoneRow: { flexDirection: "row", alignItems: "center", gap: space.xs, marginTop: space.xs },
 	sectionLabelDone: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	list: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
-	row: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: 14, paddingVertical: space.md },
+	row: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.mdPlus, paddingVertical: space.md },
 	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
 	// Green, not the brand cyan: cyan is this app's generic interactive/link
 	// accent (focus rings, the scan button, "ver más" links) — completion is a

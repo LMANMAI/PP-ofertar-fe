@@ -172,7 +172,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.background,
 		flexGrow: 1,
 	},
-	intro: { gap: 6, paddingBottom: 18 },
+	intro: { gap: space.xsPlus, paddingBottom: 18 },
 	title: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
@@ -202,7 +202,7 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 15,
 		lineHeight: 18,
 	},
-	errorBox: { marginTop: space.md, paddingVertical: 10, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
+	errorBox: { marginTop: space.md, paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	});
 }

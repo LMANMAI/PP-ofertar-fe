@@ -371,7 +371,7 @@ function createStyles(colors: ColorTokens) {
 	filterPill: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 6,
+		gap: space.xsPlus,
 		paddingHorizontal: space.md,
 		paddingVertical: space.sm,
 		borderRadius: 20,
@@ -389,8 +389,8 @@ function createStyles(colors: ColorTokens) {
 	offerCard: {
 		borderRadius: 18,
 		paddingHorizontal: space.lg,
-		paddingVertical: 14,
-		gap: 10,
+		paddingVertical: space.mdPlus,
+		gap: space.smPlus,
 		backgroundColor: colors.card,
 		borderWidth: 1,
 		borderColor: colors.border,
@@ -401,14 +401,14 @@ function createStyles(colors: ColorTokens) {
 		elevation: 2,
 	},
 	offerCardPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
-	offerBody: { flexDirection: "row", alignItems: "stretch", gap: 14 },
+	offerBody: { flexDirection: "row", alignItems: "stretch", gap: space.mdPlus },
 	// The number gets a block of its own instead of being one more line of
 	// text. Same anatomy as the home carousel so the two read as one system.
 	amountTile: {
 		width: 88,
 		borderRadius: 14,
-		paddingVertical: 10,
-		paddingHorizontal: 6,
+		paddingVertical: space.smPlus,
+		paddingHorizontal: space.xsPlus,
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 2,
@@ -423,7 +423,7 @@ function createStyles(colors: ColorTokens) {
 		letterSpacing: 0.8,
 	},
 	amountValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 27 },
-	offerBodyRight: { flex: 1, justifyContent: "center", gap: 6 },
+	offerBodyRight: { flex: 1, justifyContent: "center", gap: space.xsPlus },
 	appliesChip: {
 		alignSelf: "flex-start",
 		maxWidth: "100%",

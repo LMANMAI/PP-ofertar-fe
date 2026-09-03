@@ -204,7 +204,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.medium,
 		fontSize: 28,
 		lineHeight: 36,
-		marginBottom: 6,
+		marginBottom: space.xsPlus,
 	},
 	subtitle: {
 		color: colors.mutedText,
@@ -217,7 +217,7 @@ function createStyles(colors: ColorTokens) {
 	checkboxRow: {
 		flexDirection: "row",
 		alignItems: "flex-start",
-		gap: 10,
+		gap: space.smPlus,
 		marginTop: 18,
 	},
 	checkbox: {
@@ -267,7 +267,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.medium,
 		textDecorationLine: "underline",
 	},
-	errorBox: { marginTop: space.md, paddingVertical: 10, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
+	errorBox: { marginTop: space.md, paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	});
 }

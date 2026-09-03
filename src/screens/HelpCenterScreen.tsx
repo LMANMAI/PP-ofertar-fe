@@ -116,7 +116,7 @@ function createStyles(colors: ColorTokens) {
 	faqCard: { backgroundColor: colors.card, borderRadius: 12, overflow: "hidden" },
 	faqRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: space.lg },
 	faqQ: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
-	faqA: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: space.lg, paddingBottom: 14 },
+	faqA: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: space.lg, paddingBottom: space.mdPlus },
 	divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: space.lg },
 	contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm, backgroundColor: colors.navy, height: 48, borderRadius: 10 },
 	contactText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },

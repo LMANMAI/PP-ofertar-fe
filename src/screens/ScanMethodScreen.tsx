@@ -169,11 +169,11 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 20,
 		marginTop: space.sm,
 	},
-	cards: { marginTop: 28, gap: 14 },
+	cards: { marginTop: 28, gap: space.mdPlus },
 	card: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 14,
+		gap: space.mdPlus,
 		backgroundColor: colors.card,
 		borderRadius: 16,
 		borderWidth: 1,
@@ -215,11 +215,11 @@ function createStyles(colors: ColorTokens) {
 	ecoTip: {
 		flexDirection: "row",
 		alignItems: "flex-start",
-		gap: 10,
+		gap: space.smPlus,
 		backgroundColor: colors.successSoft,
 		borderRadius: 14,
 		paddingHorizontal: space.lg,
-		paddingVertical: 14,
+		paddingVertical: space.mdPlus,
 		marginTop: space.xxl,
 	},
 	ecoTipText: {

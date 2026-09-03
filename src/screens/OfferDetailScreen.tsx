@@ -136,7 +136,7 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		justifyContent: "space-between",
 	},
-	heroStoreRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+	heroStoreRow: { flexDirection: "row", alignItems: "center", gap: space.smPlus },
 	storeBadge: {
 		width: 28,
 		height: 28,
@@ -170,10 +170,10 @@ function createStyles(colors: ColorTokens) {
 		marginHorizontal: -20,
 		marginTop: 18,
 		paddingHorizontal: space.xl,
-		paddingVertical: 10,
+		paddingVertical: space.smPlus,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 6,
+		gap: space.xsPlus,
 	},
 	validityText: {
 		color: "#99B2CC",
@@ -193,12 +193,12 @@ function createStyles(colors: ColorTokens) {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
-		marginBottom: 10,
+		marginBottom: space.smPlus,
 	},
 	productRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 10,
+		gap: space.smPlus,
 		paddingVertical: space.sm,
 	},
 	bullet: {

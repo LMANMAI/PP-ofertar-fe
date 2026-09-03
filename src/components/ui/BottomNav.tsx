@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
 	wrap: {
 		borderTopWidth: 1,
 		paddingHorizontal: space.sm,
-		paddingTop: 10,
-		paddingBottom: 10,
+		paddingTop: space.smPlus,
+		paddingBottom: space.smPlus,
 	},
 	row: {
 		flexDirection: "row",

@@ -156,9 +156,9 @@ function createStyles(colors: ColorTokens) {
 	},
 	title: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 18, textAlign: "center" },
 	hint: { color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
-	errorBox: { marginTop: space.xs, paddingVertical: space.md, paddingHorizontal: space.lg, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.12)", borderWidth: 1, borderColor: "rgba(239,68,68,0.3)", flexDirection: "row", alignItems: "flex-start", gap: 10, maxWidth: 320 },
+	errorBox: { marginTop: space.xs, paddingVertical: space.md, paddingHorizontal: space.lg, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.12)", borderWidth: 1, borderColor: "rgba(239,68,68,0.3)", flexDirection: "row", alignItems: "flex-start", gap: space.smPlus, maxWidth: 320 },
 	errorText: { flex: 1, color: "#FCA5A5", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	fallbackBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: space.lg, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)" },
+	fallbackBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.smPlus, paddingVertical: space.lg, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)" },
 	fallbackText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 15 },
 	});
 }

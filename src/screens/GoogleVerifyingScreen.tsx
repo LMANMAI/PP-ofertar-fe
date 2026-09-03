@@ -33,7 +33,7 @@ export function GoogleVerifyingScreen({ onDone }: Props) {
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
-	content: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6 },
+	content: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.xsPlus },
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: 18 },
 	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13 },
 	});

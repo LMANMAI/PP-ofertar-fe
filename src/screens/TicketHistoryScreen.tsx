@@ -172,10 +172,10 @@ export function TicketHistoryScreen({
 					// is tablet-wide, instead of one column stretched edge to edge.
 					key={isTablet ? "grid" : "list"}
 					numColumns={isTablet ? 2 : 1}
-					columnWrapperStyle={isTablet ? { gap: 10 } : undefined}
+					columnWrapperStyle={isTablet ? { gap: space.smPlus } : undefined}
 					data={tickets}
 					keyExtractor={(t) => String(t.id)}
-					contentContainerStyle={{ padding: space.lg, gap: 10, paddingBottom: insets.bottom + 24 }}
+					contentContainerStyle={{ padding: space.lg, gap: space.smPlus, paddingBottom: insets.bottom + 24 }}
 					ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
 					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.cyan} />}
 					ListHeaderComponent={
@@ -193,7 +193,7 @@ export function TicketHistoryScreen({
 							</View>
 						</View>
 					}
-					ListHeaderComponentStyle={{ marginBottom: 10 }}
+					ListHeaderComponentStyle={{ marginBottom: space.smPlus }}
 					renderItem={({ item: t }) => (
 						<TicketRow
 							ticket={t}
@@ -313,15 +313,15 @@ function createStyles(colors: ColorTokens) {
 	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	summaryValue: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18, marginTop: space.xs },
 	summaryHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	row: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
+	row: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.card, padding: space.mdPlus, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
 	badge: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
 	badgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 12 },
 	store: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	date: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	total: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 14 },
-	statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+	statusRow: { flexDirection: "row", alignItems: "center", gap: space.xsPlus, marginTop: 2 },
 	savings: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11 },
-	statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+	statusBadge: { paddingHorizontal: space.xsPlus, paddingVertical: 2, borderRadius: 6 },
 	statusOk: { backgroundColor: colors.successSoft },
 	statusFailed: { backgroundColor: colors.dangerSoft },
 	statusPending: { backgroundColor: colors.warningSoft },

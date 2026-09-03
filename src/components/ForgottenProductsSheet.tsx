@@ -76,7 +76,7 @@ function createStyles(colors: ColorTokens) {
 		borderRadius: 18,
 		padding: 22,
 		alignItems: "center",
-		gap: 10,
+		gap: space.smPlus,
 	},
 	iconWrap: {
 		width: 52,
@@ -109,7 +109,7 @@ function createStyles(colors: ColorTokens) {
 		paddingVertical: space.xs,
 		marginTop: space.xs,
 	},
-	row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
+	row: { flexDirection: "row", alignItems: "center", gap: space.smPlus, paddingVertical: space.smPlus },
 	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 1 },
 	divider: { height: 1, backgroundColor: colors.divider },
@@ -120,7 +120,7 @@ function createStyles(colors: ColorTokens) {
 		borderRadius: 10,
 		alignItems: "center",
 		justifyContent: "center",
-		marginTop: 6,
+		marginTop: space.xsPlus,
 	},
 	buttonText: {
 		color: colors.buttonText,

@@ -155,7 +155,7 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 10,
+		gap: space.smPlus,
 		backgroundColor: colors.navy,
 		height: 52,
 		borderRadius: 12,

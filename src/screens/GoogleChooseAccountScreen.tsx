@@ -77,7 +77,7 @@ function createStyles(colors: ColorTokens) {
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 24 },
 	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, marginTop: space.xs },
 	accountList: { marginTop: space.xxl, gap: space.xs },
-	accountRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: space.md, paddingHorizontal: space.xs },
+	accountRow: { flexDirection: "row", alignItems: "center", gap: space.mdPlus, paddingVertical: space.md, paddingHorizontal: space.xs },
 	accAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
 	accAvatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
 	accName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },

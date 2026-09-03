@@ -56,7 +56,7 @@ function createStyles(colors: ColorTokens) {
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	content: { flex: 1, padding: space.xxl, alignItems: "center", gap: space.sm },
 	iconCircle: { width: 96, height: 96, borderRadius: 48, backgroundColor: colors.infoSoft, alignItems: "center", justifyContent: "center", marginTop: 32 },
-	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 24, textAlign: "center", marginTop: 14 },
+	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 24, textAlign: "center", marginTop: space.mdPlus },
 	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center", lineHeight: 22 },
 	bold: { color: colors.defaultText, fontFamily: typography.family.medium },
 	hint: { flexDirection: "row", gap: space.sm, alignItems: "center", backgroundColor: colors.warningSoft, padding: space.md, borderRadius: 10, marginTop: space.lg },

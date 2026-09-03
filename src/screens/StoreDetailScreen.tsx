@@ -115,7 +115,7 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	scroll: { flex: 1 },
-	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
+	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.smPlus, paddingHorizontal: 32 },
 	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
 	mapWrap: { height: 200, backgroundColor: colors.divider },
 	content: { padding: space.lg, gap: space.md },

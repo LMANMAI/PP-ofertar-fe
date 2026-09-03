@@ -205,7 +205,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.navy,
 		borderRadius: 9,
 		paddingHorizontal: space.lg,
-		paddingVertical: 10,
+		paddingVertical: space.smPlus,
 	},
 	nextText: {
 		color: colors.buttonText,

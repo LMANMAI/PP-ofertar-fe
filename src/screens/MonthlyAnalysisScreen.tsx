@@ -121,7 +121,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 			{!loading && !error && report && (
 				<ScrollView
 					style={{ flex: 1 }}
-					contentContainerStyle={{ padding: space.lg, gap: 14, paddingBottom: space.xxl }}>
+					contentContainerStyle={{ padding: space.lg, gap: space.mdPlus, paddingBottom: space.xxl }}>
 					<View style={styles.heroCard}>
 						<Text style={styles.heroLabel}>
 							GASTO TOTAL · {formatMonth(selectedMonth).toUpperCase()}
@@ -218,10 +218,10 @@ function createStyles(colors: ColorTokens) {
 	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: space.xl, gap: space.sm },
 	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	heroValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 34 },
-	heroRow: { flexDirection: "row", gap: 6, marginTop: space.xs },
+	heroRow: { flexDirection: "row", gap: space.xsPlus, marginTop: space.xs },
 	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
-	catsCard: { backgroundColor: colors.card, borderRadius: 14, padding: 6 },
-	catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
+	catsCard: { backgroundColor: colors.card, borderRadius: 14, padding: space.xsPlus },
+	catRow: { flexDirection: "row", alignItems: "center", gap: space.smPlus, paddingHorizontal: space.smPlus, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
 	catDot: { width: 10, height: 10, borderRadius: 5 },
 	catHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: space.xs },
 	catName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
@@ -231,16 +231,16 @@ function createStyles(colors: ColorTokens) {
 	catPct: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 13, width: 54, textAlign: "right" },
 	highlightsRow: {
 		flexDirection: "row",
-		gap: 10,
+		gap: space.smPlus,
 	},
 	highlightPill: {
 		flex: 1,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 10,
+		gap: space.smPlus,
 		backgroundColor: colors.card,
 		borderRadius: 12,
-		padding: 14,
+		padding: space.mdPlus,
 		borderWidth: 1,
 		borderColor: colors.border,
 	},

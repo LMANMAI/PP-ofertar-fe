@@ -90,7 +90,7 @@ function createStyles(colors: ColorTokens) {
 		borderColor: colors.border,
 		padding: 32,
 		alignItems: "center",
-		gap: 14,
+		gap: space.mdPlus,
 		marginTop: space.xl,
 	},
 	iconWrap: {

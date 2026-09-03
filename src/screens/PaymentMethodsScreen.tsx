@@ -39,7 +39,7 @@ export function PaymentMethodsScreen({ onBack, activeTab, onSelectTab, onScanPre
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: space.xxl, paddingTop: 40 },
+	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.smPlus, paddingHorizontal: space.xxl, paddingTop: 40 },
 	emptyIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.softWarm, alignItems: "center", justifyContent: "center", marginBottom: space.xs },
 	emptyTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
 	emptyBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },

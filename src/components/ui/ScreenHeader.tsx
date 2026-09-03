@@ -72,7 +72,7 @@ function createStyles(colors: ColorTokens) {
 			alignItems: "center",
 			gap: space.sm,
 		},
-		headerLogoVariant: { paddingHorizontal: space.xl, gap: 10 },
+		headerLogoVariant: { paddingHorizontal: space.xl, gap: space.smPlus },
 		backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 		headerLogo: { width: 24, height: 24, borderRadius: 6 },
 		headerTitle: {

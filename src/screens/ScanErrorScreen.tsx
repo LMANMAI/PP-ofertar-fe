@@ -124,7 +124,7 @@ function createStyles(colors: ColorTokens) {
 		paddingVertical: 28,
 		paddingHorizontal: 22,
 		alignItems: "center",
-		gap: 10,
+		gap: space.smPlus,
 		borderWidth: 1,
 		borderColor: colors.border,
 	},
@@ -133,7 +133,7 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.bold,
 		fontSize: 17,
 		textAlign: "center",
-		marginTop: 6,
+		marginTop: space.xsPlus,
 	},
 	errorBody: {
 		color: colors.mutedText,

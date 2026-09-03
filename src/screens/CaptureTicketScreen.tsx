@@ -209,7 +209,7 @@ function createStyles(colors: ColorTokens) {
 		paddingHorizontal: space.xxl,
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 14,
+		gap: space.mdPlus,
 	},
 	permissionTitle: {
 		color: colors.buttonText,
@@ -228,7 +228,7 @@ function createStyles(colors: ColorTokens) {
 		marginTop: space.sm,
 		backgroundColor: colors.cyan,
 		paddingHorizontal: space.xl,
-		paddingVertical: 14,
+		paddingVertical: space.mdPlus,
 		borderRadius: 10,
 	},
 	permissionButtonText: {
@@ -246,7 +246,7 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "center",
 		paddingHorizontal: space.lg,
-		paddingBottom: 10,
+		paddingBottom: space.smPlus,
 		backgroundColor: "rgba(0,0,0,0.55)",
 	},
 	closeButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
@@ -282,12 +282,12 @@ function createStyles(colors: ColorTokens) {
 	},
 	controlsPanel: {
 		backgroundColor: "rgba(0,0,0,0.85)",
-		paddingTop: 14,
+		paddingTop: space.mdPlus,
 		paddingHorizontal: space.lg,
-		gap: 14,
+		gap: space.mdPlus,
 	},
 	thumbnailsStrip: { maxHeight: 72 },
-	thumbnailsContent: { gap: 10, paddingHorizontal: space.xs },
+	thumbnailsContent: { gap: space.smPlus, paddingHorizontal: space.xs },
 	thumbnailWrap: {
 		width: 58,
 		height: 72,
@@ -345,7 +345,7 @@ function createStyles(colors: ColorTokens) {
 	sendButton: {
 		backgroundColor: colors.navy,
 		borderRadius: 12,
-		paddingVertical: 14,
+		paddingVertical: space.mdPlus,
 		alignItems: "center",
 	},
 	sendButtonDisabled: { backgroundColor: "rgba(255,255,255,0.12)" },

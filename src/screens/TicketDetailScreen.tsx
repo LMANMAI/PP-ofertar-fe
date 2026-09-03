@@ -108,7 +108,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 			)}
 
 			{!loading && !error && ticket && (
-				<ScrollView contentContainerStyle={{ padding: space.lg, gap: 14, paddingBottom: insets.bottom + 24 }}>
+				<ScrollView contentContainerStyle={{ padding: space.lg, gap: space.mdPlus, paddingBottom: insets.bottom + 24 }}>
 					{ticket.status === "FAILED" && (
 						<View style={styles.failedBanner}>
 							<Ionicons name="warning-outline" size={18} color={colors.orange} />
@@ -208,13 +208,13 @@ function createStyles(colors: ColorTokens) {
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	failedBanner: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: space.md },
 	failedBannerText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
-	summary: { backgroundColor: colors.navy, borderRadius: 16, padding: space.lg, gap: 6 },
-	summaryHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+	summary: { backgroundColor: colors.navy, borderRadius: 16, padding: space.lg, gap: space.xsPlus },
+	summaryHeader: { flexDirection: "row", alignItems: "center", gap: space.smPlus },
 	storeBadge: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
 	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 11 },
 	storeName: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 13 },
 	storeMeta: { color: "rgba(255,255,255,0.55)", fontFamily: typography.family.regular, fontSize: 11 },
-	totalLabel: { color: "rgba(255,255,255,0.55)", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.3, marginTop: 6 },
+	totalLabel: { color: "rgba(255,255,255,0.55)", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.3, marginTop: space.xsPlus },
 	totalValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 24 },
 	strikethroughSubtotal: {
 		color: "rgba(255,255,255,0.5)",
@@ -223,15 +223,15 @@ function createStyles(colors: ColorTokens) {
 		fontSize: 14,
 		marginTop: space.xs,
 	},
-	tagsRow: { flexDirection: "row", gap: 6, marginTop: 6 },
-	tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.12)" },
+	tagsRow: { flexDirection: "row", gap: space.xsPlus, marginTop: space.xsPlus },
+	tag: { paddingHorizontal: space.smPlus, paddingVertical: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.12)" },
 	tagText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 11 },
-	savings: { flexDirection: "row", gap: 10, backgroundColor: colors.successSoft, padding: 14, borderRadius: 12, alignItems: "center" },
+	savings: { flexDirection: "row", gap: space.smPlus, backgroundColor: colors.successSoft, padding: space.mdPlus, borderRadius: 12, alignItems: "center" },
 	savingsTitle: { color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 13 },
 	savingsHint: { color: colors.successSoftText, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
 	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	products: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
-	productRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: space.md },
+	productRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: space.mdPlus, paddingVertical: space.md },
 	productName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.sm, marginTop: 2 },
 	productMeta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },

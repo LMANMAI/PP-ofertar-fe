@@ -190,7 +190,7 @@ function createStyles(colors: ColorTokens) {
 		borderRadius: 12,
 	},
 	fileBadge: {
-		paddingHorizontal: 14,
+		paddingHorizontal: space.mdPlus,
 		paddingVertical: 5,
 		borderRadius: 999,
 	},

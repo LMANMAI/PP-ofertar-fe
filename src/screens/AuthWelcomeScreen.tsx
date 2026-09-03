@@ -143,8 +143,8 @@ function createStyles(colors: ColorTokens) {
 		flex: 1,
 		backgroundColor: colors.navy,
 		paddingHorizontal: space.xxl,
-		paddingTop: 10,
-		paddingBottom: 10,
+		paddingTop: space.smPlus,
+		paddingBottom: space.smPlus,
 		overflow: "hidden",
 	},
 	zoneTop: {
@@ -158,7 +158,7 @@ function createStyles(colors: ColorTokens) {
 		flex: 1.1,
 	},
 	zoneCta: {
-		paddingBottom: 6,
+		paddingBottom: space.xsPlus,
 		gap: space.sm,
 	},
 	loader: {

@@ -40,7 +40,7 @@ export function ChangePasswordScreen({ onBack, onSuccess }: Props) {
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 			>
 				<ScrollView
-					contentContainerStyle={{ padding: space.xxl, gap: 14, paddingBottom: insets.bottom + 24 }}
+					contentContainerStyle={{ padding: space.xxl, gap: space.mdPlus, paddingBottom: insets.bottom + 24 }}
 					keyboardShouldPersistTaps="handled"
 				>
 					<Text style={styles.title}>Elegí una contraseña nueva</Text>
@@ -89,7 +89,7 @@ function createStyles(colors: ColorTokens) {
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 22 },
 	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20 },
-	checks: { gap: 6, marginTop: 6 },
+	checks: { gap: space.xsPlus, marginTop: space.xsPlus },
 	checkRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	checkText: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 12 },
 	cta: { marginTop: 18, backgroundColor: colors.navy, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center" },

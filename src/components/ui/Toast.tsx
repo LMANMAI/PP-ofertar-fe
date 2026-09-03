@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Animated, Dimensions, Easing, Pressable, StyleSheet, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 type Props = {
 	message: string;
@@ -65,12 +65,12 @@ function createStyles(colors: ColorTokens) {
 		alignSelf: "center",
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 10,
+		gap: space.smPlus,
 		backgroundColor: colors.successSoft,
 		borderWidth: 1,
 		borderColor: colors.success,
 		borderRadius: 12,
-		paddingVertical: 14,
+		paddingVertical: space.mdPlus,
 		paddingHorizontal: 18,
 		shadowColor: colors.shadow,
 		shadowOffset: { width: 0, height: 4 },

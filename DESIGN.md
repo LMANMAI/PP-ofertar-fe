@@ -66,8 +66,11 @@ rounded:
   button: "10px"
 spacing:
   xs: "4px"
+  xsPlus: "6px"
   sm: "8px"
+  smPlus: "10px"
   md: "12px"
+  mdPlus: "14px"
   lg: "16px"
   xl: "20px"
   xxl: "24px"
@@ -179,9 +182,9 @@ Every status gets its own background/text pair, tuned independently per theme ra
 
 ## Layout
 
-Spacing runs on a strict 4px-multiple scale (`xs`4 / `sm`8 / `md`12 / `lg`16 / `xl`20 / `xxl`24) — no arbitrary numbers for margin, padding, or gap.
+Spacing runs on a 4/6/8/10/12/14/16/20/24px scale (`xs`4 / `xsPlus`6 / `sm`8 / `smPlus`10 / `md`12 / `mdPlus`14 / `lg`16 / `xl`20 / `xxl`24) — no arbitrary numbers for margin, padding, or gap. The half-steps (`xsPlus`, `smPlus`, `mdPlus`) exist because the tight end of the scale needed finer resolution than a pure 4-unit base gives: icon-to-label gaps and chip/card padding read as cramped at the next token down and loose at the next one up, so those in-between values were the app's de-facto convention (90+ call sites) long before they were named tokens.
 
-Screen structure follows one shape almost everywhere: a fixed 56px navy header (back button or brand logo, title, optional trailing action), a scrollable content region with 16px page padding, and — on tab-root screens — a bottom nav bar that respects the device safe-area inset. Cards sit on 16px horizontal margins with 10-14px internal padding. Two-column layouts (offer grids, ticket lists) activate only above the 768px tablet breakpoint; below it, everything is single-column and full-width.
+Screen structure follows one shape almost everywhere: a fixed 56px navy header (back button or brand logo, title, optional trailing action), a scrollable content region with 16px page padding, and — on tab-root screens — a bottom nav bar that respects the device safe-area inset. Cards sit on 16px horizontal margins with 14px internal padding (`space.mdPlus`) — the app's standard compact-card padding, one step tighter than the 16px page margin. Two-column layouts (offer grids, ticket lists) activate only above the 768px tablet breakpoint; below it, everything is single-column and full-width.
 
 ## Elevation & Depth
 

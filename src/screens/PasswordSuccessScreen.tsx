@@ -34,7 +34,7 @@ export function PasswordSuccessScreen({ onGoToLogin }: Props) {
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background, paddingHorizontal: space.xxl },
-	content: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14 },
+	content: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.mdPlus },
 	checkCircle: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: colors.success, alignItems: "center", justifyContent: "center" },
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 24, textAlign: "center", marginTop: space.md },
 	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center", lineHeight: 20 },

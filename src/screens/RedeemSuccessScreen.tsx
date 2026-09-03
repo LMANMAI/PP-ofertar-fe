@@ -30,7 +30,7 @@ export function RedeemSuccessScreen({ reward, remainingPoints, onSeeMy, onKeepRe
 				<Text style={styles.headerTitle}>Interés guardado</Text>
 			</View>
 
-			<ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 24, alignItems: "center", gap: 14 }}>
+			<ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 24, alignItems: "center", gap: space.mdPlus }}>
 				<View style={styles.checkCircle}>
 					<Ionicons name="checkmark" size={36} color={colors.success} />
 				</View>
@@ -91,14 +91,14 @@ function createStyles(colors: ColorTokens) {
 	checkCircle: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: colors.success, alignItems: "center", justifyContent: "center", marginTop: space.xxl },
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 22 },
 	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
-	saldoBadge: { borderWidth: 1, borderColor: colors.success, paddingHorizontal: 14, paddingVertical: space.sm, borderRadius: 18 },
+	saldoBadge: { borderWidth: 1, borderColor: colors.success, paddingHorizontal: space.mdPlus, paddingVertical: space.sm, borderRadius: 18 },
 	saldoText: { color: colors.success, fontFamily: typography.family.medium, fontSize: 13 },
-	rewardCard: { width: "100%", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.divider, borderRadius: 16, padding: space.lg, gap: space.sm, marginTop: 6 },
+	rewardCard: { width: "100%", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.divider, borderRadius: 16, padding: space.lg, gap: space.sm, marginTop: space.xsPlus },
 	rewardRow: { flexDirection: "row", alignItems: "center", gap: space.md },
 	rewardIconWrap: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.infoSoft, alignItems: "center", justifyContent: "center" },
 	rewardTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 16 },
 	rewardBrand: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
-	divider: { height: 1, backgroundColor: colors.divider, marginVertical: 6 },
+	divider: { height: 1, backgroundColor: colors.divider, marginVertical: space.xsPlus },
 	validityRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.xs },
 	validity: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 12, textAlign: "center", flexShrink: 1 },
 	tip: { width: "100%", flexDirection: "row", gap: space.sm, alignItems: "center", backgroundColor: colors.successSoft, borderWidth: 1, borderColor: colors.success, borderRadius: 10, padding: space.md },
