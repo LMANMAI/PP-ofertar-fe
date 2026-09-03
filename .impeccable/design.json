@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-03T00:00:00Z",
+  "title": "Design System: OfertAR",
+  "extensions": {
+    "colorMeta": {
+      "ledger-navy": { "role": "primary", "displayName": "Ledger Navy", "canonical": "#0A1F44", "dark": "#0A1F44", "tonalRamp": ["#0e203e", "#1a3b75", "#2654a6", "#376fd2", "#6993dd", "#93b1e7", "#bccff0", "#eaf0fa"] },
+      "highlighter-cyan": { "role": "secondary", "displayName": "Highlighter Cyan", "canonical": "#7DD4F5", "dark": "#7DD4F5", "tonalRamp": ["#0a3342", "#135f7b", "#1c87b0", "#2badde", "#60c1e6", "#8cd2ed", "#b8e4f4", "#e9f6fc"] },
+      "alert-coral": { "role": "tertiary", "displayName": "Alert Coral", "canonical": "#E76F51", "dark": "#E76F51", "tonalRamp": ["#3f170e", "#752c19", "#a83f24", "#d35536", "#de8068", "#e7a392", "#f0c6bc", "#faedea"] },
+      "paper-background": { "role": "neutral", "displayName": "Paper Background", "canonical": "#F8FAFC", "dark": "#0B1220", "tonalRamp": ["#1d262f", "#364759", "#4e667e", "#6785a2", "#8da3b9", "#adbdcd", "#ccd6e0", "#eff2f5"] },
+      "card-surface": { "role": "neutral", "displayName": "Card Surface", "canonical": "#FFFFFF", "dark": "#111A2C", "tonalRamp": ["#292323", "#4d4242", "#6e5e5e", "#8e7b7b", "#ab9c9c", "#c2b7b7", "#d9d3d3", "#f3f1f1"] },
+      "ink-text": { "role": "neutral", "displayName": "Ink Text", "canonical": "#0F172A", "dark": "#E7ECF5", "tonalRamp": ["#1b2231", "#333f5c", "#495a83", "#6276a7", "#8999bd", "#aab5d0", "#cbd1e2", "#eff1f6"] },
+      "muted-text": { "role": "neutral", "displayName": "Muted Text", "canonical": "#5C6B84", "dark": "#8B97AE", "tonalRamp": ["#22252a", "#40454f", "#5b6371", "#778192", "#99a1ad", "#b6bbc4", "#d2d5db", "#f1f2f4"] },
+      "subtle-label": { "role": "neutral", "displayName": "Subtle Label", "canonical": "#6A7482", "dark": "#9BA6BC", "tonalRamp": ["#232629", "#42464d", "#5e656e", "#7b838e", "#9ca2ab", "#b7bcc2", "#d3d6d9", "#f1f2f3"] },
+      "hairline-border": { "role": "neutral", "displayName": "Hairline Border", "canonical": "#D8E1EE", "dark": "#25314A", "tonalRamp": ["#1d252f", "#374458", "#4e627e", "#687fa1", "#8e9fb9", "#adbacc", "#cdd4e0", "#eff2f5"] },
+      "divider-line": { "role": "neutral", "displayName": "Divider Line", "canonical": "#E5E7EB", "dark": "#2A3650", "tonalRamp": ["#232529", "#42454d", "#5e636e", "#7b818e", "#9ca1ab", "#b7bbc2", "#d3d5d9", "#f1f2f3"] },
+      "on-color-text": { "role": "neutral", "displayName": "On-Color Text", "canonical": "#FFFFFF", "dark": "#FFFFFF", "tonalRamp": ["#292323", "#4d4242", "#6e5e5e", "#8e7b7b", "#ab9c9c", "#c2b7b7", "#d9d3d3", "#f3f1f1"] },
+      "savings-green": { "role": "success", "displayName": "Savings Green", "canonical": "#22C55E", "dark": "#22C55E", "tonalRamp": ["#0f3d20", "#1d723c", "#29a356", "#3bce71", "#6cda95", "#95e4b2", "#beefd0", "#ebfaf0"] },
+      "alert-red": { "role": "danger", "displayName": "Alert Red", "canonical": "#EF4444", "dark": "#EF4444", "tonalRamp": ["#420b0b", "#7b1414", "#af1d1d", "#dc2d2d", "#e56161", "#ec8d8d", "#f3b9b9", "#fbe9e9"] },
+      "success-soft-bg": { "role": "success-soft", "displayName": "Success Soft", "canonical": "#E0F5EF", "dark": "#173226", "tonalRamp": ["#1a322b", "#315d51", "#478573", "#5faa95", "#87bfaf", "#a8d1c5", "#cae3dc", "#eef6f4"] },
+      "danger-soft-bg": { "role": "danger-soft", "displayName": "Danger Soft", "canonical": "#FEF2F2", "dark": "#3A1717", "tonalRamp": ["#3a1313", "#6c2323", "#9a3232", "#c44646", "#d27474", "#df9b9b", "#ebc1c1", "#f9ecec"] },
+      "warning-soft-bg": { "role": "warning-soft", "displayName": "Warning Soft", "canonical": "#FFF7ED", "dark": "#3A2A14", "tonalRamp": ["#3d290f", "#724c1d", "#a36d29", "#ce8d3b", "#daa96c", "#e4c195", "#efd9be", "#faf3eb"] },
+      "info-soft-bg": { "role": "info-soft", "displayName": "Info Soft", "canonical": "#E8F6FC", "dark": "#12303A", "tonalRamp": ["#152d38", "#265568", "#377995", "#4c9bbd", "#79b4ce", "#9ec9db", "#c3dee9", "#ecf5f8"] },
+      "warm-chip-bg": { "role": "warm-chip", "displayName": "Warm Chip", "canonical": "#FDECE6", "dark": "#3A2118", "tonalRamp": ["#3a1d13", "#6c3623", "#9a4d32", "#c36746", "#d28d74", "#dfac9b", "#ebccc1", "#f9efec"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Rare — large hero numbers only." },
+      "headline": { "displayName": "Headline", "purpose": "Screen-level totals and hero titles." },
+      "title": { "displayName": "Title", "purpose": "Card-level emphasis, section heroes." },
+      "body": { "displayName": "Body", "purpose": "Default paragraph and row text." },
+      "label": { "displayName": "Label", "purpose": "Form field labels, row titles." },
+      "overline": { "displayName": "Overline", "purpose": "Uppercase section labels — the one role that uses letter-spacing." }
+    },
+    "shadows": [
+      { "name": "ambient-lift", "value": "0 3px 8px rgba(10,31,68,0.06)", "purpose": "Soft lift for floating buttons, raised cards, and modal sheets. Navy-tinted in light mode, pure black in dark mode where a navy shadow would be invisible." }
+    ],
+    "motion": [
+      { "name": "screen-transition", "value": "fade + rise, ~200ms", "purpose": "Default transition between screens in the manual navigation stack; respects the OS reduce-motion setting." },
+      { "name": "card-expand", "value": "LayoutAnimation easeInEaseOut", "purpose": "Expanding a recurring-product card's detail section, so it reads as growing rather than the list jumping." }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single most important action on a screen — navy fill, white label, 10px radius.",
+      "html": "<button class=\"ds-btn-primary\">Confirmar ticket</button>",
+      "css": ".ds-btn-primary { background: #0A1F44; color: #FFFFFF; height: 52px; padding: 0 24px; border-radius: 10px; border: none; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 15px; transition: opacity 0.15s, transform 0.1s; } .ds-btn-primary:hover { opacity: 0.92; } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid #7DD4F5; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.6; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Same shape and weight as the primary button, reserved for irreversible actions inside a confirm sheet.",
+      "html": "<button class=\"ds-btn-danger\">Descartar</button>",
+      "css": ".ds-btn-danger { background: #EF4444; color: #FFFFFF; height: 48px; padding: 0 24px; border-radius: 10px; border: none; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 15px; transition: opacity 0.15s; } .ds-btn-danger:hover { opacity: 0.92; } .ds-btn-danger:focus-visible { outline: 2px solid #7DD4F5; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Label always visible above the field; border and fill shift to cyan on focus — the app's one consistent focus treatment.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\">Correo electrónico</label><div class=\"ds-field-row\"><input class=\"ds-field-input\" type=\"email\" placeholder=\"\" /></div></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 8px; } .ds-field-label { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 13px; color: #5C6B84; } .ds-field-row { height: 52px; border: 1px solid #D8E1EE; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; padding: 0 14px; transition: border-color 0.15s, background 0.15s; } .ds-field-row:focus-within { border-color: #7DD4F5; background: #E0F5FD; } .ds-field-input { flex: 1; border: none; outline: none; background: transparent; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; color: #0F172A; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat surface separated by a 1px hairline border rather than a shadow — the app's default answer to visual separation.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-row\"><div class=\"ds-card-badge\">CO</div><div class=\"ds-card-body\"><div class=\"ds-card-title\">Coto</div><div class=\"ds-card-meta\">3 sept · $12.450</div></div></div></div>",
+      "css": ".ds-card { background: #FFFFFF; border: 1px solid #D8E1EE; border-radius: 14px; padding: 12px 14px; } .ds-card-row { display: flex; align-items: center; gap: 12px; } .ds-card-badge { width: 32px; height: 32px; border-radius: 16px; background: #0369A1; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 11px; } .ds-card-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; color: #0F172A; } .ds-card-meta { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; color: #6B7280; margin-top: 2px; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip-success",
+      "description": "Soft-fill background with matching text color, always paired with an icon so meaning never depends on color alone.",
+      "html": "<span class=\"ds-chip\"><svg class=\"ds-chip-icon\" viewBox=\"0 0 24 24\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><path d=\"M20 6 9 17l-5-5\"/></svg>Ahorraste $2.400</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 4px; background: #E0F5EF; color: #15803D; padding: 3px 8px; border-radius: 9px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 10px; } .ds-chip-icon { flex-shrink: 0; }"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "nav-bottom",
+      "description": "Fixed tab bar with a raised circular scan button at center — the app's one deliberately oversized touch target.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-item--active\">Inicio</a><a class=\"ds-nav-item\">Ofertas</a><button class=\"ds-nav-scan\" aria-label=\"Escanear ticket\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"2\"><rect x=\"3\" y=\"7\" width=\"18\" height=\"13\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg></button><a class=\"ds-nav-item\">Tickets</a><a class=\"ds-nav-item\">Perfil</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-around; background: #FFFFFF; border-top: 1px solid #E5E7EB; height: 64px; padding: 0 8px; position: relative; } .ds-nav-item { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; color: #6B7280; } .ds-nav-item--active { color: #0A1F44; font-weight: 500; } .ds-nav-scan { width: 56px; height: 56px; border-radius: 999px; background: #0A1F44; border: 4px solid #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(10,31,68,0.2); transform: translateY(-14px); transition: transform 0.1s; } .ds-nav-scan:hover { transform: translateY(-16px); } .ds-nav-scan:active { transform: translateY(-14px) scale(0.96); }"
+    },
+    {
+      "name": "Confirm Sheet",
+      "kind": "custom",
+      "refersTo": "confirm-sheet",
+      "description": "Signature component — the app's one consistent shape for a high-stakes, undoable-or-not confirmation, always branded, never a native system alert.",
+      "html": "<div class=\"ds-sheet-backdrop\"><div class=\"ds-sheet\"><div class=\"ds-sheet-icon\"><svg viewBox=\"0 0 24 24\" width=\"28\" height=\"28\" fill=\"none\" stroke=\"#991B1B\" stroke-width=\"2\"><path d=\"M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6\"/></svg></div><h3 class=\"ds-sheet-title\">¿Descartar este ticket?</h3><p class=\"ds-sheet-subtitle\">Se borra de tu historial y no lo vas a poder recuperar.</p><button class=\"ds-btn-danger\" style=\"width:100%;margin-top:12px\">Descartar</button><button class=\"ds-sheet-cancel\">Seguir editando</button></div></div>",
+      "css": ".ds-sheet-backdrop { background: rgba(10,31,68,0.7); display: flex; align-items: center; justify-content: center; padding: 24px; } .ds-sheet { background: #FFFFFF; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 8px; max-width: 340px; } .ds-sheet-icon { align-self: center; width: 60px; height: 60px; border-radius: 30px; background: #FEF2F2; display: flex; align-items: center; justify-content: center; } .ds-sheet-title { text-align: center; color: #0F172A; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; margin: 4px 0 0; } .ds-sheet-subtitle { text-align: center; color: #6B7280; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; line-height: 18px; margin: 0; } .ds-sheet-cancel { height: 44px; background: none; border: none; color: #6B7280; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px; }"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "empty-state",
+      "description": "Icon, bold title, muted hint, and an optional recovery action — the shape every 'nothing here yet' screen in the app shares.",
+      "html": "<div class=\"ds-empty\"><svg viewBox=\"0 0 24 24\" width=\"56\" height=\"56\" fill=\"none\" stroke=\"#D8E1EE\" stroke-width=\"1.5\"><path d=\"M4 4h16v16H4z\"/><path d=\"M8 9h8M8 13h5\"/></svg><h3 class=\"ds-empty-title\">Sin tickets aún</h3><p class=\"ds-empty-hint\">Escaneá tu primer ticket y aparecerá acá</p></div>",
+      "css": ".ds-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 40px; text-align: center; } .ds-empty-title { color: #0F172A; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 16px; margin: 0; } .ds-empty-hint { color: #5C6B84; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; line-height: 18px; margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Honest Receipt",
+    "overview": "OfertAR reads like a well-kept receipt: itemized, precise, and never dressed up to look like more than it is. Every number gets its own tile instead of being buried in a sentence; every claim about a discount, a subscription benefit, or a redemption is qualified the instant it isn't real yet (\"vista previa,\" \"todavía no se puede canjear de verdad\"). This isn't a copywriting quirk — it's a load-bearing principle from the product's own PRODUCT.md (\"no fabricar lo que no existe,\" never fabricate what doesn't exist), and it shows up visually too: real supermarket brand colors instead of a generic palette (Carrefour navy, Dia red, Coto red), a rewards flow that renames \"redeem\" to \"guardamos tu interés\" because nothing is actually redeemed yet, a payment-methods screen that tells the user outright there's no subscription to manage.\n\nVisually, that honesty translates into restraint. Ledger Navy is the app's authority color — headers, primary buttons, the summary card on every ticket — and it stays fixed whether the phone is in light or dark mode, because it's the anchor the rest of the palette is judged against, not a surface that shifts with context. Highlighter Cyan is reserved for the thing worth marking: a discount, a focused input, an active filter, the scan action. Alert Coral appears sparingly, for warmth and conditional emphasis. Everything else — near-white backgrounds, muted grays, soft pastel status pills — exists to keep those three colors legible, not to compete with them.\n\nThe app is built with Expo/React Native and TypeScript, using a manual screen-state machine in App.tsx rather than a navigation library — a deliberate architectural choice for an app this size, not a gap to fill. Every screen reads its colors through a useThemeColors() hook, so light and dark mode are both first-class from the start, not a light design with a dark mode bolted on afterward.",
+    "keyCharacteristics": [
+      "Itemized and precise — numbers earn their own visual space, never buried in prose",
+      "Every unbuilt feature is labeled as a preview, consistently, everywhere it appears",
+      "One fixed authority color (navy) anchors both themes; everything else adapts",
+      "Flat by default; elevation is reserved for things meant to feel physically lifted",
+      "Real-world grounding over generic patterns (actual chain colors, actual receipt conventions)"
+    ],
+    "rules": [
+      { "name": "The Fixed-Anchor Rule", "body": "Ledger Navy never changes between light and dark mode. Every other color — including \"brand\" secondary and tertiary — is free to shift; navy is the one constant a returning user can always recognize the app by.", "section": "colors" },
+      { "name": "The Redundant Signal Rule", "body": "No status is ever communicated by color alone — every soft-pair chip or banner pairs its color with an icon, so the message survives for a colorblind user or bright sunlight.", "section": "colors" },
+      { "name": "The One Tracking Rule", "body": "Letter-spacing is applied only to overline section labels. Every other text role sets at its natural tracking — spacing is a signal reserved for \"this is a label, not content.\"", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest, separated by a border rather than a shadow. Shadow appears only on elements meant to feel raised off the page, never as decoration on an ordinary card.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do route every color through useThemeColors() so it adapts correctly between light and dark mode.",
+      "Do hedge any copy describing an unbuilt feature (\"vista previa,\" \"todavía no\") consistently across every screen that mentions it.",
+      "Do use the shared offerBadge() helper for any store/retailer badge, so the same chain renders the same color everywhere.",
+      "Do reach for the space.xs-xxl scale for every margin, padding, and gap.",
+      "Do pair every status color with an icon, never color alone.",
+      "Do use the confirm-sheet pattern for anything the user can't undo."
+    ],
+    "donts": [
+      "Don't hardcode a hex value that has a token equivalent — it will look correct in light mode and break invisibly in dark mode.",
+      "Don't let one screen describe a preview feature as real when every other screen treats it as a preview — that inconsistency is a trust violation, not a copy nitpick.",
+      "Don't hand-roll a new initials-and-color function per screen for store identity.",
+      "Don't add a shadow to a card just to make it feel more important — a border is this app's default answer to visual separation.",
+      "Don't reach for a native Alert.alert for a branded, high-stakes confirmation — it's the one moment the app should look most like itself, not least."
+    ]
+  }
+}
