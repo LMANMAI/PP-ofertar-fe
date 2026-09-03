@@ -48,14 +48,14 @@ function daysUntil(iso: string | null): number | null {
 	return Math.ceil((d.getTime() - Date.now()) / 86_400_000);
 }
 
-/** Whether any shown promotion carries OCR-read percentages, which is what the
- * "verificá en el local" disclaimer qualifies. */
 // The old architecture's bridge needs this opt-in per-platform; the New
 // Architecture (Fabric) ignores it and LayoutAnimation just works.
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
 	UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+/** Whether any shown promotion carries OCR-read percentages, which is what the
+ * "verificá en el local" disclaimer qualifies. */
 function hasGuessedPercentages(offers: CampaignOffer[]): boolean {
 	// Only the OCR-only ones. A percentage taken from the campaign's own
 	// metadata is not a guess, and warning about it would undersell a number
@@ -69,9 +69,9 @@ type Props = {
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
-	/** Opens a promotion in the offers detail, where the legal text is shown in
-	 * full instead of clipped to three lines. The second argument carries the
-	 * rebuilt offer because the feed may not contain this promotion. */
+	/** Opens a promotion in the offers detail, where its full legal text lives.
+	 * The second argument carries the rebuilt offer because the feed may not
+	 * contain this promotion. */
 	onOpenOffer?: (id: string, fallback?: Offer | null) => void;
 };
 
@@ -315,10 +315,8 @@ const ProductCard = memo(function ProductCard({
 									</Text>
 								</View>
 								<Text style={styles.detailNote}>
-									Es el precio más bajo que tenemos registrado para un producto de la misma marca
-									y del mismo tipo, entre los súper que seguís. Puede ser otra presentación o
-									tamaño del que comprás vos, y el dato es del último relevamiento, no
-									necesariamente de hoy.
+									El mejor precio registrado para un producto de la misma marca y tipo — puede
+									ser otra presentación o tamaño del que comprás vos.
 								</Text>
 							</>
 						) : (
@@ -363,22 +361,12 @@ const ProductCard = memo(function ProductCard({
 									La última vez lo conseguiste más barato que esta oferta
 								</Text>
 							)}
-							{/* Both numbers are per unit, and the offer can be a different
-							    size, so this is a reference point and not a saving. */}
-							<Text style={styles.paidCaveat}>
-								Compará la presentación antes de decidir: los precios pueden ser de tamaños
-								distintos.
-							</Text>
 						</View>
 					)}
 
 					{campaigns.length > 0 && (
 						<View style={styles.campaignBlock}>
 							<Text style={styles.campaignTitle}>OTRAS PROMOCIONES VIGENTES</Text>
-							<Text style={styles.campaignIntro}>
-								Promociones publicadas por el súper, con sus propias condiciones. No son precios
-								por unidad, así que no se comparan de forma directa con el mejor precio de arriba.
-							</Text>
 							{campaigns.map((c, i) => {
 								const until = formatDate(c.activeTo);
 								const days = daysUntil(c.activeTo);
@@ -409,11 +397,6 @@ const ProductCard = memo(function ProductCard({
 														: ""}
 												</Text>
 											)}
-											{c.legalText && (
-												<Text style={styles.campaignLegal} numberOfLines={3}>
-													{c.legalText}
-												</Text>
-											)}
 											{openable && (
 												<Text style={styles.campaignLink}>Ver la promoción completa</Text>
 											)}
@@ -424,11 +407,6 @@ const ProductCard = memo(function ProductCard({
 									</Pressable>
 								);
 							})}
-							<Text style={styles.campaignDisclaimer}>
-								Las promociones las publica el súper y pueden cambiar sin aviso. Verificá la
-								vigencia y consultá el stock en la sucursal: no garantizamos que el producto
-								esté disponible en la que elijas.
-							</Text>
 							{hasGuessedPercentages(campaigns) && (
 								<Text style={styles.campaignDisclaimer}>
 									Algún porcentaje se leyó de la imagen de la promoción y puede no ser exacto,
@@ -519,15 +497,12 @@ function createStyles(colors: ColorTokens) {
 	paidBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: 8, gap: 4 },
 	offerProduct: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
 	paidBetter: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
-	paidCaveat: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
 	paidWorse: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
 	campaignBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: 10, gap: 8 },
 	campaignTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
-	campaignIntro: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
 	campaignRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
 	campaignHeadline: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
 	campaignUntil: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	campaignLegal: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, marginTop: 3 },
 	campaignLink: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 11, marginTop: 4, textDecorationLine: "underline" },
 	campaignDisclaimer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, fontStyle: "italic" },
 	historyRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
