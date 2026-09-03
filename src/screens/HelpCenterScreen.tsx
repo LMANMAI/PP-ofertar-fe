@@ -41,7 +41,7 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 		<View style={styles.safeArea}>
 			<ScreenHeader title="Centro de ayuda" onBack={onBack} />
 
-			<ScrollView contentContainerStyle={{ padding: space.lg, gap: space.md, paddingBottom: insets.bottom + 24 }}>
+			<ScrollView contentContainerStyle={{ padding: space.lg, gap: space.md, paddingBottom: insets.bottom + space.xxl }}>
 				<View style={styles.searchBox}>
 					<Ionicons name="search" size={16} color={colors.subtleText} />
 					<TextInput
@@ -73,6 +73,10 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 								<Pressable
 									style={styles.faqRow}
 									onPress={() => setOpen(open === f.id ? null : f.id)}
+									accessibilityRole="button"
+									accessibilityLabel={f.q}
+									accessibilityHint={open === f.id ? "Toca para contraer la respuesta" : "Toca para ver la respuesta"}
+									accessibilityState={{ expanded: open === f.id }}
 								>
 									<Text style={styles.faqQ}>{f.q}</Text>
 									<Ionicons
