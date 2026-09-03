@@ -123,7 +123,7 @@ function createStyles(colors: ColorTokens) {
 	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, textAlign: "center" },
 	faqCard: { backgroundColor: colors.card, borderRadius: 12, overflow: "hidden" },
 	faqRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 },
-	faqQ: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
+	faqQ: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	faqA: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 14 },
 	divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: 16 },
 	contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: colors.navy, height: 48, borderRadius: 10 },

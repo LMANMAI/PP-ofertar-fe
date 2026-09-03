@@ -156,7 +156,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.card,
 		borderRadius: 16,
 		padding: 18,
-		shadowColor: colors.navy,
+		shadowColor: colors.shadow,
 		shadowOpacity: 0.25,
 		shadowRadius: 16,
 		elevation: 10,
@@ -178,7 +178,7 @@ function createStyles(colors: ColorTokens) {
 		textTransform: "uppercase",
 	},
 	title: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 19,
 		marginTop: 5,

@@ -60,7 +60,7 @@ import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, s
 import { getOffers, getTicket, scanTicket } from "./src/services";
 import type { Offer, NearbyStore, TicketResponse } from "./src/services";
 import { REWARDS, POINTS_PER_REFERRAL } from "./src/data/rewards";
-import { colors } from "./src/theme/designSystem";
+import { colors, ThemePreferenceProvider } from "./src/theme/designSystem";
 
 type Screen =
 	| "biometricLock" | "biometricPrompt" | "welcome" | "login" | "register1" | "register2" | "loader"
@@ -314,6 +314,7 @@ export default function App() {
 	};
 
 	return (
+		<ThemePreferenceProvider>
 		<SafeAreaProvider>
 			<OnboardingProvider
 				eligible={Boolean(session && screen === "main" && tab === "home")}
@@ -833,5 +834,6 @@ export default function App() {
 			)}
 			</OnboardingProvider>
 		</SafeAreaProvider>
+		</ThemePreferenceProvider>
 	);
 }

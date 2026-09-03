@@ -127,13 +127,13 @@ function NavItem({
 			<Ionicons
 				name={icon}
 				size={22}
-				color={active ? colors.navy : colors.mutedText}
+				color={active ? colors.defaultText : colors.mutedText}
 			/>
 			<Text
 				style={[
 					styles.itemLabel,
 					{ color: colors.mutedText },
-					active && { color: colors.navy },
+					active && { color: colors.defaultText },
 				]}
 			>
 				{label}

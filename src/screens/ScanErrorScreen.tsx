@@ -55,10 +55,10 @@ export function ScanErrorScreen({
 
 				<View style={styles.tipsCard}>
 					<Text style={styles.tipsTitle}>Consejos para un buen escaneo</Text>
-					<Tip text="Poné el ticket sobre una superficie plana" styles={styles} />
-					<Tip text="Asegurate de tener buena iluminación" styles={styles} />
-					<Tip text="Encuadrá el ticket completo en la pantalla" styles={styles} />
-					<Tip text="Evitá que el ticket esté doblado o mojado" styles={styles} />
+					<Tip text="Poné el ticket sobre una superficie plana" colors={colors} styles={styles} />
+					<Tip text="Asegurate de tener buena iluminación" colors={colors} styles={styles} />
+					<Tip text="Encuadrá el ticket completo en la pantalla" colors={colors} styles={styles} />
+					<Tip text="Evitá que el ticket esté doblado o mojado" colors={colors} styles={styles} />
 				</View>
 
 				<Pressable style={styles.primaryButton} onPress={onRetry}>
@@ -87,10 +87,10 @@ export function ScanErrorScreen({
 	);
 }
 
-function Tip({ text, styles }: { text: string; styles: ReturnType<typeof createStyles> }) {
+function Tip({ text, colors, styles }: { text: string; colors: ColorTokens; styles: ReturnType<typeof createStyles> }) {
 	return (
 		<View style={styles.tipRow}>
-			<Ionicons name="ellipse" size={6} color="#9A3412" />
+			<Ionicons name="ellipse" size={6} color={colors.warningSoftText} />
 			<Text style={styles.tipText}>{text}</Text>
 		</View>
 	);
@@ -143,7 +143,7 @@ function createStyles(colors: ColorTokens) {
 		textAlign: "center",
 	},
 	tipsCard: {
-		backgroundColor: "#FFF7ED",
+		backgroundColor: colors.warningSoft,
 		borderRadius: 14,
 		borderWidth: 1,
 		borderColor: "#FED7AA",
@@ -151,7 +151,7 @@ function createStyles(colors: ColorTokens) {
 		gap: 8,
 	},
 	tipsTitle: {
-		color: "#9A3412",
+		color: colors.warningSoftText,
 		fontFamily: typography.family.bold,
 		fontSize: 13,
 		marginBottom: 4,
@@ -159,7 +159,7 @@ function createStyles(colors: ColorTokens) {
 	tipRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 	tipText: {
 		flex: 1,
-		color: "#9A3412",
+		color: colors.warningSoftText,
 		fontFamily: typography.family.regular,
 		fontSize: 13,
 		lineHeight: 18,

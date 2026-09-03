@@ -82,12 +82,12 @@ function createStyles(colors: ColorTokens) {
 		width: 52,
 		height: 52,
 		borderRadius: 26,
-		backgroundColor: "#E8F6FC",
+		backgroundColor: colors.infoSoft,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	title: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 18,
 		textAlign: "center",
@@ -110,7 +110,7 @@ function createStyles(colors: ColorTokens) {
 		marginTop: 4,
 	},
 	row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
-	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
+	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 1 },
 	divider: { height: 1, backgroundColor: colors.divider },
 	button: {

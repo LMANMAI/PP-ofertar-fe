@@ -31,7 +31,7 @@ export function CheckEmailScreen({ email = "tu correo", onBack, onOpenChange }: 
 				</Text>
 
 				<View style={styles.hint}>
-					<Ionicons name="information-circle-outline" size={16} color="#B45A14" />
+					<Ionicons name="information-circle-outline" size={16} color={colors.warningSoftText} />
 					<Text style={styles.hintText}>
 						Si no lo ves, revisá la carpeta de spam o correo no deseado.
 					</Text>
@@ -55,12 +55,12 @@ function createStyles(colors: ColorTokens) {
 	header: { backgroundColor: colors.navy, height: 56, paddingHorizontal: 12, justifyContent: "center" },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	content: { flex: 1, padding: 24, alignItems: "center", gap: 8 },
-	iconCircle: { width: 96, height: 96, borderRadius: 48, backgroundColor: "#E8F6FC", alignItems: "center", justifyContent: "center", marginTop: 32 },
-	title: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 24, textAlign: "center", marginTop: 14 },
+	iconCircle: { width: 96, height: 96, borderRadius: 48, backgroundColor: colors.infoSoft, alignItems: "center", justifyContent: "center", marginTop: 32 },
+	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 24, textAlign: "center", marginTop: 14 },
 	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center", lineHeight: 22 },
-	bold: { color: colors.navy, fontFamily: typography.family.medium },
-	hint: { flexDirection: "row", gap: 8, alignItems: "center", backgroundColor: "#FFF7ED", padding: 12, borderRadius: 10, marginTop: 16 },
-	hintText: { flex: 1, color: "#B45A14", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
+	bold: { color: colors.defaultText, fontFamily: typography.family.medium },
+	hint: { flexDirection: "row", gap: 8, alignItems: "center", backgroundColor: colors.warningSoft, padding: 12, borderRadius: 10, marginTop: 16 },
+	hintText: { flex: 1, color: colors.warningSoftText, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
 	cta: { marginTop: 20, backgroundColor: colors.navy, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center", width: "100%" },
 	ctaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	resend: { padding: 12 },

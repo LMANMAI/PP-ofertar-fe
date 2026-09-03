@@ -149,7 +149,7 @@ function createStyles(colors: ColorTokens) {
 		justifyContent: "center",
 		marginBottom: 4,
 	},
-	title: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 20, lineHeight: 28, textAlign: "center" },
+	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, lineHeight: 28, textAlign: "center" },
 	body: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20, textAlign: "center", marginTop: -4 },
 	enableBtn: {
 		flexDirection: "row",
@@ -165,6 +165,6 @@ function createStyles(colors: ColorTokens) {
 	},
 	enableBtnText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
 	dismissBtn: { paddingVertical: 12, paddingHorizontal: 20 },
-	dismissBtnText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
+	dismissBtnText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
 	});
 }

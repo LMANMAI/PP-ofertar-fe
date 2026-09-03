@@ -155,7 +155,7 @@ function Resultado({
 
 			{producto.sinPrecios ? (
 				<View style={styles.avisoSinPrecios}>
-					<Ionicons name="information-circle-outline" size={20} color={colors.orange} />
+					<Ionicons name="information-circle-outline" size={20} color={colors.infoSoftText} />
 					<Text style={styles.avisoTexto}>
 						{producto.fuenteDatos === "ninguna"
 							? "No encontramos este producto. Puede ser un código interno del comercio."
@@ -289,13 +289,13 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "flex-start",
 		gap: 10,
-		backgroundColor: "#FDF1EC",
+		backgroundColor: colors.infoSoft,
 		borderRadius: 14,
 		padding: 14,
 	},
 	avisoTexto: {
 		flex: 1,
-		color: colors.orange,
+		color: colors.infoSoftText,
 		fontFamily: typography.family.medium,
 		fontSize: typography.sizes.caption,
 		lineHeight: typography.lineHeights.caption,
@@ -307,14 +307,14 @@ function createStyles(colors: ColorTokens) {
 		gap: 2,
 	},
 	precioLabel: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: typography.sizes.overline,
 		textTransform: "uppercase",
 		letterSpacing: 0.5,
 	},
 	precioDestacado: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: typography.sizes.h1,
 	},

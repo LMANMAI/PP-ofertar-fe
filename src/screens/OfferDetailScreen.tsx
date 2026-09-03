@@ -233,7 +233,7 @@ function createStyles(colors: ColorTokens) {
 		padding: 16,
 	},
 	sectionTitle: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
 		marginBottom: 10,

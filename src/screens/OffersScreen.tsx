@@ -314,11 +314,11 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		gap: 8,
 		margin: 16,
-		backgroundColor: "#FEF2F2",
+		backgroundColor: colors.dangerSoft,
 		borderRadius: 10,
 		padding: 12,
 	},
-	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 13 },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
 	emptyWrap: {
 		flex: 1,
 		alignItems: "center",
@@ -327,7 +327,7 @@ function createStyles(colors: ColorTokens) {
 		paddingBottom: 60,
 		paddingHorizontal: 40,
 	},
-	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
+	emptyTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
 	emptyHint: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
@@ -366,7 +366,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.card,
 		borderWidth: 1,
 		borderColor: colors.border,
-		shadowColor: colors.navy,
+		shadowColor: colors.shadow,
 		shadowOpacity: 0.06,
 		shadowRadius: 8,
 		shadowOffset: { width: 0, height: 3 },
@@ -407,7 +407,7 @@ function createStyles(colors: ColorTokens) {
 	// Warm for anything not simply taken off the price, so a "50% en la 2da
 	// unidad" never looks like a plain 50% off.
 	appliesChipWarm: { backgroundColor: "#FDECE6" },
-	appliesText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 13, lineHeight: 17 },
+	appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 13, lineHeight: 17 },
 	appliesTextWarm: { color: "#B44A2E" },
 	offerDetail: {
 		color: colors.mutedText2,
@@ -416,13 +416,13 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 16,
 	},
 	offerProduct: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: 13,
 		lineHeight: 18,
 	},
 	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
-	priceNow: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
+	priceNow: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18 },
 	priceWas: {
 		color: colors.subtleText,
 		fontFamily: typography.family.regular,
@@ -433,8 +433,8 @@ function createStyles(colors: ColorTokens) {
 	offerStoreRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
 	storeBadge: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
 	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 10 },
-	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	offerValidity: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
+	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
+	offerValidity: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
 	offerApplies: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
 	offerCaveat: {
 		color: "#64748B",

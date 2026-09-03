@@ -115,7 +115,7 @@ function createStyles(colors: ColorTokens) {
 	infoCard: { marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14 },
 	infoRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
 	infoLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 13 },
-	infoValue: { color: colors.navy, fontFamily: typography.family.regular, fontSize: 14, marginTop: 2 },
+	infoValue: { color: colors.defaultText, fontFamily: typography.family.regular, fontSize: 14, marginTop: 2 },
 	infoDivider: { height: 1, backgroundColor: colors.divider },
 	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16, marginBottom: 8 },
 	condCard: { marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 4 },

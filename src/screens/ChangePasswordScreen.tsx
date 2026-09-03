@@ -73,7 +73,7 @@ export function ChangePasswordScreen({ onBack, onSuccess }: Props) {
 									size={14}
 									color={c.ok ? colors.cyan : colors.subtleText}
 								/>
-								<Text style={[styles.checkText, c.ok && { color: colors.navy }]}>{c.t}</Text>
+								<Text style={[styles.checkText, c.ok && { color: colors.defaultText }]}>{c.t}</Text>
 							</View>
 						))}
 					</View>
@@ -99,7 +99,7 @@ function createStyles(colors: ColorTokens) {
 	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	title: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 22 },
+	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 22 },
 	body: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20 },
 	checks: { gap: 6, marginTop: 6 },
 	checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },

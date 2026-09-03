@@ -443,11 +443,11 @@ export function HomeScreen({
 				{/* Quick actions */}
 				<View style={styles.quickRow}>
 					<Pressable style={styles.quickItem} onPress={onOpenAnalysis}>
-						<Ionicons name="bar-chart-outline" size={18} color={colors.navy} />
+						<Ionicons name="bar-chart-outline" size={18} color={colors.defaultText} />
 						<Text style={styles.quickLabel}>Análisis mensual</Text>
 					</Pressable>
 					<Pressable style={styles.quickItem} onPress={onOpenSmartList}>
-						<Ionicons name="bulb-outline" size={18} color={colors.navy} />
+						<Ionicons name="bulb-outline" size={18} color={colors.defaultText} />
 						<Text style={styles.quickLabel}>Mi lista</Text>
 					</Pressable>
 				</View>
@@ -553,7 +553,7 @@ function createStyles(colors: ColorTokens) {
 	savingsRetryBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.cyan, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
 	savingsRetryText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
 	firstRunCard: { backgroundColor: colors.card, borderRadius: 16, padding: 20, alignItems: "center", gap: 8, borderWidth: 1, borderColor: colors.divider },
-	firstRunTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15, textAlign: "center", marginTop: 4 },
+	firstRunTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textAlign: "center", marginTop: 4 },
 	firstRunBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },
 	firstRunCta: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10, marginTop: 6 },
 	firstRunCtaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
@@ -630,7 +630,7 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: colors.card,
 		borderWidth: 1,
 		borderColor: colors.border,
-		shadowColor: colors.navy,
+		shadowColor: colors.shadow,
 		shadowOpacity: 0.06,
 		shadowRadius: 8,
 		shadowOffset: { width: 0, height: 3 },
@@ -672,8 +672,8 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.bold,
 		fontSize: 10,
 	},
-	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	offerValidity: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
+	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
+	offerValidity: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
 	offerBody: { flexDirection: "row", alignItems: "stretch", gap: 12 },
 	// The percentage gets its own block instead of being one more line of
 	// text — this is the visual cue the cards were missing.
@@ -712,16 +712,16 @@ function createStyles(colors: ColorTokens) {
 	// Warm for anything that is not simply taken off the price, so a
 	// "50% en la 2da unidad" never looks like a plain 50% off.
 	appliesChipWarm: { backgroundColor: "#FDECE6" },
-	appliesText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 11, lineHeight: 15 },
+	appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 11, lineHeight: 15 },
 	appliesTextWarm: { color: "#B44A2E" },
 	offerProduct: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: 12,
 		lineHeight: 16,
 	},
 	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 6 },
-	priceNow: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
+	priceNow: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
 	priceWas: {
 		color: colors.subtleText,
 		fontFamily: typography.family.regular,
@@ -763,7 +763,7 @@ function createStyles(colors: ColorTokens) {
 		marginBottom: 6,
 	},
 	productName: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: 13,
 		lineHeight: 17,
@@ -782,26 +782,26 @@ function createStyles(colors: ColorTokens) {
 		marginTop: 2,
 	},
 	productPrice: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
 	},
 	// Slightly smaller than a price: a promotion headline is wordier and has to
 	// fit the narrow card without truncating.
 	productPromo: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 13,
 		lineHeight: 17,
 	},
 	productDeltaBadge: {
-		backgroundColor: "#E0F5EF",
+		backgroundColor: colors.successSoft,
 		paddingHorizontal: 8,
 		paddingVertical: 3,
 		borderRadius: 6,
 	},
 	productDeltaText: {
-		color: "#1D9E75",
+		color: colors.successSoftText,
 		fontFamily: typography.family.medium,
 		fontSize: 11,
 	},
@@ -819,7 +819,7 @@ function createStyles(colors: ColorTokens) {
 		borderColor: colors.divider,
 	},
 	quickLabel: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: 12,
 	},

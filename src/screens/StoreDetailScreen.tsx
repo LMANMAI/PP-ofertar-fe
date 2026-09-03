@@ -4,7 +4,8 @@ import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
 import { BottomNav, type TabKey } from "../components";
 import type { NearbyStore } from "../services";
 
@@ -19,6 +20,7 @@ type Props = {
 export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
+	const isDark = useIsDarkMode();
 	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	const openInMaps = () => {
@@ -55,6 +57,7 @@ export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onSca
 					<View style={styles.mapWrap}>
 						<MapView
 							provider={PROVIDER_DEFAULT}
+							customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
 							style={StyleSheet.absoluteFill}
 							region={{
 								latitude: store.lat,
@@ -161,7 +164,7 @@ function createStyles(colors: ColorTokens) {
 		justifyContent: "center",
 	},
 	storeName: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
 	},

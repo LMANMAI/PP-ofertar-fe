@@ -143,7 +143,7 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 
 				{error && (
 					<View style={styles.errorBox}>
-						<Ionicons name="alert-circle" size={16} color="#A8341E" />
+						<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
 						<Text style={styles.errorText}>{error}</Text>
 					</View>
 				)}
@@ -263,11 +263,11 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 18,
 	},
 	footerLink: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		textDecorationLine: "underline",
 	},
-	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	});
 }

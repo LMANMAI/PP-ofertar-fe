@@ -123,7 +123,7 @@ export function AuthLoginScreen({
 
 					{error && (
 						<View style={styles.errorBox}>
-							<Ionicons name="alert-circle" size={16} color="#A8341E" />
+							<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
 							<Text style={styles.errorText}>{error}</Text>
 						</View>
 					)}
@@ -171,15 +171,15 @@ function createStyles(colors: ColorTokens) {
 	title: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 28, lineHeight: 36 },
 	subtitle: { marginTop: 6, color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 17, lineHeight: 26 },
 	form: { marginTop: 24, gap: 16 },
-	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	forgotButton: { alignSelf: "flex-end", marginTop: 8 },
 	forgotText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 16, textDecorationLine: "underline" },
 	primaryButton: { height: 52, borderRadius: 10, backgroundColor: colors.navy, alignItems: "center", justifyContent: "center", marginTop: 14 },
 	primaryButtonText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
 	footerLinkWrap: { marginTop: 18, alignItems: "center" },
 	footerText: { textAlign: "center", color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	footerLink: { color: colors.navy, fontFamily: typography.family.medium, textDecorationLine: "underline" },
+	footerLink: { color: colors.defaultText, fontFamily: typography.family.medium, textDecorationLine: "underline" },
 	pressed: { opacity: 0.88 },
 	});
 }

@@ -53,7 +53,7 @@ function createStyles(colors: ColorTokens) {
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 24, paddingTop: 40 },
 	emptyIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.softWarm, alignItems: "center", justifyContent: "center", marginBottom: 4 },
-	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
+	emptyTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
 	emptyBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },
 	});
 }

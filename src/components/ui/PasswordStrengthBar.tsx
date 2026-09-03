@@ -94,6 +94,6 @@ function createStyles(colors: ColorTokens) {
 	checklist: { gap: 4, marginTop: 2 },
 	checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 	checkText: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	checkTextMet: { color: colors.navy, fontFamily: typography.family.medium },
+	checkTextMet: { color: colors.defaultText, fontFamily: typography.family.medium },
 	});
 }

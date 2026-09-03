@@ -99,11 +99,11 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 
 			<View style={styles.monthSelector}>
 				<Pressable onPress={prevMonth} style={styles.monthArrow} accessibilityRole="button" accessibilityLabel="Mes anterior">
-					<Ionicons name="chevron-back" size={18} color={colors.navy} />
+					<Ionicons name="chevron-back" size={18} color={colors.defaultText} />
 				</Pressable>
 				<Text style={styles.monthLabel}>{formatMonth(selectedMonth)}</Text>
 				<Pressable onPress={nextMonth} style={styles.monthArrow} accessibilityRole="button" accessibilityLabel="Mes siguiente">
-					<Ionicons name="chevron-forward" size={18} color={colors.navy} />
+					<Ionicons name="chevron-forward" size={18} color={colors.defaultText} />
 				</Pressable>
 			</View>
 
@@ -115,7 +115,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 
 			{error && (
 				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color={colors.orange} />
+					<Ionicons name="warning-outline" size={18} color={colors.dangerSoftText} />
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
 			)}
@@ -171,7 +171,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 							<View style={styles.catsCard}>
 								{report.byStore.map((s, idx) => (
 									<View key={s.storeName} style={[styles.catRow, idx === report.byStore.length - 1 && { borderBottomWidth: 0 }]}>
-										<Ionicons name="storefront-outline" size={16} color={colors.navy} />
+										<Ionicons name="storefront-outline" size={16} color={colors.defaultText} />
 										<View style={{ flex: 1 }}>
 											<Text style={styles.catName}>{s.storeName}</Text>
 										</View>
@@ -193,7 +193,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 								</View>
 							</View>
 							<View style={styles.highlightPill}>
-								<Ionicons name="pricetags-outline" size={16} color={colors.navy} />
+								<Ionicons name="pricetags-outline" size={16} color={colors.defaultText} />
 								<View>
 									<Text style={styles.highlightValue}>{report.byCategory.length}</Text>
 									<Text style={styles.highlightLabel}>categorías</Text>
@@ -227,10 +227,10 @@ function createStyles(colors: ColorTokens) {
 	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
 	monthSelector: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 12, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
 	monthArrow: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	monthLabel: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15, textTransform: "capitalize" },
+	monthLabel: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textTransform: "capitalize" },
 	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 12 },
-	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 13 },
+	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: 12 },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
 	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: 20, gap: 8 },
 	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	heroValue: { color: "#fff", fontFamily: typography.family.bold, fontSize: 34 },
@@ -246,11 +246,11 @@ function createStyles(colors: ColorTokens) {
 	catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.divider },
 	catDot: { width: 10, height: 10, borderRadius: 5 },
 	catHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-	catName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
+	catName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	catAmount: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 12 },
 	catBarTrack: { height: 6, backgroundColor: "#F8F9FB", borderRadius: 3, overflow: "hidden" },
 	catBarFill: { height: 6, borderRadius: 3 },
-	catPct: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 13, width: 54, textAlign: "right" },
+	catPct: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 13, width: 54, textAlign: "right" },
 	highlightsRow: {
 		flexDirection: "row",
 		gap: 10,
@@ -267,7 +267,7 @@ function createStyles(colors: ColorTokens) {
 		borderColor: colors.border,
 	},
 	highlightValue: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
 	},

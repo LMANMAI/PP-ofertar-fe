@@ -152,7 +152,7 @@ export function PointsScreen({
 				</View>
 
 				<Pressable style={styles.quickItem} onPress={onShowHistory}>
-					<Ionicons name="time-outline" size={20} color={colors.navy} />
+					<Ionicons name="time-outline" size={20} color={colors.defaultText} />
 					<Text style={styles.quickText}>Ver historial de puntos</Text>
 					<Ionicons name="chevron-forward" size={16} color={colors.subtleText} />
 				</Pressable>
@@ -265,7 +265,7 @@ function createStyles(colors: ColorTokens) {
 		borderColor: colors.divider,
 	},
 	referralHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-	referralTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 16 },
+	referralTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 16 },
 	referralBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19 },
 	codeBox: {
 		flexDirection: "row",
@@ -276,7 +276,7 @@ function createStyles(colors: ColorTokens) {
 		borderRadius: 10,
 		paddingVertical: 12,
 	},
-	codeText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15, letterSpacing: 0.5 },
+	codeText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, letterSpacing: 0.5 },
 	shareButton: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -288,12 +288,12 @@ function createStyles(colors: ColorTokens) {
 	},
 	shareButtonText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
 	quickItem: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.card, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.divider },
-	quickText: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
+	quickText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	sectionTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 4 },
 	rewardsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-	rewardCard: { flexBasis: "47.5%", flexGrow: 1, backgroundColor: "#E8F6FC", borderRadius: 16, padding: 14, gap: 5, minHeight: 110 },
+	rewardCard: { flexBasis: "47.5%", flexGrow: 1, backgroundColor: colors.infoSoft, borderRadius: 16, padding: 14, gap: 5, minHeight: 110 },
 	rewardCardLocked: { backgroundColor: colors.softWarm },
-	rewardTitle: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13, marginTop: 2 },
+	rewardTitle: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: 13, marginTop: 2 },
 	rewardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: "auto", paddingTop: 6 },
 	rewardPointsBadge: { backgroundColor: colors.navy, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4 },
 	rewardPointsBadgeLocked: { backgroundColor: colors.divider },

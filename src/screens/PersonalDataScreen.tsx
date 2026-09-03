@@ -200,20 +200,20 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 						style={({ pressed }) => [styles.avatarEdit, pressed && { opacity: 0.7 }]}
 						hitSlop={8}
 					>
-						<Ionicons name="camera-outline" size={14} color={colors.navy} />
+						<Ionicons name="camera-outline" size={14} color={colors.infoSoftText} />
 						<Text style={styles.avatarEditText}>{profilePic ? "Cambiar foto" : "Agregar foto"}</Text>
 					</Pressable>
 				</View>
 
 				{picError && (
 					<View style={styles.picFeedbackBox}>
-						<Ionicons name="alert-circle" size={16} color="#A8341E" />
+						<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
 						<Text style={styles.picFeedbackTextError}>{picError}</Text>
 					</View>
 				)}
 				{picSuccess && (
 					<View style={styles.picFeedbackBoxSuccess}>
-						<Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+						<Ionicons name="checkmark-circle" size={16} color={colors.successSoftText} />
 						<Text style={styles.picFeedbackTextSuccess}>Foto actualizada</Text>
 					</View>
 				)}
@@ -229,7 +229,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 
 						{saveError && (
 							<View style={styles.errorBox}>
-								<Ionicons name="alert-circle" size={16} color="#A8341E" />
+								<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
 								<Text style={styles.errorText}>{saveError}</Text>
 							</View>
 						)}
@@ -317,27 +317,27 @@ function createStyles(colors: ColorTokens) {
 	avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
 	avatarImage: { width: "100%", height: "100%" },
 	avatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 26 },
-	avatarEdit: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#E8F6FC", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
-	avatarEditText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-	picFeedbackBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	picFeedbackTextError: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	picFeedbackBoxSuccess: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#A7F3D0", flexDirection: "row", alignItems: "center", gap: 8 },
-	picFeedbackTextSuccess: { flex: 1, color: "#16A34A", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	avatarEdit: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.infoSoft, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
+	avatarEditText: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: 12 },
+	picFeedbackBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	picFeedbackTextError: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	picFeedbackBoxSuccess: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.successSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	picFeedbackTextSuccess: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	saveBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: 4 },
 	saveText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-	errorBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	errorBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: 8 },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
 	sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
 	sheetContent: { gap: 20 },
 	sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#D1D5DB", alignSelf: "center" },
-	sheetTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18, textAlign: "center", marginBottom: 4 },
+	sheetTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18, textAlign: "center", marginBottom: 4 },
 	sheetOptions: { gap: 10 },
 	sheetOption: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.navy, height: 52, borderRadius: 12, paddingHorizontal: 18 },
 	sheetOptionDanger: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
 	sheetOptionText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
 	sheetOptionTextDanger: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
 	sheetCancel: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 20 },
-	sheetCancelText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 15 },
+	sheetCancelText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 15 },
 	});
 }

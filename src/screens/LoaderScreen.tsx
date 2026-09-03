@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	onDone: () => void;
@@ -17,6 +17,7 @@ type Props = {
 export function LoaderScreen({ onDone, durationMs = 1500 }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
+	const isDark = useIsDarkMode();
 	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	useEffect(() => {
@@ -27,7 +28,7 @@ export function LoaderScreen({ onDone, durationMs = 1500 }: Props) {
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="dark" translucent />
+			<StatusBar style={isDark ? "light" : "dark"} translucent />
 			<View style={[styles.center, { paddingBottom: insets.bottom }]}>
 				<Image
 					source={require("../../assets/logo_ofertar.png")}

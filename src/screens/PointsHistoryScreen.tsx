@@ -77,13 +77,13 @@ export function PointsHistoryScreen({ entries, onBack, activeTab, onSelectTab, o
 										<View
 											style={[
 												styles.iconWrap,
-												{ backgroundColor: positive ? "#E0F5EF" : "#FEE2E2" },
+												{ backgroundColor: positive ? colors.successSoft : colors.dangerSoft },
 											]}
 										>
 											<Ionicons
 												name={e.icon}
 												size={18}
-												color={positive ? colors.success : colors.danger}
+												color={positive ? colors.successSoftText : colors.dangerSoftText}
 											/>
 										</View>
 										<View style={{ flex: 1 }}>
@@ -128,12 +128,12 @@ function createStyles(colors: ColorTokens) {
 	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	summaryValue: { fontFamily: typography.family.bold, fontSize: 16 },
 	emptyWrap: { alignItems: "center", gap: 8, paddingVertical: 40 },
-	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
+	emptyTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
 	emptyHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, textAlign: "center" },
 	list: { backgroundColor: colors.card, borderRadius: 14, overflow: "hidden" },
 	row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
 	iconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-	rowTitle: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
+	rowTitle: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	rowDate: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
 	pts: { fontFamily: typography.family.bold, fontSize: 14 },
 	ptsGreen: { color: colors.success },

@@ -13,7 +13,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { BottomNav, type TabKey } from "../components";
-import { typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import {
+	typography,
+	useThemeColors,
+	useThemePreference,
+	type ColorTokens,
+	type ThemePreference,
+} from "../theme/designSystem";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { isBiometricAvailable } from "../auth/biometricAuth";
@@ -51,6 +57,12 @@ type LinkItem = {
 	action: keyof Pick<Props, "onOpenPersonalData" | "onOpenPayment" | "onOpenStores" | "onOpenSavings" | "onOpenPoints" | "onChangePassword">;
 };
 
+const THEME_OPTIONS: { value: ThemePreference; label: string; icon: IonName }[] = [
+	{ value: "system", label: "Sistema", icon: "phone-portrait-outline" },
+	{ value: "light", label: "Claro", icon: "sunny-outline" },
+	{ value: "dark", label: "Oscuro", icon: "moon-outline" },
+];
+
 const ACCOUNT_ITEMS: LinkItem[] = [
 	{ id: "personal", icon: "person-outline", label: "Datos personales", action: "onOpenPersonalData" },
 	{ id: "points", icon: "people-outline", label: "Puntos y referidos", action: "onOpenPoints" },
@@ -81,6 +93,7 @@ export function ProfileScreen({
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
+	const { preference: themePreference, setPreference: setThemePreference } = useThemePreference();
 	const [alertsEnabled, setAlertsEnabled] = useState(true);
 	const [shareData, setShareData] = useState(false);
 	const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -150,7 +163,7 @@ export function ProfileScreen({
 						</Text>
 						<Text style={styles.profileEmail}>{session.user.email}</Text>
 						<View style={styles.levelBadge}>
-							<Ionicons name="people" size={10} color={colors.navy} />
+							<Ionicons name="people" size={10} color={colors.infoSoftText} />
 							<Text style={styles.levelBadgeText}>
 								{referralPoints.toLocaleString("es-AR")} pts por referidos
 							</Text>
@@ -167,7 +180,7 @@ export function ProfileScreen({
 							<View key={it.id}>
 								<Pressable style={styles.listItem} onPress={handlers[it.action]}>
 									<View style={styles.listIconWrap}>
-										<Ionicons name={it.icon} size={16} color={colors.navy} />
+										<Ionicons name={it.icon} size={16} color={colors.infoSoftText} />
 									</View>
 									<View style={{ flex: 1, gap: 2 }}>
 										<Text style={styles.listLabel}>{it.label}</Text>
@@ -183,9 +196,43 @@ export function ProfileScreen({
 
 				<Text style={styles.sectionLabel}>PREFERENCIAS</Text>
 				<View style={styles.listCard}>
+					<View style={[styles.listItem, styles.themeRow]}>
+						<View style={styles.listIconWrap}>
+							<Ionicons name="contrast-outline" size={16} color={colors.infoSoftText} />
+						</View>
+						<View style={{ flex: 1, gap: 2 }}>
+							<Text style={styles.listLabel}>Tema</Text>
+							<Text style={styles.listHint}>Claro, oscuro, o el que uses en el sistema</Text>
+						</View>
+					</View>
+					<View style={styles.themeOptionsRow}>
+						{THEME_OPTIONS.map((opt) => {
+							const active = themePreference === opt.value;
+							return (
+								<Pressable
+									key={opt.value}
+									onPress={() => setThemePreference(opt.value)}
+									style={[styles.themeOption, active && styles.themeOptionActive]}
+									accessibilityRole="button"
+									accessibilityState={{ selected: active }}
+									accessibilityLabel={`Tema ${opt.label}`}
+								>
+									<Ionicons
+										name={opt.icon}
+										size={15}
+										color={active ? colors.buttonText : colors.mutedText2}
+									/>
+									<Text style={[styles.themeOptionText, active && styles.themeOptionTextActive]}>
+										{opt.label}
+									</Text>
+								</Pressable>
+							);
+						})}
+					</View>
+					<View style={styles.listDivider} />
 					<View style={styles.listItem}>
 						<View style={styles.listIconWrap}>
-							<Ionicons name="notifications-outline" size={16} color={colors.navy} />
+							<Ionicons name="notifications-outline" size={16} color={colors.infoSoftText} />
 						</View>
 						<View style={{ flex: 1, gap: 2 }}>
 							<Text style={styles.listLabel}>Alertas de ofertas</Text>
@@ -194,14 +241,14 @@ export function ProfileScreen({
 						<Switch
 							value={alertsEnabled}
 							onValueChange={setAlertsEnabled}
-							trackColor={{ true: colors.cyan, false: "#D9DEE5" }}
+							trackColor={{ true: colors.cyan, false: colors.border }}
 							thumbColor="#fff"
 						/>
 					</View>
 					<View style={styles.listDivider} />
 					<View style={styles.listItem}>
 						<View style={styles.listIconWrap}>
-							<Ionicons name="swap-horizontal-outline" size={16} color={colors.navy} />
+							<Ionicons name="swap-horizontal-outline" size={16} color={colors.infoSoftText} />
 						</View>
 						<View style={{ flex: 1, gap: 2 }}>
 							<Text style={styles.listLabel}>Marcas alternativas</Text>
@@ -212,7 +259,7 @@ export function ProfileScreen({
 						<Switch
 							value={alternativeBrands}
 							onValueChange={handleToggleAlternativeBrands}
-							trackColor={{ true: colors.cyan, false: "#D9DEE5" }}
+							trackColor={{ true: colors.cyan, false: colors.border }}
 							thumbColor="#fff"
 							disabled={savingPreference}
 						/>
@@ -220,7 +267,7 @@ export function ProfileScreen({
 					<View style={styles.listDivider} />
 					<View style={styles.listItem}>
 						<View style={styles.listIconWrap}>
-							<Ionicons name="shield-checkmark-outline" size={16} color={colors.navy} />
+							<Ionicons name="shield-checkmark-outline" size={16} color={colors.infoSoftText} />
 						</View>
 						<View style={{ flex: 1 }}>
 							<Text style={styles.listLabel}>Compartir datos anónimos</Text>
@@ -228,14 +275,14 @@ export function ProfileScreen({
 						<Switch
 							value={shareData}
 							onValueChange={setShareData}
-							trackColor={{ true: colors.cyan, false: "#D9DEE5" }}
+							trackColor={{ true: colors.cyan, false: colors.border }}
 							thumbColor="#fff"
 						/>
 					</View>
 					<View style={styles.listDivider} />
 					<View style={styles.listItem}>
 						<View style={styles.listIconWrap}>
-							<Ionicons name="finger-print-outline" size={16} color={colors.navy} />
+							<Ionicons name="finger-print-outline" size={16} color={colors.infoSoftText} />
 						</View>
 						<View style={{ flex: 1, gap: 2 }}>
 							<Text style={styles.listLabel}>Inicio de sesión biométrico</Text>
@@ -248,7 +295,7 @@ export function ProfileScreen({
 						<Switch
 							value={biometricEnabled}
 							onValueChange={(v) => onToggleBiometric?.(v)}
-							trackColor={{ true: colors.cyan, false: "#D9DEE5" }}
+							trackColor={{ true: colors.cyan, false: colors.border }}
 							thumbColor="#fff"
 							disabled={!biometricAvailable}
 						/>
@@ -256,7 +303,7 @@ export function ProfileScreen({
 					<View style={styles.listDivider} />
 					<Pressable style={styles.listItem} onPress={onOpenHelp}>
 						<View style={styles.listIconWrap}>
-							<Ionicons name="help-circle-outline" size={16} color={colors.navy} />
+							<Ionicons name="help-circle-outline" size={16} color={colors.infoSoftText} />
 						</View>
 						<View style={{ flex: 1 }}>
 							<Text style={styles.listLabel}>Centro de ayuda</Text>
@@ -295,17 +342,34 @@ function createStyles(colors: ColorTokens) {
 	avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
 	avatarImage: { width: "100%", height: "100%" },
 	avatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
-	profileName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 16 },
+	profileName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 16 },
 	profileEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
-	levelBadge: { alignSelf: "flex-start", backgroundColor: "#E8F6FC", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4, flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-	levelBadgeText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 11, letterSpacing: 0.3 },
+	levelBadge: { alignSelf: "flex-start", backgroundColor: colors.infoSoft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4, flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+	levelBadgeText: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: 11, letterSpacing: 0.3 },
 	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 8 },
 	listCard: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
 	listItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, minHeight: 60 },
-	listIconWrap: { width: 32, height: 32, borderRadius: 8, backgroundColor: "#E8F6FC", alignItems: "center", justifyContent: "center" },
-	listLabel: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
+	listIconWrap: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.infoSoft, alignItems: "center", justifyContent: "center" },
+	listLabel: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	listHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
 	listDivider: { height: 1, backgroundColor: colors.divider, marginLeft: 60 },
+	themeRow: { paddingBottom: 4, minHeight: 0 },
+	themeOptionsRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 14 },
+	themeOption: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 6,
+		paddingVertical: 9,
+		borderRadius: 8,
+		backgroundColor: colors.background,
+		borderWidth: 1,
+		borderColor: colors.divider,
+	},
+	themeOptionActive: { backgroundColor: colors.navy, borderColor: colors.navy },
+	themeOptionText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 12 },
+	themeOptionTextActive: { color: colors.buttonText },
 	logoutButton: { marginTop: 8, height: 48, borderRadius: 10, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
 	logoutText: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
 	});

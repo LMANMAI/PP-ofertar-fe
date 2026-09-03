@@ -70,13 +70,14 @@ export function ScanMethodScreen({
 						description="Apuntá al código de barras y mirá el precio en cada supermercado."
 						onPress={onChooseBarcode}
 						accent={colors.softNavy}
+						iconColor={colors.defaultText}
 						colors={colors}
 						styles={styles}
 					/>
 				</View>
 
 				<View style={styles.ecoTip}>
-					<Ionicons name="leaf-outline" size={20} color="#1D9E75" />
+					<Ionicons name="leaf-outline" size={20} color={colors.successSoftText} />
 					<Text style={styles.ecoTipText}>
 						Elegí PDF: es más rápido y ahorramos papel. ¡Cada ticket cuenta!
 					</Text>
@@ -95,6 +96,7 @@ function OptionCard({
 	badge,
 	colors,
 	styles,
+	iconColor,
 }: {
 	icon: keyof typeof Ionicons.glyphMap;
 	title: string;
@@ -104,11 +106,12 @@ function OptionCard({
 	badge?: string;
 	colors: ColorTokens;
 	styles: ReturnType<typeof createStyles>;
+	iconColor?: string;
 }) {
 	return (
 		<Pressable style={styles.card} onPress={onPress}>
 			<View style={[styles.iconWrap, { backgroundColor: accent }]}>
-				<Ionicons name={icon} size={28} color={colors.navy} />
+				<Ionicons name={icon} size={28} color={iconColor ?? colors.navy} />
 			</View>
 			<View style={styles.cardText}>
 				<View style={styles.cardTitleRow}>
@@ -199,13 +202,13 @@ function createStyles(colors: ColorTokens) {
 		lineHeight: 18,
 	},
 	badge: {
-		backgroundColor: "#E0F5EF",
+		backgroundColor: colors.successSoft,
 		paddingHorizontal: 8,
 		paddingVertical: 3,
 		borderRadius: 6,
 	},
 	badgeText: {
-		color: "#1D9E75",
+		color: colors.successSoftText,
 		fontFamily: typography.family.medium,
 		fontSize: 10,
 	},
@@ -213,7 +216,7 @@ function createStyles(colors: ColorTokens) {
 		flexDirection: "row",
 		alignItems: "flex-start",
 		gap: 10,
-		backgroundColor: "#E0F5EF",
+		backgroundColor: colors.successSoft,
 		borderRadius: 14,
 		paddingHorizontal: 16,
 		paddingVertical: 14,
@@ -221,7 +224,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	ecoTipText: {
 		flex: 1,
-		color: "#1D9E75",
+		color: colors.successSoftText,
 		fontFamily: typography.family.medium,
 		fontSize: 13,
 		lineHeight: 19,
