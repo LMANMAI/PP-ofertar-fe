@@ -10,7 +10,9 @@ import {
 	type ReactNode,
 } from "react";
 import {
+	AccessibilityInfo,
 	findNodeHandle,
+	LayoutAnimation,
 	type LayoutChangeEvent,
 	type View,
 } from "react-native";
@@ -73,8 +75,19 @@ export function OnboardingProvider({
 	const [stepIndex, setStepIndex] = useState(0);
 	const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
 	const overlayRef = useRef<View>(null);
+	const reduceMotion = useRef(false);
 	const storageKey =
 		userKey === null ? null : `${STORAGE_KEY_PREFIX}:${userKey}`;
+
+	useEffect(() => {
+		AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+			reduceMotion.current = enabled;
+		});
+		const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", (enabled) => {
+			reduceMotion.current = enabled;
+		});
+		return () => sub.remove();
+	}, []);
 
 	const measureTarget = useCallback((id: OnboardingTargetId) => {
 		const node = targets.current.get(id);
@@ -89,6 +102,13 @@ export function OnboardingProvider({
 		}
 		overlay.measureInWindow((overlayX, overlayY) => {
 			node.measureInWindow((x, y, width, height) => {
+				// The highlight was teleporting straight from one target to the
+				// next with no transition — animating the layout pass this
+				// triggers makes it read as the spotlight moving to the next
+				// thing to notice, which is the entire point of a guided tour.
+				if (!reduceMotion.current) {
+					LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+				}
 				setSpotlight({
 					x: x - overlayX,
 					y: y - overlayY,

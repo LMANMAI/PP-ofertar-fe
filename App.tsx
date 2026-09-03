@@ -51,7 +51,7 @@ import {
 	WelcomeTransitionScreen,
 } from "./src/screens";
 import type { TabKey } from "./src/components";
-import { LoadingOverlay, OnboardingProvider, Toast } from "./src/components";
+import { LoadingOverlay, OnboardingProvider, ScreenTransition, Toast } from "./src/components";
 import type { PointsHistoryEntry } from "./src/screens/PointsHistoryScreen";
 import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
@@ -330,6 +330,7 @@ export default function App() {
 				</View>
 				)}
 
+			<ScreenTransition activeKey={screen}>
 			{screen === "biometricLock" && (
 				<BiometricLockScreen
 					onSuccess={(s) => { setSession(s); goMain("home"); }}
@@ -823,6 +824,7 @@ export default function App() {
 					onScanPress={handleScanPress}
 				/>
 			)}
+			</ScreenTransition>
 
 			{processingOcr && processingFileType && (
 				<LoadingOverlay fileType={processingFileType} />

@@ -3,6 +3,7 @@ export { BottomNav } from "./ui/BottomNav";
 export { LoadingOverlay } from "./ui/LoadingOverlay";
 export { PasswordStrengthBar } from "./ui/PasswordStrengthBar";
 export { Toast } from "./ui/Toast";
+export { ScreenTransition } from "./ui/ScreenTransition";
 export {
 	OnboardingProvider,
 	useOnboardingTarget,

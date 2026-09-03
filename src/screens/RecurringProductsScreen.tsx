@@ -1,5 +1,16 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	AccessibilityInfo,
+	ActivityIndicator,
+	LayoutAnimation,
+	Platform,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	Text,
+	UIManager,
+	View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,6 +50,12 @@ function daysUntil(iso: string | null): number | null {
 
 /** Whether any shown promotion carries OCR-read percentages, which is what the
  * "verificá en el local" disclaimer qualifies. */
+// The old architecture's bridge needs this opt-in per-platform; the New
+// Architecture (Fabric) ignores it and LayoutAnimation just works.
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+	UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 function hasGuessedPercentages(offers: CampaignOffer[]): boolean {
 	// Only the OCR-only ones. A percentage taken from the campaign's own
 	// metadata is not a guess, and warning about it would undersell a number
@@ -66,11 +83,30 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [expandedId, setExpandedId] = useState<string | null>(null);
+	const reduceMotion = useRef(false);
+
+	useEffect(() => {
+		AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+			reduceMotion.current = enabled;
+		});
+		const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", (enabled) => {
+			reduceMotion.current = enabled;
+		});
+		return () => sub.remove();
+	}, []);
+
 	// Stable across renders so ProductCard's React.memo isn't defeated by a
 	// fresh closure every time any card toggles — otherwise every card in the
 	// list re-renders (including their off-screen detail sections) on every
 	// single tap, not just the one that changed.
 	const handleToggle = useCallback((id: string) => {
+		// The detail block used to just pop in/out with the rest of the card
+		// jumping to make room. Animating the layout pass this triggers makes
+		// it read as the card growing to reveal its detail, not the list
+		// reflowing under the user's thumb.
+		if (!reduceMotion.current) {
+			LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+		}
 		setExpandedId((current) => (current === id ? null : id));
 	}, []);
 
