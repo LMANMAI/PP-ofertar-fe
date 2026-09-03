@@ -132,7 +132,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 			)}
 
 			{!loading && !error && products.length > 0 && (
-				<ScrollView contentContainerStyle={{ padding: space.lg, gap: 10, paddingBottom: insets.bottom + 24 }}>
+				<ScrollView contentContainerStyle={{ padding: space.lg, gap: 10, paddingBottom: insets.bottom + space.xxl }}>
 					<Text style={styles.intro}>
 						{offerCount > 0
 							? `${offerCount} de tus ${products.length} productos habituales tienen oferta ahora. Tocá cualquiera para ver el detalle.`
@@ -198,7 +198,12 @@ const ProductCard = memo(function ProductCard({
 			    card instead. */}
 			<Pressable
 				style={styles.cardHeader}
-				onPress={() => onToggle(id)}
+				onPress={() => hasAnything && onToggle(id)}
+				disabled={!hasAnything}
+				accessibilityRole={hasAnything ? "button" : undefined}
+				accessibilityLabel={`${p.description}. ${formatFrequency(p.purchaseCount, p.ticketCount)}`}
+				accessibilityHint={hasAnything ? (isExpanded ? "Toca para contraer el detalle" : "Toca para ver el detalle") : undefined}
+				accessibilityState={hasAnything ? { expanded: isExpanded } : undefined}
 			>
 				<Ionicons name="repeat-outline" size={18} color={colors.cyan} />
 				<View style={{ flex: 1 }}>
@@ -356,6 +361,9 @@ const ProductCard = memo(function ProductCard({
 										style={styles.campaignRow}
 										disabled={!openable}
 										onPress={() => full && onOpenOffer?.(full.id, full)}
+										accessibilityRole={openable ? "button" : undefined}
+										accessibilityLabel={`${discount ? `${discount} en ` : ""}${c.retailerName}${c.province ? `, ${c.province}` : ""}${until ? `. Vigente hasta el ${until}` : ""}`}
+										accessibilityHint={openable ? "Ver la promoción completa" : undefined}
 									>
 										<Ionicons name="time-outline" size={13} color={colors.defaultText} />
 										<View style={{ flex: 1 }}>
