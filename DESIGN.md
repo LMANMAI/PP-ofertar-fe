@@ -25,6 +25,7 @@ colors:
   info-soft-text: "#0A1F44"
   warm-chip-bg: "#FDECE6"
   warm-chip-text: "#B44A2E"
+  navy-muted-text: "#99B2CC"
 typography:
   display:
     fontFamily: "PlusJakartaSans_700Bold"
@@ -145,6 +146,7 @@ The palette reads as controlled and confident rather than colorful — three bra
 - **Hairline Border** (`#D8E1EE` light / `#25314A` dark): Card and input borders.
 - **Divider Line** (`#E5E7EB` light / `#2A3650` dark): Row separators inside a card.
 - **On-Color Text** (`#FFFFFF`, both themes): Text and icons set on a filled colored surface (navy buttons, danger buttons, badges) — the one text color that never changes with theme, because the surface it sits on doesn't either.
+- **Navy Muted Text** (`#99B2CC`, both themes): Secondary/caption text set on a fixed navy surface (hero subtitles, validity banners, stat labels) — same reasoning as On-Color Text: navy doesn't shift with theme, so its muted-text companion doesn't either. Named after showing up as an identical hardcoded literal in 6 separate screens.
 
 ### Semantic pairs
 Every status gets its own background/text pair, tuned independently per theme rather than a light pastel simply dimmed for dark mode.

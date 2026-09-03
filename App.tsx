@@ -645,9 +645,9 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "offerDetail" && findOffer(selectedOfferId) && (
+			{screen === "offerDetail" && (
 				<OfferDetailScreen
-					offer={findOffer(selectedOfferId)!}
+					offer={findOffer(selectedOfferId)}
 					onBack={() => goMain("offers")}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}

@@ -232,7 +232,7 @@ function createStyles(colors: ColorTokens) {
 	balanceLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	balanceValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 28, lineHeight: 34 },
 	progressRow: { flexDirection: "row", justifyContent: "space-between", marginTop: space.sm, gap: space.sm },
-	progressLabel: { flex: 1, color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 12 },
+	progressLabel: { flex: 1, color: colors.navyMutedText, fontFamily: typography.family.regular, fontSize: 12 },
 	progressValue: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 12 },
 	progressTrack: { height: 6, backgroundColor: "#142954", borderRadius: 3, overflow: "hidden", marginTop: space.xsPlus },
 	progressFill: { height: 6, backgroundColor: colors.cyan, borderRadius: 3 },

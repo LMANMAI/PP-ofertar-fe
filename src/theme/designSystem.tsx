@@ -54,6 +54,10 @@ export const colors = {
 	// deliberadamente más cálido que warningSoft para no leerse como alerta.
 	warmChip: "#FDECE6",
 	warmChipText: "#B44A2E",
+	// Texto secundario/caption sobre una superficie navy fija — repetido como
+	// hex suelto en 6 pantallas antes de nombrarlo. Igual en los dos temas,
+	// como el resto de la paleta navy: la superficie no cambia con el tema.
+	navyMutedText: "#99B2CC",
 } as const;
 
 export type ColorTokens = Record<keyof typeof colors, string>;
@@ -95,6 +99,7 @@ export const darkColors: ColorTokens = {
 	infoSoftText: "#7DD4F5",
 	warmChip: "#3A2118",
 	warmChipText: "#F4A387",
+	navyMutedText: "#99B2CC",
 };
 
 export type ThemePreference = "system" | "light" | "dark";

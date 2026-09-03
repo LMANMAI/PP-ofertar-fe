@@ -91,7 +91,7 @@ function createStyles(colors: ColorTokens) {
 	bold: { color: colors.defaultText, fontFamily: typography.family.medium },
 	statsRow: { flexDirection: "row", gap: space.smPlus, marginTop: space.xsPlus },
 	stat: { flex: 1, backgroundColor: colors.navy, borderRadius: 12, padding: space.mdPlus, alignItems: "center" },
-	statLabel: { color: "#99B2CC", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
+	statLabel: { color: colors.navyMutedText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
 	statValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 18, marginTop: space.xs },
 	warningBox: { flexDirection: "row", gap: space.sm, alignItems: "center", backgroundColor: colors.warningSoft, padding: space.smPlus, borderRadius: 10 },
 	warningBoxDanger: { backgroundColor: colors.dangerSoft },

@@ -37,6 +37,6 @@ function createStyles(colors: ColorTokens) {
 	center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18 },
 	checkCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: colors.cyan, alignItems: "center", justifyContent: "center" },
 	title: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 24, marginTop: space.md },
-	subtitle: { color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 14 },
+	subtitle: { color: colors.navyMutedText, fontFamily: typography.family.regular, fontSize: 14 },
 	});
 }

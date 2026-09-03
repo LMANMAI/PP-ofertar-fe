@@ -97,7 +97,7 @@ function createStyles(colors: ColorTokens) {
 	heroWrap: { padding: space.lg },
 	hero: { backgroundColor: colors.navy, borderRadius: 16, padding: space.xl, gap: space.sm },
 	heroTitle: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 22, marginTop: space.sm },
-	heroSub: { color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 13 },
+	heroSub: { color: colors.navyMutedText, fontFamily: typography.family.regular, fontSize: 13 },
 	heroBadge: { alignSelf: "flex-start", backgroundColor: colors.cyan, paddingHorizontal: space.mdPlus, paddingVertical: space.xsPlus, borderRadius: 14, marginTop: space.xs },
 	heroBadgeText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 12 },
 	infoCard: { marginHorizontal: space.lg, backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: space.mdPlus },
