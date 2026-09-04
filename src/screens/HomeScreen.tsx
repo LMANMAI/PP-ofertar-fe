@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomNav, type TabKey, useOnboardingTarget } from "../components";
+import { BottomNav, OfferCarouselCardSkeleton, ProductCardSkeleton, type TabKey, useOnboardingTarget } from "../components";
 import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
@@ -184,6 +184,10 @@ export function HomeScreen({
 	const historyTarget = useOnboardingTarget("history");
 	const [savingsError, setSavingsError] = useState(false);
 	const [loadingSavings, setLoadingSavings] = useState(true);
+	const [loadingRecurring, setLoadingRecurring] = useState(true);
+	const [recurringError, setRecurringError] = useState(false);
+	const [loadingOffers, setLoadingOffers] = useState(true);
+	const [offersError, setOffersError] = useState(false);
 
 	function formatCurrencyS(value: number | null | undefined): string {
 		if (value == null) return "$0";
@@ -204,7 +208,9 @@ export function HomeScreen({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session.token]);
 
-	useEffect(() => {
+	const loadRecurring = () => {
+		setLoadingRecurring(true);
+		setRecurringError(false);
 		getRecurringProducts(session.token)
 			// Same ordering as the full section, so the carousel reads left to
 			// right in the same priority the user sees after "Ver todos": own
@@ -212,15 +218,29 @@ export function HomeScreen({
 			// how often they buy it. The backend's own order is by frequency
 			// alone, which filled the first cards with staples nobody discounts.
 			.then((products) => setRecurringProducts(sortByOfferRelevance(products).slice(0, 10)))
-			.catch(() => {});
+			.catch(() => setRecurringError(true))
+			.finally(() => setLoadingRecurring(false));
+	};
+
+	useEffect(() => {
+		loadRecurring();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session.token]);
 
 	// Everything on offer at the user's chains, not just what matches their
 	// habitual products — that is what the section below is for.
-	useEffect(() => {
+	const loadOffers = () => {
+		setLoadingOffers(true);
+		setOffersError(false);
 		getOffers(session.token, 1, 8)
 			.then((p) => setOffers(p.items))
-			.catch(() => setOffers([]));
+			.catch(() => setOffersError(true))
+			.finally(() => setLoadingOffers(false));
+	};
+
+	useEffect(() => {
+		loadOffers();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session.token]);
 
 	const savingsTickets = savings?.ticketCount ?? 0;
@@ -333,7 +353,33 @@ export function HomeScreen({
 						<Text style={styles.sectionLink}>Ver todas</Text>
 					</Pressable>
 				</View>
-				{offers.length === 0 ? (
+				{loadingOffers ? (
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={styles.offersRow}
+						accessibilityLabel="Cargando ofertas en tus súper"
+					>
+						{Array.from({ length: 4 }).map((_, i) => (
+							<OfferCarouselCardSkeleton key={i} />
+						))}
+					</ScrollView>
+				) : offersError ? (
+					<View style={styles.offersErrorRow}>
+						<Ionicons name="cloud-offline-outline" size={18} color={colors.subtleText} />
+						<Text style={styles.offersErrorText}>
+							No pudimos cargar las ofertas
+						</Text>
+						<Pressable
+							onPress={loadOffers}
+							style={styles.offersRetryBtn}
+							accessibilityRole="button"
+							accessibilityLabel="Reintentar cargar ofertas"
+						>
+							<Text style={styles.offersRetryText}>Reintentar</Text>
+						</Pressable>
+					</View>
+				) : offers.length === 0 ? (
 					<View style={styles.offersEmpty}>
 						<Ionicons name="pricetags-outline" size={20} color={colors.subtleText} />
 						<Text style={styles.offersEmptyText}>
@@ -379,6 +425,41 @@ export function HomeScreen({
 								<Text style={styles.sectionLink}>Ver todos</Text>
 							</Pressable>
 						</View>
+						{loadingRecurring ? (
+							<ScrollView
+								horizontal
+								showsHorizontalScrollIndicator={false}
+								contentContainerStyle={styles.productsRow}
+								accessibilityLabel="Cargando productos que comprás seguido"
+							>
+								{Array.from({ length: 4 }).map((_, i) => (
+									<ProductCardSkeleton key={i} />
+								))}
+							</ScrollView>
+						) : recurringError ? (
+							<View style={styles.productsErrorRow}>
+								<Ionicons name="cloud-offline-outline" size={18} color={colors.subtleText} />
+								<Text style={styles.productsErrorText}>
+									No pudimos cargar tus productos
+								</Text>
+								<Pressable
+									onPress={loadRecurring}
+									style={styles.productsRetryBtn}
+									accessibilityRole="button"
+									accessibilityLabel="Reintentar cargar productos"
+								>
+									<Text style={styles.productsRetryText}>Reintentar</Text>
+								</Pressable>
+							</View>
+						) : recurringProducts.length === 0 ? (
+							<View style={styles.productsEmpty}>
+								<Ionicons name="cart-outline" size={20} color={colors.subtleText} />
+								<Text style={styles.productsEmptyText}>
+									Todavía no registramos productos que compres seguido. Escaneá
+									tickets y aparecen acá.
+								</Text>
+							</View>
+						) : (
 						<ScrollView
 							horizontal
 							showsHorizontalScrollIndicator={false}
@@ -431,6 +512,7 @@ export function HomeScreen({
 								);
 							})}
 						</ScrollView>
+						)}
 					</>
 				)}
 
@@ -560,22 +642,22 @@ function createStyles(colors: ColorTokens) {
 		borderTopWidth: 1,
 		borderTopColor: "rgba(255,255,255,0.1)",
 	},
-	metricsRow: { flexDirection: "row", alignItems: "center", gap: 18, flexShrink: 1 },
+	metricsRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexShrink: 1 },
 	metricDivider: {
 		width: 1,
-		height: 28,
+		height: 24,
 		backgroundColor: "rgba(255,255,255,0.12)",
 	},
 	metricLabel: {
 		color: "rgba(255,255,255,0.55)",
 		fontFamily: typography.family.medium,
 		fontSize: 10,
-		letterSpacing: 1.2,
+		letterSpacing: 1,
 	},
 	metricValue: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
-		fontSize: 18,
+		fontSize: 16,
 		marginTop: 2,
 	},
 	savingsCta: {
@@ -584,7 +666,7 @@ function createStyles(colors: ColorTokens) {
 		paddingVertical: space.sm,
 		borderRadius: 10,
 		flexShrink: 0,
-		marginLeft: space.sm,
+		marginLeft: space.lg,
 	},
 	savingsCtaText: {
 		color: colors.buttonText,
@@ -636,6 +718,37 @@ function createStyles(colors: ColorTokens) {
 		borderWidth: 1,
 		borderColor: colors.divider,
 		padding: space.mdPlus,
+	},
+	offersErrorRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.smPlus,
+		backgroundColor: colors.card,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: colors.divider,
+		padding: space.mdPlus,
+	},
+	offersErrorText: {
+		flex: 1,
+		color: colors.mutedText2,
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 17,
+	},
+	offersRetryBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.xsPlus,
+		backgroundColor: colors.navy,
+		paddingHorizontal: space.smPlus,
+		paddingVertical: space.xsPlus,
+		borderRadius: 8,
+	},
+	offersRetryText: {
+		color: colors.buttonText,
+		fontFamily: typography.family.medium,
+		fontSize: 12,
 	},
 	offersEmptyText: {
 		flex: 1,
@@ -731,6 +844,54 @@ function createStyles(colors: ColorTokens) {
 	productsRow: {
 		gap: space.smPlus,
 		paddingRight: space.xl,
+	},
+	productsErrorRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.smPlus,
+		backgroundColor: colors.card,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: colors.divider,
+		padding: space.mdPlus,
+	},
+	productsErrorText: {
+		flex: 1,
+		color: colors.mutedText2,
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 17,
+	},
+	productsRetryBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.xsPlus,
+		backgroundColor: colors.navy,
+		paddingHorizontal: space.smPlus,
+		paddingVertical: space.xsPlus,
+		borderRadius: 8,
+	},
+	productsRetryText: {
+		color: colors.buttonText,
+		fontFamily: typography.family.medium,
+		fontSize: 12,
+	},
+	productsEmpty: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.smPlus,
+		backgroundColor: colors.card,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: colors.divider,
+		padding: space.mdPlus,
+	},
+	productsEmptyText: {
+		flex: 1,
+		color: colors.mutedText2,
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 17,
 	},
 	productCard: {
 		// Fixed width now that these scroll horizontally; flex:1 only made sense
