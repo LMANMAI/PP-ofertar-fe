@@ -76,7 +76,7 @@ export function AuthWelcomeScreen({
 							<Text style={styles.headlineAccent}>compra.</Text>
 						</Text>
 						<Text style={styles.body}>
-							Escaneá tus tickets y descubrí dónde encontrar tus productos de
+							Escaneá tus tickets o productos y descubrí dónde encontrar tus productos de
 							mejor precio.
 						</Text>
 					</View>

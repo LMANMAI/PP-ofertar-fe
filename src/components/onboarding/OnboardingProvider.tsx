@@ -32,13 +32,13 @@ const STEPS: Step[] = [
 		id: "scan-ticket",
 		title: "Escaneá tus tickets",
 		description:
-			"Encuadrá el ticket, confirmá las fotos y dejá que OfertAR encuentre tus ahorros.",
+			"Encuadrá el ticket o producto, confirmá y dejá que OfertAR encuentre tus ahorros.",
 	},
 	{
 		id: "offers",
 		title: "Tus ofertas detectadas",
 		description:
-			"Acá aparecen las oportunidades que podés activar según tus compras.",
+			"Acá aparecen las ofertas que pueden interesarte según tus supermercados de preferencia.",
 	},
 	{
 		id: "history",
@@ -49,7 +49,7 @@ const STEPS: Step[] = [
 		id: "main-navigation",
 		title: "Todo a mano",
 		description:
-			"Usá esta navegación para ir a Inicio, Ofertas, Puntos y tu Perfil.",
+			"Usá esta navegación para ir a Inicio, Ofertas y tu Perfil.",
 	},
 ];
 

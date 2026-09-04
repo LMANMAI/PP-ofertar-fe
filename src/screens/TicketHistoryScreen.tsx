@@ -4,10 +4,11 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography } from "../theme/designSystem";
-import { getTickets } from "../services";
-import type { TicketResponse } from "../services";
+import { getRecurringProducts, getTickets } from "../services";
+import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, type TabKey } from "../components";
+import { BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
+import { hasBeenAnnounced, markAnnounced } from "../store/announcedTickets";
 
 function formatCurrency(value: number | null | undefined): string {
 	if (value == null) return "$0";
@@ -31,16 +32,33 @@ function storeBadge(name: string | null): { code: string; color: string } {
 
 type Props = {
 	onBack: () => void;
-	onSelectTicket: (id: number) => void;
+	onSelectTicket: (ticket: TicketResponse) => void;
 	session: Session;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
+	/** Tickets uploaded in this session that have not been announced yet. Held
+	 * by App so it survives leaving this screen and coming back: the polling
+	 * only runs while the history is mounted, so a ticket that finished while
+	 * the user was elsewhere has to still be waiting when they return. */
+	awaitingTicketIds: number[];
+	onTicketAnnounced: (ticketId: number) => void;
 };
 
-export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab, onSelectTab, onScanPress }: Props) {
+export function TicketHistoryScreen({
+	onBack,
+	onSelectTicket,
+	session,
+	activeTab,
+	onSelectTab,
+	onScanPress,
+	awaitingTicketIds,
+	onTicketAnnounced,
+}: Props) {
 	const insets = useSafeAreaInsets();
 	const [tickets, setTickets] = useState<TicketResponse[]>([]);
+	const [forgotten, setForgotten] = useState<RecurringProduct[]>([]);
+	const [forgottenVisible, setForgottenVisible] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [refreshing, setRefreshing] = useState(false);
@@ -50,8 +68,47 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 			const data = await getTickets(session.token);
 			setTickets(data);
 			setError(null);
+			await maybeAnnounceForgotten(data);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Error al cargar tickets");
+		}
+	};
+
+	/**
+	 * Raises the "did you forget something" sheet for a ticket that has just
+	 * finished being read on the server.
+	 *
+	 * Driven by the uploaded-ticket list rather than by watching a PENDING row
+	 * flip: the OCR can finish before the first refresh, and the user can walk
+	 * away and come back, so there is no transition to catch reliably.
+	 */
+	const maybeAnnounceForgotten = async (all: TicketResponse[]) => {
+		if (forgottenVisible || awaitingTicketIds.length === 0) return;
+
+		// Newest first, as the endpoint returns them: only the most recent one
+		// gets announced, so two tickets finishing together do not stack modals.
+		const ready = all.find(
+			(t) => awaitingTicketIds.includes(t.id) && t.status !== "PENDING",
+		);
+		if (!ready) return;
+
+		// Claimed before the request so a refresh landing meanwhile cannot
+		// announce the same ticket twice.
+		onTicketAnnounced(ready.id);
+		if (ready.status !== "PROCESSED") return;
+		// Persisted too, so opening the ticket later does not repeat the notice.
+		if (await hasBeenAnnounced(ready.id)) return;
+		await markAnnounced(ready.id);
+
+		try {
+			const products = await getRecurringProducts(session.token, ready.id);
+			const missing = forgottenIn(products);
+			if (missing.length > 0) {
+				setForgotten(missing);
+				setForgottenVisible(true);
+			}
+		} catch {
+			// An enrichment: never let it break the history listing.
 		}
 	};
 
@@ -59,6 +116,16 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 		setLoading(true);
 		loadTickets().finally(() => setLoading(false));
 	}, []);
+
+	const hasPending = tickets.some((t) => t.status === "PENDING");
+
+	// While something is still being read on the server, refresh on a timer so
+	// the row flips to "listo" on its own instead of making the user pull down.
+	useEffect(() => {
+		if (!hasPending) return;
+		const id = setInterval(loadTickets, 5000);
+		return () => clearInterval(id);
+	}, [hasPending]);
 
 	const handleRefresh = async () => {
 		setRefreshing(true);
@@ -123,27 +190,60 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 					{tickets.map((t) => {
 						const badge = storeBadge(t.storeName);
 						const ticketTotal = t.total;
-						const ticketSavings = t.totalDiscounts;
+						// Null while the ticket is still being processed, and the
+						// backend also leaves it null when nothing was discounted.
+						const ticketSavings = t.totalDiscounts ?? 0;
+						const isPending = t.status === "PENDING";
 						return (
-							<Pressable key={t.id} style={styles.row} onPress={() => onSelectTicket(t.id)}>
+							<Pressable
+								key={t.id}
+								// A ticket still being read has no items or totals yet, so
+								// opening it would show an empty screen.
+								style={[styles.row, isPending && styles.rowPending]}
+								onPress={() => !isPending && onSelectTicket(t)}
+								disabled={isPending}
+							>
 								<View style={[styles.badge, { backgroundColor: badge.color }]}>
 									<Text style={styles.badgeText}>{badge.code}</Text>
 								</View>
 								<View style={{ flex: 1 }}>
-									<Text style={styles.store}>{t.storeName || "Ticket sin nombre"}</Text>
+									<Text style={styles.store}>
+										{t.storeName || (isPending ? "Leyendo tu ticket…" : "Ticket sin nombre")}
+									</Text>
 									<Text style={styles.date}>
-										{formatDate(t.createdAt)} · {t.items.length} productos
+										{isPending
+											? "Podés seguir usando la app mientras tanto"
+											: `${formatDate(t.createdAt)} · ${t.items.length} productos`}
 									</Text>
 								</View>
 								<View style={{ alignItems: "flex-end" }}>
-									<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
+									{isPending ? (
+										<ActivityIndicator size="small" color={colors.cyan} />
+									) : (
+										<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
+									)}
 									<View style={styles.statusRow}>
-										{ticketSavings != null && ticketSavings > 0 && (
+{!isPending && ticketSavings != null && ticketSavings > 0 && (
 											<Text style={styles.savings}>-{formatCurrency(ticketSavings)}</Text>
 										)}
-										<View style={[styles.statusBadge, t.status === "FAILED" ? styles.statusFailed : styles.statusOk]}>
-											<Text style={[styles.statusText, t.status === "FAILED" && { color: "#E76F51" }]}>
-												{t.status === "PROCESSED" ? "OK" : t.status === "FAILED" ? "Falló" : "Pendiente"}
+										<View
+											style={[
+												styles.statusBadge,
+												t.status === "FAILED"
+													? styles.statusFailed
+													: isPending
+														? styles.statusPending
+														: styles.statusOk,
+											]}
+										>
+											<Text
+												style={[
+													styles.statusText,
+													t.status === "FAILED" && { color: "#E76F51" },
+													isPending && { color: "#B45A14" },
+												]}
+											>
+												{t.status === "PROCESSED" ? "OK" : t.status === "FAILED" ? "Falló" : "Procesando"}
 											</Text>
 										</View>
 									</View>
@@ -153,6 +253,12 @@ export function TicketHistoryScreen({ onBack, onSelectTicket, session, activeTab
 					})}
 				</ScrollView>
 			)}
+
+			<ForgottenProductsSheet
+				products={forgotten}
+				visible={forgottenVisible}
+				onClose={() => setForgottenVisible(false)}
+			/>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
@@ -189,5 +295,7 @@ const styles = StyleSheet.create({
 	statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
 	statusOk: { backgroundColor: "#E0F5EF" },
 	statusFailed: { backgroundColor: "rgba(231,111,81,0.15)" },
+	statusPending: { backgroundColor: "#FFF7ED" },
+	rowPending: { opacity: 0.75 },
 	statusText: { fontFamily: typography.family.medium, fontSize: 10, color: "#15803D" },
 });

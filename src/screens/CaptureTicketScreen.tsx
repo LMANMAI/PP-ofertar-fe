@@ -12,12 +12,24 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { colors, typography } from "../theme/designSystem";
+
+/**
+ * Phone cameras shoot 3000-4000px wide, which is far more than the OCR model
+ * needs to read receipt text — and every extra pixel costs upload time on
+ * mobile data plus inference time on the OCR service. 1600px keeps the small
+ * print legible while cutting the payload by roughly an order of magnitude.
+ * Raise it if receipts start coming back with misread digits.
+ */
+const MAX_UPLOAD_WIDTH = 1600;
+const UPLOAD_QUALITY = 0.85;
 
 export type CapturedPhoto = {
 	id: string;
 	uri: string;
-	base64: string;
+	/** Optional: the upload sends the file by uri, so photos don't carry one. */
+	base64?: string;
 };
 
 type Props = {
@@ -74,18 +86,25 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 		if (!cameraRef.current || capturing) return;
 		setCapturing(true);
 		try {
-			const picture = await cameraRef.current.takePictureAsync({
-				base64: true,
-				quality: 0.8,
-			});
-			if (picture?.base64) {
-				const base64 = picture.base64;
+			// No base64 here: the upload posts the file by uri, so encoding a
+			// multi-megabyte image to base64 was pure overhead on every shot.
+			const picture = await cameraRef.current.takePictureAsync({ quality: 1 });
+			if (picture?.uri) {
+				// Only ever shrink: resizing a photo that's already narrower
+				// would upscale it, costing bytes and blurring the text.
+				const actions =
+					picture.width && picture.width > MAX_UPLOAD_WIDTH
+						? [{ resize: { width: MAX_UPLOAD_WIDTH } }]
+						: [];
+				const resized = await manipulateAsync(picture.uri, actions, {
+					compress: UPLOAD_QUALITY,
+					format: SaveFormat.JPEG,
+				});
 				setPhotos((prev) => [
 					...prev,
 					{
 						id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-						uri: picture.uri,
-						base64,
+						uri: resized.uri,
 					},
 				]);
 			}

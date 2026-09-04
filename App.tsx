@@ -5,7 +5,6 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 
 import {
-	AccountCreatedScreen,
 	AuthLoginScreen,
 	AuthWelcomeScreen,
 	BiometricLockScreen,
@@ -27,7 +26,6 @@ import {
 	LogoutConfirmScreen,
 	LoyaltyLevelsScreen,
 	MonthlyAnalysisScreen,
-	OfferCodeScreen,
 	OfferDetailScreen,
 	OffersScreen,
 	PasswordRecoveryScreen,
@@ -58,110 +56,60 @@ import { LoadingOverlay, OnboardingProvider, Toast } from "./src/components";
 import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
-import {
-	storeToken,
-	clearStoredToken,
-	getStoredToken,
-	getBiometricPreference,
-	setBiometricPreference,
-	getPromptDismissed,
-	setPromptDismissed,
-	isBiometricAvailable,
-} from "./src/auth/biometricAuth";
-import { scanTicket } from "./src/services";
-import type { TicketResponse } from "./src/services";
-import { OFFERS } from "./src/data/offers";
+import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
+import { getOffers, getTicket, scanTicket } from "./src/services";
+import type { Offer, TicketResponse } from "./src/services";
 import { REWARDS } from "./src/data/rewards";
 import { colors } from "./src/theme/designSystem";
 
 type Screen =
-	| "biometricLock"
-	| "biometricPrompt"
-	| "welcome"
-	| "login"
-	| "register1"
-	| "register2"
-	| "loader"
-	| "welcomeTransition"
-	| "accountCreated"
-	| "locationPermission"
-	| "googleChoose"
-	| "googleVerifying"
-	| "googleFirstTime"
-	| "passwordRecovery"
-	| "checkEmail"
-	| "changePassword"
-	| "passwordSuccess"
-	| "changePasswordAuth"
+	| "biometricLock" | "biometricPrompt" | "welcome" | "login" | "register1" | "register2" | "loader"
+	| "welcomeTransition" | "accountCreated" | "locationPermission"
+	| "googleChoose" | "googleVerifying" | "googleFirstTime"
+	| "passwordRecovery" | "checkEmail" | "changePassword" | "passwordSuccess" | "changePasswordAuth"
 	| "main"
-	| "scanMethod"
-	| "captureTicket"
-	| "pdfConfirm"
-	| "scanError"
-	| "ticketProcessed"
+	| "scanMethod" | "captureTicket" | "pdfConfirm" | "scanError" | "ticketProcessed"
 	| "scanBarcode"
-	| "compare"
-	| "storeDetail"
+	| "compare" | "storeDetail"
 	| "offerDetail"
-	| "offerCode"
-	| "rewardDetail"
-	| "confirmRedeem"
-	| "redeemSuccess"
-	| "pointsHistory"
-	| "loyaltyLevels"
-	| "personalData"
-	| "paymentMethods"
-	| "favoriteStores"
-	| "helpCenter"
-	| "logoutConfirm"
-	| "ticketHistory"
-	| "ticketDetail"
-	| "monthlyAnalysis"
-	| "recurringProducts"
-	| "smartList";
+	| "rewardDetail" | "confirmRedeem" | "redeemSuccess"
+	| "pointsHistory" | "loyaltyLevels"
+	| "personalData" | "paymentMethods" | "favoriteStores" | "helpCenter" | "logoutConfirm"
+	| "ticketHistory" | "ticketDetail" | "monthlyAnalysis" | "recurringProducts" | "smartList";
 
 export default function App() {
 	const [screen, setScreen] = useState<Screen>("welcome");
 	const [tab, setTab] = useState<TabKey>("home");
 	const [session, setSession] = useState<Session | null>(null);
-	const [registerData, setRegisterData] = useState<{
-		firstName: string;
-		lastName: string;
-		email: string;
-		phone: string;
-	} | null>(null);
-	const [compareProduct, setCompareProduct] = useState<string>(
-		"Aceite Natura girasol 1.5L",
-	);
+	const [registerData, setRegisterData] = useState<{ firstName: string; lastName: string; email: string; phone: string } | null>(null);
+	const [compareProduct, setCompareProduct] = useState<string>("Aceite Natura girasol 1.5L");
 	const [selectedStore, setSelectedStore] = useState<string>("dia");
-	const [compareOrigin, setCompareOrigin] = useState<
-		"main" | "ticketProcessed"
-	>("main");
-	const [activatedOfferIds, setActivatedOfferIds] = useState<Set<string>>(
-		new Set(),
-	);
+	const [compareOrigin, setCompareOrigin] = useState<"main" | "ticketProcessed">("main");
 	const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+	/** An offer opened from somewhere other than the feed — the feed is paged
+	 * and filtered by favourite chains, so the promotion a product matched is
+	 * often not in it. */
+	const [fallbackOffer, setFallbackOffer] = useState<Offer | null>(null);
+	// Ofertas reales derivadas de /products/recurring. Viven aca porque la
+	// pantalla de detalle se resuelve por id desde el router.
+	const [offers, setOffers] = useState<Offer[]>([]);
 	const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
 	const [redeemCode, setRedeemCode] = useState<string>("DIA-X4K2-9WM7");
 
-	const [selectedPdf, setSelectedPdf] = useState<{
-		name: string;
-		uri: string;
-		base64: string;
-	} | null>(null);
-	const [scannedTicket, setScannedTicket] = useState<TicketResponse | null>(
-		null,
-	);
+	const [selectedPdf, setSelectedPdf] = useState<{ name: string; uri: string; base64: string } | null>(null);
+	const [scannedTicket, setScannedTicket] = useState<TicketResponse | null>(null);
 	const [ocrErrorMsg, setOcrErrorMsg] = useState<string>("");
 	const [processingOcr, setProcessingOcr] = useState(false);
-	const [processingFileType, setProcessingFileType] = useState<
-		"pdf" | "image" | null
-	>(null);
+	const [processingFileType, setProcessingFileType] = useState<"pdf" | "image" | null>(null);
 	const [biometricEnabled, setBiometricEnabled] = useState(false);
 	const [showBiometricOnWelcome, setShowBiometricOnWelcome] = useState(false);
 	const [booted, setBooted] = useState(false);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 	const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+	// Tickets subidos en esta sesion que todavia no avisaron si faltó algo.
+	// Viven aca y no en el historial para que el aviso siga pendiente si el
+	// usuario se va a otra pantalla mientras el OCR corre en el servidor.
+	const [awaitingTicketIds, setAwaitingTicketIds] = useState<number[]>([]);
 
 	useEffect(() => {
 		(async () => {
@@ -181,45 +129,61 @@ export default function App() {
 		})();
 	}, []);
 
-	const goMain = (t: TabKey = "home") => {
-		setTab(t);
-		setScreen("main");
+	// The offer-detail screen is routed by id, so the list has to live above the
+	// screens rather than inside each one.
+	useEffect(() => {
+		if (!session) {
+			setOffers([]);
+			return;
+		}
+		getOffers(session.token, 1, 50)
+			.then((p) => setOffers(p.items))
+			.catch(() => setOffers([]));
+	}, [session]);
+
+	const goMain = (t: TabKey = "home") => { setTab(t); setScreen("main"); };
+
+	/**
+	 * A ticket scanned while the app was closed finishes processing without the
+	 * user ever reaching TicketProcessedScreen, so the one editable pass over
+	 * the OCR output has to be reachable from the history too. Reviewed tickets
+	 * are already closed for edits and go to the read-only detail.
+	 */
+	const handleSelectTicket = async (t: TicketResponse) => {
+		if (t.status !== "PROCESSED" || t.reviewed || !session) {
+			setSelectedTicketId(t.id);
+			setScreen("ticketDetail");
+			return;
+		}
+		try {
+			const full = await getTicket(session.token, t.id);
+			setScannedTicket(full);
+			setScreen("ticketProcessed");
+		} catch {
+			// Showing it read-only beats showing nothing.
+			setSelectedTicketId(t.id);
+			setScreen("ticketDetail");
+		}
 	};
-	const handleScanPress = () => {
-		setTab("scan");
-		setScreen("scanMethod");
-	};
+	const handleScanPress = () => { setTab("scan"); setScreen("scanMethod"); };
 	const handleSelectTab = (t: TabKey) => {
 		if (t === "scan") return handleScanPress();
 		setTab(t);
 		setScreen("main");
 	};
 	const handleLogout = () => {
-		setSession(null);
-		setTab("home");
-		setActivatedOfferIds(new Set());
-		setBiometricEnabled(false);
-		setScreen("welcome");
+		setSession(null); setTab("home"); setOffers([]); setAwaitingTicketIds([]); setBiometricEnabled(false); setScreen("welcome");
 		clearStoredToken();
 	};
 
 	const handlePostLogin = async () => {
 		try {
 			const available = await isBiometricAvailable();
-			if (!available) {
-				goMain("home");
-				return;
-			}
+			if (!available) { goMain("home"); return; }
 			const pref = await getBiometricPreference();
-			if (pref) {
-				goMain("home");
-				return;
-			}
+			if (pref) { goMain("home"); return; }
 			const dismissed = await getPromptDismissed();
-			if (dismissed) {
-				goMain("home");
-				return;
-			}
+			if (dismissed) { goMain("home"); return; }
 			setScreen("biometricPrompt");
 		} catch {
 			goMain("home");
@@ -227,9 +191,8 @@ export default function App() {
 	};
 
 	const findOffer = (id: string | null) =>
-		OFFERS.find((o) => o.id === id) ?? OFFERS[0];
-	const findReward = (id: string | null) =>
-		REWARDS.find((r) => r.id === id) ?? REWARDS[0];
+		offers.find((o) => o.id === id) ?? (fallbackOffer?.id === id ? fallbackOffer : null);
+	const findReward = (id: string | null) => REWARDS.find((r) => r.id === id) ?? REWARDS[0];
 	const generateCode = () =>
 		`OFE-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
@@ -238,18 +201,10 @@ export default function App() {
 		goMain("home");
 	};
 
-	const openOffer = (id: string) => {
+	const openOffer = (id: string, fallback?: Offer | null) => {
 		setSelectedOfferId(id);
+		setFallbackOffer(fallback ?? null);
 		setScreen("offerDetail");
-	};
-	const activateOffer = (id: string) => {
-		setActivatedOfferIds((prev) => new Set(prev).add(id));
-		setSelectedOfferId(id);
-		setScreen("offerCode");
-	};
-	const showOfferCode = (id: string) => {
-		setSelectedOfferId(id);
-		setScreen("offerCode");
 	};
 
 	const handleChoosePdf = async () => {
@@ -268,34 +223,27 @@ export default function App() {
 				encoding: "base64" as const,
 			});
 
-			setSelectedPdf({
-				name: asset.name ?? "ticket.pdf",
-				uri: asset.uri,
-				base64,
-			});
+		setSelectedPdf({ name: asset.name ?? "ticket.pdf", uri: asset.uri, base64 });
 			setScreen("pdfConfirm");
 		} catch (error) {
-			setOcrErrorMsg(
-				error instanceof Error ? error.message : "No se pudo leer el PDF",
-			);
+			setOcrErrorMsg(error instanceof Error ? error.message : "No se pudo leer el PDF");
 			setScreen("scanError");
 		}
 	};
 
-	const handleSendPhotos = async (
-		photos: { id: string; uri: string; base64: string }[],
-	) => {
+	const handleSendPhotos = async (photos: { id: string; uri: string; base64?: string }[]) => {
 		if (photos.length === 0 || !session) return;
 		setProcessingFileType("image");
 		setProcessingOcr(true);
 		try {
-			const ticket = await scanTicket(session.token, photos);
-			setScannedTicket(ticket);
-			setScreen("ticketProcessed");
+			// The upload returns as soon as the images are stored; the OCR runs
+			// on the server, so the user is free to navigate (and it finishes
+			// even if they lose connection or close the app).
+			const uploaded = await scanTicket(session.token, photos);
+			setAwaitingTicketIds((prev) => [uploaded.id, ...prev]);
+			setScreen("ticketHistory");
 		} catch (error) {
-			setOcrErrorMsg(
-				error instanceof Error ? error.message : "Error al procesar el ticket",
-			);
+			setOcrErrorMsg(error instanceof Error ? error.message : "Error al subir el ticket");
 			setScreen("scanError");
 		} finally {
 			setProcessingOcr(false);
@@ -308,18 +256,16 @@ export default function App() {
 		setProcessingFileType("pdf");
 		setProcessingOcr(true);
 		try {
-			const ticket = await scanTicket(
+			const uploaded = await scanTicket(
 				session.token,
 				[{ uri: selectedPdf.uri, base64: selectedPdf.base64 }],
 				"application/pdf",
 			);
-			setScannedTicket(ticket);
+			setAwaitingTicketIds((prev) => [uploaded.id, ...prev]);
 			setSelectedPdf(null);
-			setScreen("ticketProcessed");
+			setScreen("ticketHistory");
 		} catch (error) {
-			setOcrErrorMsg(
-				error instanceof Error ? error.message : "Error al procesar el PDF",
-			);
+			setOcrErrorMsg(error instanceof Error ? error.message : "Error al subir el PDF");
 			setScreen("scanError");
 		} finally {
 			setProcessingOcr(false);
@@ -346,535 +292,468 @@ export default function App() {
 				}
 			>
 				{!booted && (
-					<View
-						style={{
-							flex: 1,
-							backgroundColor: colors.navy,
-							alignItems: "center",
-							justifyContent: "center",
-						}}
-					>
-						<ActivityIndicator size="small" color={colors.cyan} />
-					</View>
+				<View style={{ flex: 1, backgroundColor: colors.navy, alignItems: "center", justifyContent: "center" }}>
+					<ActivityIndicator size="small" color={colors.cyan} />
+				</View>
 				)}
 
-				{screen === "biometricLock" && (
-					<BiometricLockScreen
-						onSuccess={(s) => {
-							setSession(s);
-							goMain("home");
-						}}
-						onFallback={() => {
-							setBiometricEnabled(false);
-							setScreen("welcome");
-						}}
-					/>
-				)}
+			{screen === "biometricLock" && (
+				<BiometricLockScreen
+					onSuccess={(s) => { setSession(s); goMain("home"); }}
+					onFallback={() => { setBiometricEnabled(false); setScreen("welcome"); }}
+				/>
+			)}
 
-{screen === "biometricPrompt" && session && (
-					<BiometricPromptScreen
-						session={session}
-						onEnable={() => {
+			{screen === "biometricPrompt" && session && (
+				<BiometricPromptScreen
+					session={session}
+					onEnable={() => { setBiometricEnabled(true); goMain("home"); }}
+					onDismiss={async () => {
+						await setPromptDismissed();
+						goMain("home");
+					}}
+				/>
+			)}
+
+			{screen === "welcome" && (
+				<AuthWelcomeScreen
+					onAlreadyHaveAccount={() => setScreen("login")}
+					onCreateAccount={() => setScreen("register1")}
+					showBiometricButton={showBiometricOnWelcome}
+					onBiometricLogin={() => setScreen("biometricLock")}
+				/>
+			)}
+
+			{screen === "login" && (
+				<AuthLoginScreen
+					onBackPress={() => setScreen("welcome")}
+					onGoToRegister={() => setScreen("register1")}
+					onLoginSuccess={async (s) => {
+						setSession(s);
+						setScreen("loader");
+						const pref = await getBiometricPreference();
+						if (pref) {
 							setBiometricEnabled(true);
-							goMain("home");
-						}}
-						onDismiss={async () => {
-							await setPromptDismissed();
-							goMain("home");
-						}}
-					/>
-				)}
+							await storeToken(s.token);
+						}
+					}}
+					onForgotPassword={() => setScreen("passwordRecovery")}
+				/>
+			)}
 
-				{screen === "welcome" && (
-					<AuthWelcomeScreen
-						onAlreadyHaveAccount={() => setScreen("login")}
-						onCreateAccount={() => setScreen("register1")}
-						showBiometricButton={showBiometricOnWelcome}
-						onBiometricLogin={() => setScreen("biometricLock")}
-					/>
-				)}
+			{screen === "register1" && (
+				<RegisterStep1
+					onBack={() => setScreen("welcome")}
+					onNext={(data) => { setRegisterData(data); setScreen("register2"); }}
+					onGoToLogin={() => setScreen("login")}
+				/>
+			)}
 
-				{screen === "login" && (
-					<AuthLoginScreen
-						onBackPress={() => setScreen("welcome")}
-						onGoToRegister={() => setScreen("register1")}
-						onLoginSuccess={async (s) => {
-							setSession(s);
-							setScreen("loader");
-							const pref = await getBiometricPreference();
-							if (pref) {
-								setBiometricEnabled(true);
-								await storeToken(s.token);
-							}
-						}}
-						onForgotPassword={() => setScreen("passwordRecovery")}
-					/>
-				)}
+			{screen === "register2" && registerData && (
+				<RegisterStep2
+					firstName={registerData.firstName}
+					lastName={registerData.lastName}
+					email={registerData.email}
+					phone={registerData.phone}
+					onBack={() => setScreen("register1")}
+					onNext={(s) => { setSession(s); setScreen("locationPermission"); }}
+				/>
+			)}
 
-				{screen === "register1" && (
-					<RegisterStep1
-						onBack={() => setScreen("welcome")}
-						onNext={(data) => {
-							setRegisterData(data);
-							setScreen("register2");
-						}}
-						onGoToLogin={() => setScreen("login")}
-					/>
-				)}
+			{screen === "locationPermission" && (
+				<LocationPermissionScreen
+					onAllow={() => setScreen("welcomeTransition")}
+					onSkip={() => setScreen("welcomeTransition")}
+				/>
+			)}
 
-				{screen === "register2" && registerData && (
-					<RegisterStep2
-						firstName={registerData.firstName}
-						lastName={registerData.lastName}
-						email={registerData.email}
-						phone={registerData.phone}
-						onBack={() => setScreen("register1")}
-						onNext={(s) => {
-							setSession(s);
-							setScreen("accountCreated");
-						}}
-					/>
-				)}
+			{screen === "welcomeTransition" && session && (
+				<WelcomeTransitionScreen name={splitName(session.user.name).firstName} onDone={() => enterMain(session)} />
+			)}
 
-				{screen === "accountCreated" && session && (
-					<AccountCreatedScreen
-						name={splitName(session.user.name).firstName}
-						onStart={() => setScreen("locationPermission")}
-					/>
-				)}
+			{screen === "loader" && (
+				<LoaderScreen onDone={handlePostLogin} />
+			)}
 
-				{screen === "locationPermission" && (
-					<LocationPermissionScreen
-						onAllow={() => setScreen("welcomeTransition")}
-						onSkip={() => setScreen("welcomeTransition")}
-					/>
-				)}
+			{screen === "googleChoose" && (
+				<GoogleChooseAccountScreen
+					onBack={() => setScreen("login")}
+					onSelect={() => setScreen("googleVerifying")}
+				/>
+			)}
 
-				{screen === "welcomeTransition" && session && (
-					<WelcomeTransitionScreen
-						name={splitName(session.user.name).firstName}
-						onDone={() => enterMain(session)}
-					/>
-				)}
+			{screen === "googleVerifying" && (
+				<GoogleVerifyingScreen onDone={() => setScreen("googleFirstTime")} />
+			)}
 
-				{screen === "loader" && <LoaderScreen onDone={handlePostLogin} />}
+			{screen === "googleFirstTime" && (
+				<GoogleFirstTimeScreen
+					onBack={() => setScreen("login")}
+					onComplete={() => {
+						setSession({
+							token: "",
+							user: {
+								id: 0,
+								name: `${MOCK_USER.firstName} ${MOCK_USER.lastName}`,
+								email: MOCK_USER.email,
+								profilePicture: null,
+								address: null,
+								phone: null,
+								alternativeBrandsEnabled: true,
+								createdAt: "",
+							},
+						});
+						setScreen("welcomeTransition");
+					}}
+				/>
+			)}
 
-				{screen === "googleChoose" && (
-					<GoogleChooseAccountScreen
-						onBack={() => setScreen("login")}
-						onSelect={() => setScreen("googleVerifying")}
-					/>
-				)}
+			{screen === "passwordRecovery" && (
+				<PasswordRecoveryScreen
+					onBack={() => setScreen("login")}
+					onSubmit={() => setScreen("checkEmail")}
+				/>
+			)}
 
-				{screen === "googleVerifying" && (
-					<GoogleVerifyingScreen onDone={() => setScreen("googleFirstTime")} />
-				)}
+			{screen === "checkEmail" && (
+				<CheckEmailScreen
+					onBack={() => setScreen("passwordRecovery")}
+					onOpenChange={() => setScreen("changePassword")}
+				/>
+			)}
 
-				{screen === "googleFirstTime" && (
-					<GoogleFirstTimeScreen
-						onBack={() => setScreen("login")}
-						onComplete={() => {
-							setSession({
-								token: "",
-								user: {
-									id: 0,
-									name: `${MOCK_USER.firstName} ${MOCK_USER.lastName}`,
-									email: MOCK_USER.email,
-									profilePicture: null,
-									address: null,
-									phone: null,
-									createdAt: "",
-								},
-							});
-							setScreen("welcomeTransition");
-						}}
-					/>
-				)}
+			{screen === "changePassword" && (
+				<ChangePasswordScreen
+					onBack={() => setScreen("checkEmail")}
+					onSuccess={() => setScreen("passwordSuccess")}
+				/>
+			)}
 
-				{screen === "passwordRecovery" && (
-					<PasswordRecoveryScreen
-						onBack={() => setScreen("login")}
-						onSubmit={() => setScreen("checkEmail")}
-					/>
-				)}
+			{screen === "changePasswordAuth" && session && (
+				<ChangePasswordAuthScreen
+					session={session}
+					biometricEnabled={biometricEnabled}
+					onBack={(msg) => { if (msg) setToastMessage(msg); goMain("profile"); }}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "checkEmail" && (
-					<CheckEmailScreen
-						onBack={() => setScreen("passwordRecovery")}
-						onOpenChange={() => setScreen("changePassword")}
-					/>
-				)}
+			{screen === "passwordSuccess" && (
+				<PasswordSuccessScreen onGoToLogin={() => setScreen("login")} />
+			)}
 
-				{screen === "changePassword" && (
-					<ChangePasswordScreen
-						onBack={() => setScreen("checkEmail")}
-						onSuccess={() => setScreen("passwordSuccess")}
-					/>
-				)}
+			{screen === "main" && session && tab === "home" && (
+				<HomeScreen
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+					onOpenHistory={() => setScreen("ticketHistory")}
+					onOpenAnalysis={() => setScreen("monthlyAnalysis")}
+					onOpenRecurring={() => setScreen("recurringProducts")}
+					onOpenSmartList={() => setScreen("smartList")}
+					onOpenOffer={openOffer}
+				/>
+			)}
 
-				{screen === "changePasswordAuth" && session && (
-					<ChangePasswordAuthScreen
-						session={session}
-						biometricEnabled={biometricEnabled}
-						onBack={(msg) => {
-							if (msg) setToastMessage(msg);
-							goMain("profile");
-						}}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "main" && session && tab === "offers" && (
+				<OffersScreen
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+					session={session}
+					onOpenOffer={openOffer}
+				/>
+			)}
 
-				{screen === "passwordSuccess" && (
-					<PasswordSuccessScreen onGoToLogin={() => setScreen("login")} />
-				)}
+			{screen === "main" && session && tab === "points" && (
+				<PointsScreen
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+					onSelectReward={(id) => { setSelectedRewardId(id); setScreen("rewardDetail"); }}
+					onShowHistory={() => setScreen("pointsHistory")}
+					onShowLevels={() => setScreen("loyaltyLevels")}
+				/>
+			)}
 
-				{screen === "main" && session && tab === "home" && (
-					<HomeScreen
-						session={session}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-						onOpenHistory={() => setScreen("ticketHistory")}
-						onOpenAnalysis={() => setScreen("monthlyAnalysis")}
-						onOpenRecurring={() => setScreen("recurringProducts")}
-						onOpenSmartList={() => setScreen("smartList")}
-						onOpenOffer={openOffer}
-						onActivateOffer={activateOffer}
-					/>
-				)}
+			{screen === "main" && session && tab === "profile" && (
+				<ProfileScreen
+					onSessionUpdate={setSession}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+					onLogout={() => setScreen("logoutConfirm")}
+					onOpenPersonalData={() => setScreen("personalData")}
+					onOpenPayment={() => setScreen("paymentMethods")}
+					onOpenStores={() => setScreen("favoriteStores")}
+					onOpenSavings={() => setScreen("ticketHistory")}
+					onOpenHelp={() => setScreen("helpCenter")}
+					onChangePassword={() => setScreen("changePasswordAuth")}
+					biometricEnabled={biometricEnabled}
+					onToggleBiometric={async (enabled) => {
+						if (enabled && session) {
+							await storeToken(session.token);
+							await setBiometricPreference(true);
+							setBiometricEnabled(true);
+						} else {
+							await setBiometricPreference(false);
+							setBiometricEnabled(false);
+						}
+					}}
+				/>
+			)}
 
-				{screen === "main" && session && tab === "offers" && (
-					<OffersScreen
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-						activatedIds={activatedOfferIds}
-						onOpenOffer={openOffer}
-						onActivateOffer={activateOffer}
-						onShowCode={showOfferCode}
-					/>
-				)}
+			{screen === "scanMethod" && (
+				<ScanMethodScreen
+					onChoosePhotos={() => setScreen("captureTicket")}
+					onChoosePdf={handleChoosePdf}
+					onChooseBarcode={() => setScreen("scanBarcode")}
+					onBack={() => goMain("home")}
+				/>
+			)}
 
-				{screen === "main" && session && tab === "points" && (
-					<PointsScreen
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-						onSelectReward={(id) => {
-							setSelectedRewardId(id);
-							setScreen("rewardDetail");
-						}}
-						onShowHistory={() => setScreen("pointsHistory")}
-						onShowLevels={() => setScreen("loyaltyLevels")}
-					/>
-				)}
+			{screen === "scanBarcode" && (
+				<ScanBarcodeScreen onBack={() => setScreen("scanMethod")} />
+			)}
 
-				{screen === "main" && session && tab === "profile" && (
-					<ProfileScreen
-						session={session}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-						onLogout={() => setScreen("logoutConfirm")}
-						onOpenPersonalData={() => setScreen("personalData")}
-						onOpenPayment={() => setScreen("paymentMethods")}
-						onOpenStores={() => setScreen("favoriteStores")}
-						onOpenSavings={() => setScreen("ticketHistory")}
-						onOpenHelp={() => setScreen("helpCenter")}
-						onChangePassword={() => setScreen("changePasswordAuth")}
-						biometricEnabled={biometricEnabled}
-						onToggleBiometric={async (enabled) => {
-							if (enabled && session) {
-								await storeToken(session.token);
-								await setBiometricPreference(true);
-								setBiometricEnabled(true);
-							} else {
-								await setBiometricPreference(false);
-								setBiometricEnabled(false);
-							}
-						}}
-					/>
-				)}
+			{screen === "captureTicket" && (
+				<CaptureTicketScreen
+					onBack={() => setScreen("scanMethod")}
+					onSend={handleSendPhotos}
+				/>
+			)}
 
-				{screen === "scanMethod" && (
-					<ScanMethodScreen
-						onChoosePhotos={() => setScreen("captureTicket")}
-						onChoosePdf={handleChoosePdf}
-						onChooseBarcode={() => setScreen("scanBarcode")}
-						onBack={() => goMain("home")}
-					/>
-				)}
+			{screen === "pdfConfirm" && selectedPdf && (
+				<PdfConfirmScreen
+					pdfName={selectedPdf.name}
+					onSend={handleSendPdf}
+					onCancel={() => { setSelectedPdf(null); setScreen("scanMethod"); }}
+				/>
+			)}
 
-				{screen === "scanBarcode" && (
-					<ScanBarcodeScreen onBack={() => setScreen("scanMethod")} />
-				)}
+			{screen === "ticketProcessed" && session && (
+				<TicketProcessedScreen
+					ticket={scannedTicket}
+					session={session}
+					onBack={() => setScreen("ticketHistory")}
+					onFinish={() => setScreen("ticketHistory")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+					onSelectProduct={(name) => {
+						setCompareProduct(name);
+						setCompareOrigin("ticketProcessed");
+						setScreen("compare");
+					}}
+				/>
+			)}
 
-				{screen === "captureTicket" && (
-					<CaptureTicketScreen
-						onBack={() => setScreen("scanMethod")}
-						onSend={handleSendPhotos}
-					/>
-				)}
+			{screen === "scanError" && (
+				<ScanErrorScreen
+					errorMessage={ocrErrorMsg}
+					onRetry={handleOcrRetry}
+					onManualEntry={() => goMain("home")}
+					onSeeOffers={() => goMain("offers")}
+					onBack={() => goMain("home")}
+				/>
+			)}
 
-				{screen === "pdfConfirm" && selectedPdf && (
-					<PdfConfirmScreen
-						pdfName={selectedPdf.name}
-						onSend={handleSendPdf}
-						onCancel={() => {
-							setSelectedPdf(null);
-							setScreen("scanMethod");
-						}}
-					/>
-				)}
+			{screen === "compare" && (
+				<ComparePricesScreen
+					productName={compareProduct}
+					onBack={() => {
+						if (compareOrigin === "ticketProcessed") setScreen("ticketProcessed");
+						else setScreen("main");
+					}}
+					onSelectStore={(storeId) => { setSelectedStore(storeId); setScreen("storeDetail"); }}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "ticketProcessed" && session && (
-					<TicketProcessedScreen
-						ticket={scannedTicket}
-						session={session}
-						onBack={() => goMain("home")}
-						onFinish={() => goMain("home")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-						onSelectProduct={(name) => {
-							setCompareProduct(name);
-							setCompareOrigin("ticketProcessed");
-							setScreen("compare");
-						}}
-					/>
-				)}
+			{screen === "storeDetail" && (
+				<StoreDetailScreen
+					storeId={selectedStore}
+					onBack={() => setScreen("compare")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "scanError" && (
-					<ScanErrorScreen
-						errorMessage={ocrErrorMsg}
-						onRetry={handleOcrRetry}
-						onManualEntry={() => goMain("home")}
-						onSeeOffers={() => goMain("offers")}
-						onBack={() => goMain("home")}
-					/>
-				)}
+			{screen === "offerDetail" && findOffer(selectedOfferId) && (
+				<OfferDetailScreen
+					offer={findOffer(selectedOfferId)!}
+					onBack={() => goMain("offers")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "compare" && (
-					<ComparePricesScreen
-						productName={compareProduct}
-						onBack={() => {
-							if (compareOrigin === "ticketProcessed")
-								setScreen("ticketProcessed");
-							else setScreen("main");
-						}}
-						onSelectStore={(storeId) => {
-							setSelectedStore(storeId);
-							setScreen("storeDetail");
-						}}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "rewardDetail" && selectedRewardId && (
+				<RewardDetailScreen
+					reward={findReward(selectedRewardId)}
+					onBack={() => goMain("points")}
+					onRedeem={() => setScreen("confirmRedeem")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "storeDetail" && (
-					<StoreDetailScreen
-						storeId={selectedStore}
-						onBack={() => setScreen("compare")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "confirmRedeem" && selectedRewardId && (
+				<ConfirmRedeemScreen
+					reward={findReward(selectedRewardId)}
+					onCancel={() => setScreen("rewardDetail")}
+					onConfirm={() => { setRedeemCode(generateCode()); setScreen("redeemSuccess"); }}
+				/>
+			)}
 
-				{screen === "offerDetail" && selectedOfferId && (
-					<OfferDetailScreen
-						offer={findOffer(selectedOfferId)}
-						onBack={() => goMain("offers")}
-						onActivate={() => {
-							const id = selectedOfferId;
-							if (id) setActivatedOfferIds((prev) => new Set(prev).add(id));
-							setScreen("offerCode");
-						}}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "redeemSuccess" && selectedRewardId && (
+				<RedeemSuccessScreen
+					reward={findReward(selectedRewardId)}
+					code={redeemCode}
+					onSeeMy={() => setScreen("pointsHistory")}
+					onKeepRedeeming={() => goMain("points")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "offerCode" && selectedOfferId && (
-					<OfferCodeScreen
-						offer={{
-							...findOffer(selectedOfferId),
-							expiresAt: findOffer(selectedOfferId).expiresAtLabel,
-						}}
-						onBack={() => goMain("offers")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "pointsHistory" && (
+				<PointsHistoryScreen
+					onBack={() => goMain("points")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "rewardDetail" && selectedRewardId && (
-					<RewardDetailScreen
-						reward={findReward(selectedRewardId)}
-						onBack={() => goMain("points")}
-						onRedeem={() => setScreen("confirmRedeem")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "loyaltyLevels" && (
+				<LoyaltyLevelsScreen
+					onBack={() => goMain("points")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "confirmRedeem" && selectedRewardId && (
-					<ConfirmRedeemScreen
-						reward={findReward(selectedRewardId)}
-						onCancel={() => setScreen("rewardDetail")}
-						onConfirm={() => {
-							setRedeemCode(generateCode());
-							setScreen("redeemSuccess");
-						}}
-					/>
-				)}
+			{screen === "personalData" && session && (
+				<PersonalDataScreen
+					session={session}
+					onBack={(msg) => { if (msg) setToastMessage(msg); goMain("profile"); }}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "redeemSuccess" && selectedRewardId && (
-					<RedeemSuccessScreen
-						reward={findReward(selectedRewardId)}
-						code={redeemCode}
-						onSeeMy={() => setScreen("pointsHistory")}
-						onKeepRedeeming={() => goMain("points")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "paymentMethods" && (
+				<PaymentMethodsScreen
+					onBack={() => goMain("profile")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "pointsHistory" && (
-					<PointsHistoryScreen
-						onBack={() => goMain("points")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "favoriteStores" && session && (
+				<FavoriteStoresScreen
+					onBack={() => goMain("profile")}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "loyaltyLevels" && (
-					<LoyaltyLevelsScreen
-						onBack={() => goMain("points")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "helpCenter" && (
+				<HelpCenterScreen
+					onBack={() => goMain("profile")}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "personalData" && session && (
-					<PersonalDataScreen
-						session={session}
-						onBack={(msg) => {
-							if (msg) setToastMessage(msg);
-							goMain("profile");
-						}}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "logoutConfirm" && (
+				<LogoutConfirmScreen
+					onCancel={() => goMain("profile")}
+					onConfirm={handleLogout}
+				/>
+			)}
 
-				{screen === "paymentMethods" && (
-					<PaymentMethodsScreen
-						onBack={() => goMain("profile")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "ticketHistory" && session && (
+				<TicketHistoryScreen
+					onBack={() => goMain("home")}
+					onSelectTicket={handleSelectTicket}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+					awaitingTicketIds={awaitingTicketIds}
+					onTicketAnnounced={(id) =>
+						setAwaitingTicketIds((prev) => prev.filter((x) => x !== id))
+					}
+				/>
+			)}
 
-				{screen === "favoriteStores" && (
-					<FavoriteStoresScreen
-						onBack={() => goMain("profile")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "ticketDetail" && session && selectedTicketId && (
+				<TicketDetailScreen
+					ticketId={selectedTicketId}
+					onBack={() => setScreen("ticketHistory")}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "helpCenter" && (
-					<HelpCenterScreen
-						onBack={() => goMain("profile")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "monthlyAnalysis" && session && (
+				<MonthlyAnalysisScreen
+					onBack={() => goMain("home")}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "logoutConfirm" && (
-					<LogoutConfirmScreen
-						onCancel={() => goMain("profile")}
-						onConfirm={handleLogout}
-					/>
-				)}
+			{screen === "recurringProducts" && session && (
+				<RecurringProductsScreen
+					onOpenOffer={openOffer}
+					onBack={() => goMain("home")}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "ticketHistory" && session && (
-					<TicketHistoryScreen
-						onBack={() => goMain("home")}
-						onSelectTicket={(id: number) => {
-							setSelectedTicketId(id);
-							setScreen("ticketDetail");
-						}}
-						session={session}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{screen === "smartList" && session && (
+				<SmartShoppingListScreen
+					onBack={() => goMain("home")}
+					session={session}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
+				/>
+			)}
 
-				{screen === "ticketDetail" && session && selectedTicketId && (
-					<TicketDetailScreen
-						ticketId={selectedTicketId}
-						onBack={() => setScreen("ticketHistory")}
-						session={session}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
+			{processingOcr && processingFileType && (
+				<LoadingOverlay fileType={processingFileType} />
+			)}
 
-				{screen === "monthlyAnalysis" && session && (
-					<MonthlyAnalysisScreen
-						onBack={() => goMain("home")}
-						session={session}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
-
-				{screen === "recurringProducts" && (
-					<RecurringProductsScreen
-						onBack={() => goMain("home")}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
-
-				{screen === "smartList" && session && (
-					<SmartShoppingListScreen
-						onBack={() => goMain("home")}
-						session={session}
-						activeTab={tab}
-						onSelectTab={handleSelectTab}
-						onScanPress={handleScanPress}
-					/>
-				)}
-
-				{processingOcr && processingFileType && (
-					<LoadingOverlay fileType={processingFileType} />
-				)}
-
-				{toastMessage && (
-					<Toast
-						message={toastMessage}
-						onDismiss={() => setToastMessage(null)}
-					/>
-				)}
+			{toastMessage && (
+				<Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
+			)}
 			</OnboardingProvider>
 		</SafeAreaProvider>
 	);
