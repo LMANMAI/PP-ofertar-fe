@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getStoredToken, clearStoredToken } from "../auth/biometricAuth";
 import type { Session } from "../auth/session";
 
@@ -15,6 +15,8 @@ type Props = {
 
 export function BiometricLockScreen({ onSuccess, onFallback }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [attempts, setAttempts] = useState(0);
@@ -100,6 +102,8 @@ export function BiometricLockScreen({ onSuccess, onFallback }: Props) {
 						pressed && !loading && { opacity: 0.8 },
 					]}
 					disabled={loading}
+					accessibilityRole="button"
+					accessibilityLabel="Reintentar verificación con huella"
 				>
 					{loading && attempts === 0 ? (
 						<ActivityIndicator size="large" color={colors.navy} />
@@ -137,7 +141,8 @@ export function BiometricLockScreen({ onSuccess, onFallback }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	content: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18, paddingHorizontal: 32 },
 	fingerprintCircle: {
@@ -147,12 +152,13 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.cyan,
 		alignItems: "center",
 		justifyContent: "center",
-		marginBottom: 8,
+		marginBottom: space.sm,
 	},
 	title: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 18, textAlign: "center" },
-	hint: { color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
-	errorBox: { marginTop: 4, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.12)", borderWidth: 1, borderColor: "rgba(239,68,68,0.3)", flexDirection: "row", alignItems: "flex-start", gap: 10, maxWidth: 320 },
+	hint: { color: colors.navyMutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
+	errorBox: { marginTop: space.xs, paddingVertical: space.md, paddingHorizontal: space.lg, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.12)", borderWidth: 1, borderColor: "rgba(239,68,68,0.3)", flexDirection: "row", alignItems: "flex-start", gap: space.smPlus, maxWidth: 320 },
 	errorText: { flex: 1, color: "#FCA5A5", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	fallbackBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 16, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)" },
+	fallbackBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.smPlus, paddingVertical: space.lg, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)" },
 	fallbackText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 15 },
-});
+	});
+}

@@ -1,14 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = { onDone: () => void; name?: string };
 
 export function WelcomeTransitionScreen({ onDone, name = "Martina" }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	useEffect(() => {
 		const t = setTimeout(onDone, 1800);
 		return () => clearTimeout(t);
@@ -28,11 +30,13 @@ export function WelcomeTransitionScreen({ onDone, name = "Martina" }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	statusBarBg: { backgroundColor: colors.navy },
 	center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18 },
 	checkCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: colors.cyan, alignItems: "center", justifyContent: "center" },
-	title: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 24, marginTop: 12 },
-	subtitle: { color: "#99B2CC", fontFamily: typography.family.regular, fontSize: 14 },
-});
+	title: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 24, marginTop: space.md },
+	subtitle: { color: colors.navyMutedText, fontFamily: typography.family.regular, fontSize: 14 },
+	});
+}

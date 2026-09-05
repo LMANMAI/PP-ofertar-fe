@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
 	Image,
@@ -12,7 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getProductoPorEan } from "../services/sepaApi";
 import type { ProductoDetalleResponse } from "../services/sepaApi";
 
@@ -33,6 +33,8 @@ const formatearPrecio = (valor: number | null) =>
 
 export function ScanBarcodeScreen({ onBack }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [permission, requestPermission] = useCameraPermissions();
 	const [estado, setEstado] = useState<Estado>("escaneando");
 	const [producto, setProducto] = useState<ProductoDetalleResponse | null>(null);
@@ -96,7 +98,7 @@ export function ScanBarcodeScreen({ onBack }: Props) {
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Escanear producto</Text>
@@ -145,7 +147,7 @@ export function ScanBarcodeScreen({ onBack }: Props) {
 					</Pressable>
 				</View>
 			) : (
-				<Resultado producto={producto!} onEscanearOtro={volverAEscanear} />
+				<Resultado producto={producto!} onEscanearOtro={volverAEscanear} colors={colors} styles={styles} />
 			)}
 		</View>
 	);
@@ -154,9 +156,13 @@ export function ScanBarcodeScreen({ onBack }: Props) {
 function Resultado({
 	producto,
 	onEscanearOtro,
+	colors,
+	styles,
 }: {
 	producto: ProductoDetalleResponse;
 	onEscanearOtro: () => void;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
 }) {
 	return (
 		<ScrollView
@@ -189,7 +195,7 @@ function Resultado({
 
 			{producto.sinPrecios ? (
 				<View style={styles.avisoSinPrecios}>
-					<Ionicons name="information-circle-outline" size={20} color={colors.orange} />
+					<Ionicons name="information-circle-outline" size={20} color={colors.warningSoftText} />
 					<Text style={styles.avisoTexto}>
 						{producto.fuenteDatos === "ninguna"
 							? "No encontramos este producto. Puede ser un código interno del comercio."
@@ -258,7 +264,8 @@ function Resultado({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
@@ -266,8 +273,8 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 		backgroundColor: colors.navy,
-		paddingHorizontal: 16,
-		paddingBottom: 14,
+		paddingHorizontal: space.lg,
+		paddingBottom: space.mdPlus,
 	},
 	backButton: { width: 32, height: 32, justifyContent: "center" },
 	headerTitle: {
@@ -288,7 +295,7 @@ const styles = StyleSheet.create({
 		borderRadius: 16,
 	},
 	ayudaWrap: { position: "absolute", bottom: 48, left: 24, right: 24, alignItems: "center" },
-	ayudaCargando: { flexDirection: "row", alignItems: "center", gap: 10 },
+	ayudaCargando: { flexDirection: "row", alignItems: "center", gap: space.smPlus },
 	ayudaTexto: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
@@ -300,7 +307,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 12,
+		gap: space.md,
 		paddingHorizontal: 32,
 		backgroundColor: colors.background,
 	},
@@ -320,19 +327,19 @@ const styles = StyleSheet.create({
 		color: colors.mutedText,
 		fontFamily: typography.family.medium,
 		fontSize: typography.sizes.caption,
-		marginTop: 4,
+		marginTop: space.xs,
 	},
 
 	resultado: { flex: 1 },
-	resultadoContent: { padding: 20, gap: 16 },
+	resultadoContent: { padding: space.xl, gap: space.lg },
 	productoCard: {
 		flexDirection: "row",
-		gap: 14,
+		gap: space.mdPlus,
 		backgroundColor: colors.card,
 		borderRadius: 16,
 		borderWidth: 1,
 		borderColor: colors.border,
-		padding: 14,
+		padding: space.mdPlus,
 	},
 	productoImagen: { width: 88, height: 88, borderRadius: 12, backgroundColor: colors.softWarm },
 	imagenPlaceholder: { alignItems: "center", justifyContent: "center" },
@@ -358,14 +365,14 @@ const styles = StyleSheet.create({
 	avisoSinPrecios: {
 		flexDirection: "row",
 		alignItems: "flex-start",
-		gap: 10,
-		backgroundColor: "#FDF1EC",
+		gap: space.smPlus,
+		backgroundColor: colors.warningSoft,
 		borderRadius: 14,
-		padding: 14,
+		padding: space.mdPlus,
 	},
 	avisoTexto: {
 		flex: 1,
-		color: colors.orange,
+		color: colors.warningSoftText,
 		fontFamily: typography.family.medium,
 		fontSize: typography.sizes.caption,
 		lineHeight: typography.lineHeights.caption,
@@ -378,14 +385,14 @@ const styles = StyleSheet.create({
 		gap: 2,
 	},
 	precioLabel: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: typography.sizes.overline,
 		textTransform: "uppercase",
 		letterSpacing: 0.5,
 	},
 	precioDestacado: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: typography.sizes.h1,
 	},
@@ -395,7 +402,7 @@ const styles = StyleSheet.create({
 		fontSize: typography.sizes.caption,
 	},
 
-	comerciosWrap: { gap: 8 },
+	comerciosWrap: { gap: space.sm },
 	seccionTitulo: {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
@@ -410,8 +417,8 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		borderWidth: 1,
 		borderColor: colors.border,
-		paddingHorizontal: 14,
-		paddingVertical: 12,
+		paddingHorizontal: space.mdPlus,
+		paddingVertical: space.md,
 	},
 	comercioMasBarato: { borderColor: colors.cyan, backgroundColor: colors.softCyan },
 	comercioInfo: { flex: 1, gap: 2 },
@@ -433,7 +440,7 @@ const styles = StyleSheet.create({
 	},
 	badgeBarato: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 8,
+		paddingHorizontal: space.sm,
 		paddingVertical: 2,
 		borderRadius: 6,
 	},
@@ -454,16 +461,17 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
+		gap: space.sm,
 		backgroundColor: colors.navy,
 		borderRadius: 14,
 		paddingVertical: 15,
-		paddingHorizontal: 24,
-		marginTop: 4,
+		paddingHorizontal: space.xxl,
+		marginTop: space.xs,
 	},
 	botonPrimarioTexto: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
 		fontSize: typography.sizes.body,
 	},
-});
+	});
+}

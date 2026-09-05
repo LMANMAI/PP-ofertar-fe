@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	onChoosePhotos: () => void;
@@ -18,6 +19,8 @@ export function ScanMethodScreen({
 	onBack,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	return (
 		<View style={styles.safeArea}>
@@ -25,7 +28,7 @@ export function ScanMethodScreen({
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Escanear</Text>
@@ -46,6 +49,8 @@ export function ScanMethodScreen({
 						description="Capturá cada parte del ticket y envialas en orden."
 						onPress={onChoosePhotos}
 						accent={colors.cyan}
+						colors={colors}
+						styles={styles}
 					/>
 
 					<OptionCard
@@ -55,6 +60,8 @@ export function ScanMethodScreen({
 						onPress={onChoosePdf}
 						accent={colors.orange}
 						badge="Más rápido"
+						colors={colors}
+						styles={styles}
 					/>
 
 					<OptionCard
@@ -63,11 +70,14 @@ export function ScanMethodScreen({
 						description="Apuntá al código de barras y mirá el precio en cada supermercado."
 						onPress={onChooseBarcode}
 						accent={colors.softNavy}
+						iconColor={colors.defaultText}
+						colors={colors}
+						styles={styles}
 					/>
 				</View>
 
 				<View style={styles.ecoTip}>
-					<Ionicons name="leaf-outline" size={20} color="#1D9E75" />
+					<Ionicons name="leaf-outline" size={20} color={colors.successSoftText} />
 					<Text style={styles.ecoTipText}>
 						Elegí PDF: es más rápido y ahorramos papel. ¡Cada ticket cuenta!
 					</Text>
@@ -84,6 +94,9 @@ function OptionCard({
 	onPress,
 	accent,
 	badge,
+	colors,
+	styles,
+	iconColor,
 }: {
 	icon: keyof typeof Ionicons.glyphMap;
 	title: string;
@@ -91,11 +104,14 @@ function OptionCard({
 	onPress: () => void;
 	accent: string;
 	badge?: string;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
+	iconColor?: string;
 }) {
 	return (
 		<Pressable style={styles.card} onPress={onPress}>
 			<View style={[styles.iconWrap, { backgroundColor: accent }]}>
-				<Ionicons name={icon} size={28} color={colors.navy} />
+				<Ionicons name={icon} size={28} color={iconColor ?? colors.navy} />
 			</View>
 			<View style={styles.cardText}>
 				<View style={styles.cardTitleRow}>
@@ -113,17 +129,18 @@ function OptionCard({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
-		paddingTop: 8,
-		paddingBottom: 16,
+		paddingHorizontal: space.md,
+		paddingTop: space.sm,
+		paddingBottom: space.lg,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: space.sm,
 	},
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
@@ -135,9 +152,9 @@ const styles = StyleSheet.create({
 	},
 	content: {
 		flex: 1,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 28,
-		paddingBottom: 24,
+		paddingBottom: space.xxl,
 	},
 	title: {
 		color: colors.defaultText,
@@ -150,18 +167,18 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.regular,
 		fontSize: 14,
 		lineHeight: 20,
-		marginTop: 8,
+		marginTop: space.sm,
 	},
-	cards: { marginTop: 28, gap: 14 },
+	cards: { marginTop: 28, gap: space.mdPlus },
 	card: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 14,
+		gap: space.mdPlus,
 		backgroundColor: colors.card,
 		borderRadius: 16,
 		borderWidth: 1,
 		borderColor: colors.border,
-		paddingHorizontal: 16,
+		paddingHorizontal: space.lg,
 		paddingVertical: 18,
 	},
 	iconWrap: {
@@ -171,8 +188,8 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	cardText: { flex: 1, gap: 4 },
-	cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	cardText: { flex: 1, gap: space.xs },
+	cardTitleRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	cardTitle: {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
@@ -185,31 +202,32 @@ const styles = StyleSheet.create({
 		lineHeight: 18,
 	},
 	badge: {
-		backgroundColor: "#E0F5EF",
-		paddingHorizontal: 8,
+		backgroundColor: colors.successSoft,
+		paddingHorizontal: space.sm,
 		paddingVertical: 3,
 		borderRadius: 6,
 	},
 	badgeText: {
-		color: "#1D9E75",
+		color: colors.successSoftText,
 		fontFamily: typography.family.medium,
 		fontSize: 10,
 	},
 	ecoTip: {
 		flexDirection: "row",
 		alignItems: "flex-start",
-		gap: 10,
-		backgroundColor: "#E0F5EF",
+		gap: space.smPlus,
+		backgroundColor: colors.successSoft,
 		borderRadius: 14,
-		paddingHorizontal: 16,
-		paddingVertical: 14,
-		marginTop: 24,
+		paddingHorizontal: space.lg,
+		paddingVertical: space.mdPlus,
+		marginTop: space.xxl,
 	},
 	ecoTipText: {
 		flex: 1,
-		color: "#1D9E75",
+		color: colors.successSoftText,
 		fontFamily: typography.family.medium,
 		fontSize: 13,
 		lineHeight: 19,
 	},
-});
+	});
+}

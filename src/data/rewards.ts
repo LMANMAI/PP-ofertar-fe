@@ -15,62 +15,58 @@ export type Reward = {
 	where: string;
 };
 
+/** Puntos que gana el usuario que se registra usando el código de invitación
+ * de otro. OfertAR no tiene backend de referidos todavía, así que solo se
+ * acredita del lado de quien ingresa el código al registrarse — no hay forma
+ * de avisarle al dueño del código que alguien lo usó. */
+export const POINTS_PER_REFERRAL = 20;
+
+// OfertAR todavía no tiene suscripción paga ni facturación real (ver
+// PRODUCT.md — es un proyecto académico sin backend de pagos). Este catálogo
+// es una vista previa de a qué se podrían canjear los puntos el día que esa
+// función exista: la copy va en condicional a propósito, para no afirmar un
+// mecanismo que hoy no puede pasar.
 export const REWARDS: Reward[] = [
 	{
-		id: "dia-500",
-		icon: "gift-outline",
-		title: "$500 en compras",
-		brand: "Día",
-		points: 1000,
-		validity: "30 días tras el canje",
-		where: "Supermercados Día (todas las sucursales)",
-		howTo: "Mostrá el código en caja antes de pagar",
-		conditions: [
-			"No acumulable con otras promociones.",
-			"Válido para compras mayores a $5.000.",
-			"Un canje por cuenta por mes.",
-			"No aplica para productos de perfumería.",
-		],
-	},
-	{
-		id: "starbucks-cafe",
-		icon: "cafe-outline",
-		title: "Café gratis",
-		brand: "Starbucks",
-		points: 800,
-		validity: "15 días tras el canje",
-		where: "Starbucks (sucursales adheridas)",
-		howTo: "Mostrá el código en barra",
-		conditions: [
-			"Aplica a tall (354ml).",
-			"Una vez por usuario.",
-		],
-	},
-	{
-		id: "coto-10",
+		id: "mini-descuento",
 		icon: "pricetag-outline",
-		title: "10% extra",
-		brand: "Coto",
-		points: 600,
-		validity: "10 días tras el canje",
-		where: "Coto (todas las sucursales)",
-		howTo: "Mostrá el código en caja",
+		title: "5% en tu próxima suscripción",
+		brand: "OfertAR",
+		points: 100,
+		validity: "Vista previa — todavía no hay suscripción paga en OfertAR",
+		where: "Se aplicaría a tu cuenta cuando la suscripción esté disponible",
+		howTo: "Se descontaría de tu próximo cobro",
 		conditions: [
-			"No acumulable.",
-			"No aplica a productos de electro.",
+			`Necesitás ${100 / POINTS_PER_REFERRAL} referidos para desbloquearlo.`,
+			"Es un adelanto de la función, todavía no se puede canjear de verdad.",
 		],
 	},
 	{
-		id: "rappi-envio",
-		icon: "bicycle-outline",
-		title: "Envío gratis",
-		brand: "Rappi",
-		points: 450,
-		validity: "30 días",
-		where: "Rappi app",
-		howTo: "Usar el código al pagar el envío",
-		conditions: ["Una vez por usuario."],
+		id: "descuento-grande",
+		icon: "pricetags-outline",
+		title: "20% en tu próxima suscripción",
+		brand: "OfertAR",
+		points: 300,
+		validity: "Vista previa — todavía no hay suscripción paga en OfertAR",
+		where: "Se aplicaría a tu cuenta cuando la suscripción esté disponible",
+		howTo: "Se descontaría de tu próximo cobro",
+		conditions: [
+			`Necesitás ${300 / POINTS_PER_REFERRAL} referidos para desbloquearlo.`,
+			"Es un adelanto de la función, todavía no se puede canjear de verdad.",
+		],
+	},
+	{
+		id: "mes-gratis",
+		icon: "gift-outline",
+		title: "1 mes gratis de suscripción",
+		brand: "OfertAR",
+		points: 600,
+		validity: "Vista previa — todavía no hay suscripción paga en OfertAR",
+		where: "Se aplicaría a tu cuenta cuando la suscripción esté disponible",
+		howTo: "Se saltearía tu próximo cobro",
+		conditions: [
+			`Necesitás ${600 / POINTS_PER_REFERRAL} referidos para desbloquearlo.`,
+			"Es un adelanto de la función, todavía no se puede canjear de verdad.",
+		],
 	},
 ];
-
-export const SALDO_PUNTOS = 2430;

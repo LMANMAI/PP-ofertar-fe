@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import {
@@ -10,16 +10,18 @@ import { View, Text, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Pl
 import { Ionicons } from "@expo/vector-icons";
 import { InputField } from "../components";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
-	onNext: (data: { firstName: string; lastName: string; email: string; phone: string }) => void;
+	onNext: (data: { firstName: string; lastName: string; email: string; phone: string; referralCode: string }) => void;
 	onBack: () => void;
 	onGoToLogin?: () => void;
 };
 
 export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [fontsLoaded] = useFonts({
 		PlusJakartaSans_400Regular,
 		PlusJakartaSans_500Medium,
@@ -30,6 +32,7 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 	const [lastName, setLastName] = useState("");
 	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
+	const [referralCode, setReferralCode] = useState("");
 	const [accepted, setAccepted] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +50,13 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 			setError("Aceptá los Términos y condiciones para continuar");
 			return;
 		}
-		onNext({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), phone: phone.trim() });
+		onNext({
+			firstName: firstName.trim(),
+			lastName: lastName.trim(),
+			email: email.trim(),
+			phone: phone.trim(),
+			referralCode: referralCode.trim(),
+		});
 	};
 
 	if (!fontsLoaded) return null;
@@ -59,12 +68,12 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 			<View style={styles.header}>
 				<View style={styles.headerLine}>
 					<View style={styles.headerLeft}>
-						<Pressable onPress={onBack} style={styles.backButton}>
+						<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 							<Ionicons name="chevron-back" size={20} color={colors.buttonText} />
 						</Pressable>
 						<Text style={styles.headerTitle}>Registrarse</Text>
 					</View>
-					<Text style={styles.stepLabel}>Paso 1 de 3</Text>
+					<Text style={styles.stepLabel}>Paso 1 de 2</Text>
 				</View>
 			</View>
 			<View style={styles.progressWrap}>
@@ -86,29 +95,32 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 				<View style={styles.form}>
 					<InputField
 						label="Nombre"
-						leftIcon=""
 						value={firstName}
 						onChangeText={setFirstName}
 					/>
 					<InputField
 						label="Apellido"
-						leftIcon=""
 						value={lastName}
 						onChangeText={setLastName}
 					/>
 					<InputField
 						label="Correo electrónico"
-						leftIcon=""
 						value={email}
 						onChangeText={setEmail}
 						keyboardType="email-address"
 					/>
 					<InputField
 						label="Teléfono (opcional)"
-						leftIcon=""
 						value={phone}
 						onChangeText={setPhone}
 						keyboardType="phone-pad"
+					/>
+					<InputField
+						label="Código de invitación (opcional)"
+						value={referralCode}
+						onChangeText={(t) => setReferralCode(t.toUpperCase())}
+						autoCapitalize="characters"
+						leftIcon="people-outline"
 					/>
 				</View>
 
@@ -131,7 +143,7 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 
 				{error && (
 					<View style={styles.errorBox}>
-						<Ionicons name="alert-circle" size={16} color="#A8341E" />
+						<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
 						<Text style={styles.errorText}>{error}</Text>
 					</View>
 				)}
@@ -153,14 +165,15 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	progressWrap: { backgroundColor: colors.navy },
 	progressTrack: { height: 6, backgroundColor: colors.softCyan, width: "100%" },
-	progressFill: { height: 6, backgroundColor: colors.cyan, width: "33%" },
+	progressFill: { height: 6, backgroundColor: colors.cyan, width: "50%" },
 	header: {
-		paddingHorizontal: 12,
-		paddingTop: 12,
+		paddingHorizontal: space.md,
+		paddingTop: space.md,
 		paddingBottom: 0,
 		backgroundColor: colors.navy,
 	},
@@ -169,20 +182,20 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		marginBottom: 8,
+		marginBottom: space.sm,
 	},
-	headerLeft: { flexDirection: "row", alignItems: "center", gap: 4 },
+	headerLeft: { flexDirection: "row", alignItems: "center", gap: space.xs },
 	backButton: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 16,
 	},
-	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: 4 },
+	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: space.xs },
 	container: {
-		paddingHorizontal: 20,
-		paddingTop: 24,
-		paddingBottom: 24,
+		paddingHorizontal: space.xl,
+		paddingTop: space.xxl,
+		paddingBottom: space.xxl,
 		backgroundColor: colors.background,
 		flexGrow: 1,
 	},
@@ -191,7 +204,7 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 28,
 		lineHeight: 36,
-		marginBottom: 6,
+		marginBottom: space.xsPlus,
 	},
 	subtitle: {
 		color: colors.mutedText,
@@ -200,11 +213,11 @@ const styles = StyleSheet.create({
 		lineHeight: 26,
 		marginBottom: 22,
 	},
-	form: { gap: 16 },
+	form: { gap: space.lg },
 	checkboxRow: {
 		flexDirection: "row",
 		alignItems: "flex-start",
-		gap: 10,
+		gap: space.smPlus,
 		marginTop: 18,
 	},
 	checkbox: {
@@ -234,7 +247,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
-		gap: 8,
+		gap: space.sm,
 	},
 	primaryButtonText: {
 		color: colors.buttonText,
@@ -250,10 +263,11 @@ const styles = StyleSheet.create({
 		lineHeight: 18,
 	},
 	footerLink: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		textDecorationLine: "underline",
 	},
-	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-});
+	errorBox: { marginTop: space.md, paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	});
+}

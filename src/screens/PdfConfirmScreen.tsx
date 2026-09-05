@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	pdfName: string;
@@ -12,6 +13,8 @@ type Props = {
 
 export function PdfConfirmScreen({ pdfName, onSend, onCancel }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	return (
 		<View style={styles.safeArea}>
@@ -19,7 +22,7 @@ export function PdfConfirmScreen({ pdfName, onSend, onCancel }: Props) {
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Pressable onPress={onCancel} style={styles.backButton}>
+				<Pressable onPress={onCancel} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Confirmar PDF</Text>
@@ -53,17 +56,18 @@ export function PdfConfirmScreen({ pdfName, onSend, onCancel }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
-		paddingTop: 8,
-		paddingBottom: 16,
+		paddingHorizontal: space.md,
+		paddingTop: space.sm,
+		paddingBottom: space.lg,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: space.sm,
 	},
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
@@ -75,7 +79,7 @@ const styles = StyleSheet.create({
 	},
 	content: {
 		flex: 1,
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 32,
 		justifyContent: "space-between",
 	},
@@ -86,8 +90,8 @@ const styles = StyleSheet.create({
 		borderColor: colors.border,
 		padding: 32,
 		alignItems: "center",
-		gap: 14,
-		marginTop: 20,
+		gap: space.mdPlus,
+		marginTop: space.xl,
 	},
 	iconWrap: {
 		width: 90,
@@ -110,7 +114,7 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		textAlign: "center",
 	},
-	actions: { gap: 12, paddingBottom: 12 },
+	actions: { gap: space.md, paddingBottom: space.md },
 	primaryButton: {
 		backgroundColor: colors.navy,
 		height: 54,
@@ -118,7 +122,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
-		gap: 8,
+		gap: space.sm,
 	},
 	primaryButtonText: {
 		color: colors.buttonText,
@@ -139,4 +143,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 14,
 	},
-});
+	});
+}

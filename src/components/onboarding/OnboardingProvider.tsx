@@ -10,7 +10,9 @@ import {
 	type ReactNode,
 } from "react";
 import {
+	AccessibilityInfo,
 	findNodeHandle,
+	LayoutAnimation,
 	type LayoutChangeEvent,
 	type View,
 } from "react-native";
@@ -35,21 +37,21 @@ const STEPS: Step[] = [
 			"Encuadrá el ticket o producto, confirmá y dejá que OfertAR encuentre tus ahorros.",
 	},
 	{
+		id: "history",
+		title: "Tu historial y ahorro",
+		description: "Consultá tus tickets escaneados y cuánto venís ahorrando.",
+	},
+	{
 		id: "offers",
 		title: "Tus ofertas detectadas",
 		description:
 			"Acá aparecen las ofertas que pueden interesarte según tus supermercados de preferencia.",
 	},
 	{
-		id: "history",
-		title: "Tu historial y ahorro",
-		description: "Consultá tus tickets escaneados y cuánto venís ahorrando.",
-	},
-	{
 		id: "main-navigation",
 		title: "Todo a mano",
 		description:
-			"Usá esta navegación para ir a Inicio, Ofertas y tu Perfil.",
+			"Usá esta navegación para ir a Inicio, tus Tickets, Ofertas y tu Perfil.",
 	},
 ];
 
@@ -73,8 +75,19 @@ export function OnboardingProvider({
 	const [stepIndex, setStepIndex] = useState(0);
 	const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
 	const overlayRef = useRef<View>(null);
+	const reduceMotion = useRef(false);
 	const storageKey =
 		userKey === null ? null : `${STORAGE_KEY_PREFIX}:${userKey}`;
+
+	useEffect(() => {
+		AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+			reduceMotion.current = enabled;
+		});
+		const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", (enabled) => {
+			reduceMotion.current = enabled;
+		});
+		return () => sub.remove();
+	}, []);
 
 	const measureTarget = useCallback((id: OnboardingTargetId) => {
 		const node = targets.current.get(id);
@@ -89,6 +102,13 @@ export function OnboardingProvider({
 		}
 		overlay.measureInWindow((overlayX, overlayY) => {
 			node.measureInWindow((x, y, width, height) => {
+				// The highlight was teleporting straight from one target to the
+				// next with no transition — animating the layout pass this
+				// triggers makes it read as the spotlight moving to the next
+				// thing to notice, which is the entire point of a guided tour.
+				if (!reduceMotion.current) {
+					LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+				}
 				setSpotlight({
 					x: x - overlayX,
 					y: y - overlayY,

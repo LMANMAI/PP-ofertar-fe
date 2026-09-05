@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { InputField, PasswordStrengthBar } from "../components";
 import { register } from "../services/authApi";
 import type { Session } from "../auth/session";
@@ -18,6 +18,8 @@ type Props = {
 
 export default function RegisterStep2({ firstName, lastName, email, phone: _phone, onNext, onBack }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [password, setPassword] = useState("");
 	const [repeatPassword, setRepeatPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -61,12 +63,12 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 			<View style={styles.header}>
 				<View style={styles.headerLine}>
 					<View style={styles.headerLeft}>
-						<Pressable onPress={onBack} style={styles.backButton}>
+						<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 							<Ionicons name="chevron-back" size={20} color={colors.buttonText} />
 						</Pressable>
 						<Text style={styles.headerTitle}>Registrarse</Text>
 					</View>
-					<Text style={styles.stepLabel}>Paso 2 de 3</Text>
+					<Text style={styles.stepLabel}>Paso 2 de 2</Text>
 				</View>
 			</View>
 			<View style={styles.progressWrap}>
@@ -87,7 +89,6 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 				<View style={styles.form}>
 					<InputField
 						label="Contraseña"
-						leftIcon=""
 						value={password}
 						onChangeText={setPassword}
 						secureTextEntry
@@ -103,7 +104,6 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 
 					<InputField
 						label="Repetí tu contraseña"
-						leftIcon=""
 						value={repeatPassword}
 						onChangeText={setRepeatPassword}
 						secureTextEntry
@@ -113,7 +113,7 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 
 				{error && (
 					<View style={styles.errorBox}>
-						<Ionicons name="alert-circle" size={16} color="#A8341E" />
+						<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
 						<Text style={styles.errorText}>{error}</Text>
 					</View>
 				)}
@@ -138,11 +138,12 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	header: {
-		paddingHorizontal: 12,
-		paddingTop: 8,
+		paddingHorizontal: space.md,
+		paddingTop: space.sm,
 		paddingBottom: 0,
 		backgroundColor: colors.navy,
 	},
@@ -151,27 +152,27 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		marginBottom: 8,
+		marginBottom: space.sm,
 	},
-	headerLeft: { flexDirection: "row", alignItems: "center", gap: 4 },
+	headerLeft: { flexDirection: "row", alignItems: "center", gap: space.xs },
 	backButton: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 16,
 	},
-	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: 4 },
+	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: space.xs },
 	progressWrap: { backgroundColor: colors.navy },
 	progressTrack: { height: 6, backgroundColor: colors.softCyan, width: "100%" },
-	progressFill: { height: 6, backgroundColor: colors.cyan, width: "66%" },
+	progressFill: { height: 6, backgroundColor: colors.cyan, width: "100%" },
 	container: {
-		paddingHorizontal: 20,
-		paddingTop: 24,
-		paddingBottom: 24,
+		paddingHorizontal: space.xl,
+		paddingTop: space.xxl,
+		paddingBottom: space.xxl,
 		backgroundColor: colors.background,
 		flexGrow: 1,
 	},
-	intro: { gap: 6, paddingBottom: 18 },
+	intro: { gap: space.xsPlus, paddingBottom: 18 },
 	title: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
@@ -184,14 +185,14 @@ const styles = StyleSheet.create({
 		fontSize: 17,
 		lineHeight: 26,
 	},
-	form: { gap: 16 },
+	form: { gap: space.lg },
 	primaryButton: {
 		backgroundColor: colors.navy,
 		height: 52,
 		borderRadius: 10,
 		alignItems: "center",
 		justifyContent: "center",
-		marginTop: 20,
+		marginTop: space.xl,
 	},
 	primaryButtonPressed: { opacity: 0.9 },
 	primaryButtonDisabled: { opacity: 0.55 },
@@ -201,6 +202,7 @@ const styles = StyleSheet.create({
 		fontSize: 15,
 		lineHeight: 18,
 	},
-	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-});
+	errorBox: { marginTop: space.md, paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	});
+}

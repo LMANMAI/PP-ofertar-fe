@@ -1,6 +1,7 @@
+import { useMemo } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { RecurringProduct } from "../services";
 
 /**
@@ -20,6 +21,8 @@ export function ForgottenProductsSheet({
 	visible: boolean;
 	onClose: () => void;
 }) {
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	return (
 		<Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
 			<View style={styles.backdrop}>
@@ -40,7 +43,7 @@ export function ForgottenProductsSheet({
 						{products.map((p, idx) => (
 							<View key={p.barcode || p.description}>
 								<View style={styles.row}>
-									<Ionicons name="cart-outline" size={18} color="#9CA3A8" />
+									<Ionicons name="cart-outline" size={18} color={colors.subtleText} />
 									<View style={{ flex: 1 }}>
 										<Text style={styles.name}>{p.description}</Text>
 										<Text style={styles.meta}>En {p.ticketCount} de tus compras</Text>
@@ -60,36 +63,37 @@ export function ForgottenProductsSheet({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	backdrop: {
 		flex: 1,
 		backgroundColor: "rgba(15,23,42,0.55)",
 		justifyContent: "center",
-		paddingHorizontal: 24,
+		paddingHorizontal: space.xxl,
 	},
 	card: {
 		backgroundColor: colors.card,
 		borderRadius: 18,
 		padding: 22,
 		alignItems: "center",
-		gap: 10,
+		gap: space.smPlus,
 	},
 	iconWrap: {
 		width: 52,
 		height: 52,
 		borderRadius: 26,
-		backgroundColor: "#E8F6FC",
+		backgroundColor: colors.infoSoft,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	title: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 18,
 		textAlign: "center",
 	},
 	subtitle: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 13,
 		textAlign: "center",
@@ -97,18 +101,18 @@ const styles = StyleSheet.create({
 	},
 	list: {
 		alignSelf: "stretch",
-		backgroundColor: "#F8FAFC",
+		backgroundColor: colors.background,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		paddingHorizontal: 12,
-		paddingVertical: 4,
-		marginTop: 4,
+		borderColor: colors.divider,
+		paddingHorizontal: space.md,
+		paddingVertical: space.xs,
+		marginTop: space.xs,
 	},
-	row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
-	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	meta: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 1 },
-	divider: { height: 1, backgroundColor: "#E5E7EB" },
+	row: { flexDirection: "row", alignItems: "center", gap: space.smPlus, paddingVertical: space.smPlus },
+	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
+	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 1 },
+	divider: { height: 1, backgroundColor: colors.divider },
 	button: {
 		alignSelf: "stretch",
 		backgroundColor: colors.navy,
@@ -116,11 +120,12 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		alignItems: "center",
 		justifyContent: "center",
-		marginTop: 6,
+		marginTop: space.xsPlus,
 	},
 	buttonText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 14,
 	},
-});
+	});
+}

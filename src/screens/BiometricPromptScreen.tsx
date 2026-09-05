@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Session } from "../auth/session";
 import { storeToken, setBiometricPreference } from "../auth/biometricAuth";
 
@@ -18,6 +18,8 @@ const CARD_WIDTH = Math.min(SCREEN_WIDTH - 48, 340);
 
 export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [activating, setActivating] = useState(false);
 
 	const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -117,12 +119,13 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	overlay: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
 	overlayFill: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)" },
-	center: { ...StyleSheet.absoluteFillObject, zIndex: 2, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+	center: { ...StyleSheet.absoluteFillObject, zIndex: 2, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xxl },
 	card: {
 		backgroundColor: colors.card,
 		borderRadius: 20,
@@ -130,7 +133,7 @@ const styles = StyleSheet.create({
 		paddingTop: 32,
 		paddingBottom: 28,
 		alignItems: "center",
-		gap: 16,
+		gap: space.lg,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 8 },
 		shadowOpacity: 0.15,
@@ -144,23 +147,24 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.cyan,
 		alignItems: "center",
 		justifyContent: "center",
-		marginBottom: 4,
+		marginBottom: space.xs,
 	},
-	title: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 20, lineHeight: 28, textAlign: "center" },
+	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, lineHeight: 28, textAlign: "center" },
 	body: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20, textAlign: "center", marginTop: -4 },
 	enableBtn: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 10,
+		gap: space.smPlus,
 		backgroundColor: colors.navy,
 		height: 52,
 		borderRadius: 12,
-		paddingHorizontal: 24,
+		paddingHorizontal: space.xxl,
 		width: "100%",
-		marginTop: 4,
+		marginTop: space.xs,
 	},
 	enableBtnText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
-	dismissBtn: { paddingVertical: 12, paddingHorizontal: 20 },
-	dismissBtnText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
-});
+	dismissBtn: { paddingVertical: space.md, paddingHorizontal: space.xl },
+	dismissBtnText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
+	});
+}

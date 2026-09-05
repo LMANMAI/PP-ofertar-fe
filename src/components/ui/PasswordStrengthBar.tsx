@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 type Props = {
 	minLength: boolean;
@@ -14,6 +14,8 @@ type Props = {
 type CheckItem = { key: string; label: string; met: boolean };
 
 export function PasswordStrengthBar({ minLength, uppercase, number, special, matches }: Props) {
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const strength = useMemo(() => {
 		const checks = [minLength, uppercase, number, special];
 		const count = checks.filter(Boolean).length;
@@ -21,10 +23,10 @@ export function PasswordStrengthBar({ minLength, uppercase, number, special, mat
 	}, [minLength, uppercase, number, special]);
 
 	const barColor = useMemo(() => {
-		if (strength.count <= 1) return "#EF4444";
+		if (strength.count <= 1) return colors.danger;
 		if (strength.count === 2) return "#F59E0B";
 		if (strength.count === 3) return colors.cyan;
-		return "#22C55E";
+		return colors.success;
 	}, [strength.count]);
 
 	const label = useMemo(() => {
@@ -70,7 +72,7 @@ export function PasswordStrengthBar({ minLength, uppercase, number, special, mat
 						<Ionicons
 							name={item.met ? "checkmark-circle" : "ellipse-outline"}
 							size={16}
-							color={item.met ? colors.cyan : "#9CA3A8"}
+							color={item.met ? colors.cyan : colors.subtleText}
 						/>
 						<Text style={[styles.checkText, item.met && styles.checkTextMet]}>
 							{item.label}
@@ -82,14 +84,16 @@ export function PasswordStrengthBar({ minLength, uppercase, number, special, mat
 	);
 }
 
-const styles = StyleSheet.create({
-	wrap: { gap: 8 },
-	barRow: { flexDirection: "row", gap: 4 },
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
+	wrap: { gap: space.sm },
+	barRow: { flexDirection: "row", gap: space.xs },
 	segment: { flex: 1, height: 4, borderRadius: 2 },
-	segmentEmpty: { backgroundColor: "#E5E7EB" },
+	segmentEmpty: { backgroundColor: colors.divider },
 	label: { fontFamily: typography.family.medium, fontSize: 12, lineHeight: 16 },
-	checklist: { gap: 4, marginTop: 2 },
-	checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-	checkText: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	checkTextMet: { color: colors.navy, fontFamily: typography.family.medium },
-});
+	checklist: { gap: space.xs, marginTop: 2 },
+	checkRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
+	checkText: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
+	checkTextMet: { color: colors.defaultText, fontFamily: typography.family.medium },
+	});
+}

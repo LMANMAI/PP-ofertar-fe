@@ -1,8 +1,9 @@
 import type { RecurringProduct } from "../services";
 
 /** Products bought on fewer separate trips than this are one-offs, not part of
- * the recurring shop — asking about them would be noise. Kept in step with the
- * same threshold in SmartShoppingListScreen. */
+ * the recurring shop — asking about them would be noise. Also the threshold
+ * SmartShoppingListScreen filters its own list against, imported rather than
+ * redeclared so the two can't drift apart. */
 export const MIN_TRIPS_TO_BE_HABITUAL = 2;
 export const MAX_FORGOTTEN_SHOWN = 5;
 

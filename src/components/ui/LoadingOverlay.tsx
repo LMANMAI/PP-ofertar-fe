@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { colors, typography } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 const appIcon = require("../../../assets/icon.png");
 
@@ -21,6 +21,8 @@ const PDF_MESSAGES = [
 ];
 
 export function LoadingOverlay({ fileType }: Props) {
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const isPdf = fileType === "pdf";
 	const messages = isPdf ? PDF_MESSAGES : IMAGE_MESSAGES;
 
@@ -152,7 +154,8 @@ export function LoadingOverlay({ fileType }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	overlay: {
 		...StyleSheet.absoluteFillObject,
 		backgroundColor: "rgba(10,31,68,0.92)",
@@ -161,7 +164,7 @@ const styles = StyleSheet.create({
 	},
 	content: {
 		alignItems: "center",
-		gap: 20,
+		gap: space.xl,
 		paddingHorizontal: 40,
 	},
 	ringOuter: {
@@ -187,7 +190,7 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 	},
 	fileBadge: {
-		paddingHorizontal: 14,
+		paddingHorizontal: space.mdPlus,
 		paddingVertical: 5,
 		borderRadius: 999,
 	},
@@ -222,4 +225,5 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		textAlign: "center",
 	},
-});
+	});
+}

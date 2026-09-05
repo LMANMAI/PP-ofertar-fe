@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
 	ActivityIndicator,
@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomNav, type TabKey, useOnboardingTarget } from "../components";
-import { colors, typography } from "../theme/designSystem";
+import { BottomNav, OfferCarouselCardSkeleton, ProductCardSkeleton, type TabKey, useOnboardingTarget } from "../components";
+import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
 	describeCampaignDiscount,
@@ -24,13 +24,7 @@ import {
 	sortByOfferRelevance,
 } from "../services";
 import type { Offer, PromoIcon, RecurringProduct, SavingsReportResponse } from "../services";
-
-function formatUntil(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
-}
+import { formatLongDate } from "../utils/format";
 
 /** One offer in the home carousel. Informational only: there is no activation
  * or points behind these, so the card states what is on offer, where, until
@@ -42,8 +36,10 @@ function formatUntil(iso: string | null): string | null {
  * saying whether that is the unit or the second unit is worse than no card.
  */
 function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => void }) {
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const { badge, color } = offerBadge(offer.retailerName);
-	const until = formatUntil(offer.activeTo);
+	const until = formatLongDate(offer.activeTo);
 	// Campaigns are worded here from the structured mechanic + percentages.
 	// A backend that predates those fields returns null and the card falls
 	// back to the headline string it already sent.
@@ -144,7 +140,7 @@ function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => vo
 
 			{offer.percentagesUnverified && (
 				<View style={styles.offerCaveatRow}>
-					<Ionicons name="alert-circle-outline" size={11} color="#9CA3A8" />
+					<Ionicons name="alert-circle-outline" size={11} color={colors.subtleText} />
 					<Text style={styles.offerCaveat} numberOfLines={1}>
 						Porcentaje leído de la imagen
 					</Text>
@@ -178,24 +174,43 @@ export function HomeScreen({
 	onOpenOffer,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const isTablet = useIsTablet();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [savings, setSavings] = useState<SavingsReportResponse["summary"] | null>(null);
 	const [recurringProducts, setRecurringProducts] = useState<RecurringProduct[]>([]);
 	const [offers, setOffers] = useState<Offer[]>([]);
 	const offersTarget = useOnboardingTarget("offers");
 	const historyTarget = useOnboardingTarget("history");
+	const [savingsError, setSavingsError] = useState(false);
+	const [loadingSavings, setLoadingSavings] = useState(true);
+	const [loadingRecurring, setLoadingRecurring] = useState(true);
+	const [recurringError, setRecurringError] = useState(false);
+	const [loadingOffers, setLoadingOffers] = useState(true);
+	const [offersError, setOffersError] = useState(false);
 
 	function formatCurrencyS(value: number | null | undefined): string {
 		if (value == null) return "$0";
 		return `$${Math.round(value).toLocaleString("es-AR")}`;
 	}
 
-	useEffect(() => {
+	const loadSavings = () => {
+		setLoadingSavings(true);
+		setSavingsError(false);
 		getSavingsReport(session.token)
 			.then((r) => setSavings(r.summary))
-			.catch(() => {});
-	}, [session.token]);
+			.catch(() => setSavingsError(true))
+			.finally(() => setLoadingSavings(false));
+	};
 
 	useEffect(() => {
+		loadSavings();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [session.token]);
+
+	const loadRecurring = () => {
+		setLoadingRecurring(true);
+		setRecurringError(false);
 		getRecurringProducts(session.token)
 			// Same ordering as the full section, so the carousel reads left to
 			// right in the same priority the user sees after "Ver todos": own
@@ -203,19 +218,34 @@ export function HomeScreen({
 			// how often they buy it. The backend's own order is by frequency
 			// alone, which filled the first cards with staples nobody discounts.
 			.then((products) => setRecurringProducts(sortByOfferRelevance(products).slice(0, 10)))
-			.catch(() => {});
+			.catch(() => setRecurringError(true))
+			.finally(() => setLoadingRecurring(false));
+	};
+
+	useEffect(() => {
+		loadRecurring();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session.token]);
 
 	// Everything on offer at the user's chains, not just what matches their
 	// habitual products — that is what the section below is for.
-	useEffect(() => {
+	const loadOffers = () => {
+		setLoadingOffers(true);
+		setOffersError(false);
 		getOffers(session.token, 1, 8)
 			.then((p) => setOffers(p.items))
-			.catch(() => setOffers([]));
+			.catch(() => setOffersError(true))
+			.finally(() => setLoadingOffers(false));
+	};
+
+	useEffect(() => {
+		loadOffers();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session.token]);
 
 	const savingsTickets = savings?.ticketCount ?? 0;
 	const savingsAvg = savings ? formatCurrencyS(savings.averageSavings) : "$0";
+	const isNewUser = savings != null && savingsTickets === 0;
 
 	return (
 		<View style={styles.safeArea}>
@@ -242,6 +272,8 @@ export function HomeScreen({
 						pressed && { opacity: 0.85 },
 					]}
 					hitSlop={8}
+					accessibilityRole="button"
+					accessibilityLabel="Abrir perfil"
 				>
 					{session.user.profilePicture ? (
 						<Image
@@ -257,20 +289,40 @@ export function HomeScreen({
 
 			<ScrollView
 				style={styles.scroll}
-				contentContainerStyle={styles.scrollContent}
+				contentContainerStyle={[
+					styles.scrollContent,
+					// Capped and centered on tablet width so cards and copy don't
+					// stretch edge to edge — a restructure, not a phone UI scaled up.
+					isTablet && styles.scrollContentTablet,
+				]}
 				showsVerticalScrollIndicator={false}
 			>
 				{/* Savings card */}
 				<View ref={historyTarget.ref} onLayout={historyTarget.onLayout} style={styles.savingsCard}>
 					<Text style={styles.savingsOverline}>AHORRO DEL MES</Text>
-					{savings ? (
-						<Text style={styles.savingsAmount}>
-							{formatCurrencyS(savings.totalSavings)}
-						</Text>
-					) : (
-						<View style={{ paddingVertical: 8 }}>
+					{savingsError ? (
+						<View style={styles.savingsErrorRow}>
+							<Text style={styles.savingsErrorText}>
+								No pudimos cargar tu ahorro
+							</Text>
+							<Pressable
+								onPress={loadSavings}
+								style={styles.savingsRetryBtn}
+								accessibilityRole="button"
+								accessibilityLabel="Reintentar cargar ahorro"
+							>
+								<Ionicons name="refresh" size={14} color={colors.navy} />
+								<Text style={styles.savingsRetryText}>Reintentar</Text>
+							</Pressable>
+						</View>
+					) : loadingSavings ? (
+						<View style={{ paddingVertical: space.sm }}>
 							<ActivityIndicator size="small" color={colors.cyan} />
 						</View>
+					) : (
+						<Text style={styles.savingsAmount}>
+							{formatCurrencyS(savings?.totalSavings)}
+						</Text>
 					)}
 					<View style={styles.savingsBottomRow}>
 						<View style={styles.metricsRow}>
@@ -280,14 +332,14 @@ export function HomeScreen({
 							</View>
 							<View style={styles.metricDivider} />
 							<View>
-								<Text style={styles.metricLabel}>PROMEDIO</Text>
+								<Text style={styles.metricLabel}>PROM. POR TICKET</Text>
 								<Text style={[styles.metricValue, { color: colors.cyan }]}>
 									{savingsAvg}
 								</Text>
 							</View>
 						</View>
 						<Pressable style={styles.savingsCta} onPress={onOpenHistory}>
-							<Text style={styles.savingsCtaText}>Ver mis tickets</Text>
+							<Text style={styles.savingsCtaText} numberOfLines={1}>Ver mis tickets</Text>
 						</Pressable>
 					</View>
 				</View>
@@ -301,9 +353,35 @@ export function HomeScreen({
 						<Text style={styles.sectionLink}>Ver todas</Text>
 					</Pressable>
 				</View>
-				{offers.length === 0 ? (
+				{loadingOffers ? (
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={styles.offersRow}
+						accessibilityLabel="Cargando ofertas en tus súper"
+					>
+						{Array.from({ length: 4 }).map((_, i) => (
+							<OfferCarouselCardSkeleton key={i} />
+						))}
+					</ScrollView>
+				) : offersError ? (
+					<View style={styles.offersErrorRow}>
+						<Ionicons name="cloud-offline-outline" size={18} color={colors.subtleText} />
+						<Text style={styles.offersErrorText}>
+							No pudimos cargar las ofertas
+						</Text>
+						<Pressable
+							onPress={loadOffers}
+							style={styles.offersRetryBtn}
+							accessibilityRole="button"
+							accessibilityLabel="Reintentar cargar ofertas"
+						>
+							<Text style={styles.offersRetryText}>Reintentar</Text>
+						</Pressable>
+					</View>
+				) : offers.length === 0 ? (
 					<View style={styles.offersEmpty}>
-						<Ionicons name="pricetags-outline" size={20} color="#9CA3A8" />
+						<Ionicons name="pricetags-outline" size={20} color={colors.subtleText} />
 						<Text style={styles.offersEmptyText}>
 							Todavía no hay ofertas vigentes en los súper que elegiste como favoritos.
 						</Text>
@@ -320,75 +398,133 @@ export function HomeScreen({
 					</ScrollView>
 				)}
 
-				{/* Productos seguidos — full width grid */}
-				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>PRODUCTOS QUE COMPRÁS SEGUIDO</Text>
-					<Pressable onPress={onOpenRecurring}>
-						<Text style={styles.sectionLink}>Ver todos</Text>
-					</Pressable>
-				</View>
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={styles.productsRow}
-				>
-					{recurringProducts.map((p) => {
-						const id = p.barcode || p.description;
-						const delta = p.bestOffer?.discountPct != null ? `-${Math.round(p.bestOffer.discountPct)}%` : null;
-						return (
-							<Pressable key={id} style={styles.productCard} onPress={onOpenRecurring}>
-								<View style={styles.productIconWrap}>
-									<Ionicons name="cart-outline" size={28} color="#9CA3A8" />
-								</View>
-								<Text style={styles.productName}>{p.description}</Text>
-								{/* The price belongs to a same-brand, same-type catalog product that
-								    may be a different size, so name it here too — the card is the
-								    first place the user sees the claim. */}
-								{p.bestOffer?.productName && (
-									<Text style={styles.productOfferFor} numberOfLines={1}>
-										{p.bestOffer.productName}
-									</Text>
-								)}
-								<View style={styles.productFooter}>
-									{p.bestOffer ? (
-										<>
-											<Text style={styles.productPrice}>{formatCurrencyS(p.bestOffer.price)}</Text>
-											{delta && (
-												<View style={styles.productDeltaBadge}>
-													<Text style={styles.productDeltaText}>{delta}</Text>
-												</View>
-											)}
-										</>
-									) : p.campaignOffers.length > 0 ? (
-										// Was missing entirely: a product whose only offer is a
-										// campaign promotion sorted to the front and then announced
-										// "Sin oferta activa" on the very card the ordering had
-										// promoted.
-										<Text style={styles.productPromo}>
-											{describeCampaignDiscount(p.campaignOffers[0]) ?? "Promoción vigente"}
-										</Text>
-									) : p.alternativeOffers.length > 0 ? (
-										// Ordering now promotes these, so the card can no longer
-										// claim there is nothing on offer.
-										<Text style={styles.productPrice}>Otra marca en oferta</Text>
-									) : (
-										<Text style={styles.productPrice}>Sin oferta activa</Text>
-									)}
-								</View>
+				{isNewUser ? (
+					<View style={styles.firstRunCard}>
+						<Ionicons name="receipt-outline" size={32} color={colors.cyan} />
+						<Text style={styles.firstRunTitle}>Todavía no escaneaste ningún ticket</Text>
+						<Text style={styles.firstRunBody}>
+							Escaneá tu primer ticket y vamos a mostrarte acá los productos que
+							comprás seguido y cuánto podés ahorrar.
+						</Text>
+						<Pressable
+							style={styles.firstRunCta}
+							onPress={onScanPress}
+							accessibilityRole="button"
+							accessibilityLabel="Escanear mi primer ticket"
+						>
+							<Ionicons name="camera-outline" size={16} color={colors.buttonText} />
+							<Text style={styles.firstRunCtaText}>Escanear mi primer ticket</Text>
+						</Pressable>
+					</View>
+				) : (
+					<>
+						{/* Productos seguidos — full width grid */}
+						<View style={styles.sectionHeader}>
+							<Text style={styles.sectionTitle}>PRODUCTOS QUE COMPRÁS SEGUIDO</Text>
+							<Pressable onPress={onOpenRecurring}>
+								<Text style={styles.sectionLink}>Ver todos</Text>
 							</Pressable>
-						);
-					})}
-				</ScrollView>
+						</View>
+						{loadingRecurring ? (
+							<ScrollView
+								horizontal
+								showsHorizontalScrollIndicator={false}
+								contentContainerStyle={styles.productsRow}
+								accessibilityLabel="Cargando productos que comprás seguido"
+							>
+								{Array.from({ length: 4 }).map((_, i) => (
+									<ProductCardSkeleton key={i} />
+								))}
+							</ScrollView>
+						) : recurringError ? (
+							<View style={styles.productsErrorRow}>
+								<Ionicons name="cloud-offline-outline" size={18} color={colors.subtleText} />
+								<Text style={styles.productsErrorText}>
+									No pudimos cargar tus productos
+								</Text>
+								<Pressable
+									onPress={loadRecurring}
+									style={styles.productsRetryBtn}
+									accessibilityRole="button"
+									accessibilityLabel="Reintentar cargar productos"
+								>
+									<Text style={styles.productsRetryText}>Reintentar</Text>
+								</Pressable>
+							</View>
+						) : recurringProducts.length === 0 ? (
+							<View style={styles.productsEmpty}>
+								<Ionicons name="cart-outline" size={20} color={colors.subtleText} />
+								<Text style={styles.productsEmptyText}>
+									Todavía no registramos productos que compres seguido. Escaneá
+									tickets y aparecen acá.
+								</Text>
+							</View>
+						) : (
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.productsRow}
+						>
+							{recurringProducts.map((p) => {
+								const id = p.barcode || p.description;
+								const delta = p.bestOffer?.discountPct != null ? `-${Math.round(p.bestOffer.discountPct)}%` : null;
+								return (
+									<Pressable key={id} style={styles.productCard} onPress={onOpenRecurring}>
+										<View style={styles.productIconWrap}>
+											<Ionicons name="cart-outline" size={28} color={colors.subtleText} />
+										</View>
+										<Text style={styles.productName}>{p.description}</Text>
+										{/* The price belongs to a same-brand, same-type catalog product that
+										    may be a different size, so name it here too — the card is the
+										    first place the user sees the claim. */}
+										{p.bestOffer?.productName && (
+											<Text style={styles.productOfferFor} numberOfLines={1}>
+												{p.bestOffer.productName}
+											</Text>
+										)}
+										<View style={styles.productFooter}>
+											{p.bestOffer ? (
+												<>
+													<Text style={styles.productPrice}>{formatCurrencyS(p.bestOffer.price)}</Text>
+													{delta && (
+														<View style={styles.productDeltaBadge}>
+															<Text style={styles.productDeltaText}>{delta}</Text>
+														</View>
+													)}
+												</>
+											) : p.campaignOffers.length > 0 ? (
+												// Was missing entirely: a product whose only offer is a
+												// campaign promotion sorted to the front and then announced
+												// "Sin oferta activa" on the very card the ordering had
+												// promoted.
+												<Text style={styles.productPromo}>
+													{describeCampaignDiscount(p.campaignOffers[0]) ?? "Promoción vigente"}
+												</Text>
+											) : p.alternativeOffers.length > 0 ? (
+												// Ordering now promotes these, so the card can no longer
+												// claim there is nothing on offer.
+												<Text style={styles.productPrice}>Otra marca en oferta</Text>
+											) : (
+												<Text style={styles.productPrice}>Sin oferta activa</Text>
+											)}
+										</View>
+									</Pressable>
+								);
+							})}
+						</ScrollView>
+						)}
+					</>
+				)}
 
 				{/* Quick actions */}
 				<View style={styles.quickRow}>
 					<Pressable style={styles.quickItem} onPress={onOpenAnalysis}>
-						<Ionicons name="bar-chart-outline" size={18} color={colors.navy} />
+						<Ionicons name="bar-chart-outline" size={18} color={colors.defaultText} />
 						<Text style={styles.quickLabel}>Análisis mensual</Text>
 					</Pressable>
 					<Pressable style={styles.quickItem} onPress={onOpenSmartList}>
-						<Ionicons name="bulb-outline" size={18} color={colors.navy} />
-						<Text style={styles.quickLabel}>Mi lista</Text>
+						<Ionicons name="bulb-outline" size={18} color={colors.defaultText} />
+						<Text style={styles.quickLabel}>Mis consumos</Text>
 					</Pressable>
 				</View>
 			</ScrollView>
@@ -406,14 +542,15 @@ export function HomeScreen({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 20,
-		paddingTop: 10,
-		paddingBottom: 16,
+		paddingHorizontal: space.xl,
+		paddingTop: space.smPlus,
+		paddingBottom: space.lg,
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
@@ -424,7 +561,7 @@ const styles = StyleSheet.create({
 		borderBottomLeftRadius: 18,
 		borderBottomRightRadius: 18,
 	},
-	headerLogo: { width: 32, height: 32, borderRadius: 8, marginRight: 10 },
+	headerLogo: { width: 32, height: 32, borderRadius: 8, marginRight: space.smPlus },
 	headerLeft: { flex: 1 },
 	greeting: {
 		color: colors.buttonText,
@@ -458,16 +595,21 @@ const styles = StyleSheet.create({
 	},
 	scroll: { flex: 1, backgroundColor: colors.background },
 	scrollContent: {
-		paddingHorizontal: 20,
+		paddingHorizontal: space.xl,
 		paddingTop: 18,
-		paddingBottom: 24,
-		gap: 14,
+		paddingBottom: space.xxl,
+		gap: space.mdPlus,
+	},
+	scrollContentTablet: {
+		width: "100%",
+		maxWidth: 640,
+		alignSelf: "center",
 	},
 	savingsCard: {
 		backgroundColor: colors.navy,
 		borderRadius: 18,
-		padding: 20,
-		gap: 4,
+		padding: space.xl,
+		gap: space.xs,
 	},
 	savingsOverline: {
 		color: "rgba(255,255,255,0.55)",
@@ -480,57 +622,62 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: 36,
 		lineHeight: 42,
-		marginTop: 4,
+		marginTop: space.xs,
 	},
-	savingsDeltaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-	savingsDeltaText: {
-		color: colors.cyan,
-		fontFamily: typography.family.medium,
-		fontSize: 12,
-	},
+	savingsErrorRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: space.sm },
+	savingsErrorText: { color: "rgba(255,255,255,0.75)", fontFamily: typography.family.regular, fontSize: 13 },
+	savingsRetryBtn: { flexDirection: "row", alignItems: "center", gap: space.xsPlus, backgroundColor: colors.cyan, paddingHorizontal: space.smPlus, paddingVertical: space.xsPlus, borderRadius: 8 },
+	savingsRetryText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
+	firstRunCard: { backgroundColor: colors.card, borderRadius: 16, padding: space.xl, alignItems: "center", gap: space.sm, borderWidth: 1, borderColor: colors.divider },
+	firstRunTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textAlign: "center", marginTop: space.xs },
+	firstRunBody: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, textAlign: "center" },
+	firstRunCta: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: space.md, borderRadius: 10, marginTop: space.xsPlus },
+	firstRunCtaText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 14 },
 	savingsBottomRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		marginTop: 14,
-		paddingTop: 14,
+		marginTop: space.mdPlus,
+		paddingTop: space.mdPlus,
 		borderTopWidth: 1,
 		borderTopColor: "rgba(255,255,255,0.1)",
 	},
-	metricsRow: { flexDirection: "row", alignItems: "center", gap: 18 },
+	metricsRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexShrink: 1 },
 	metricDivider: {
 		width: 1,
-		height: 28,
+		height: 24,
 		backgroundColor: "rgba(255,255,255,0.12)",
 	},
 	metricLabel: {
 		color: "rgba(255,255,255,0.55)",
 		fontFamily: typography.family.medium,
 		fontSize: 10,
-		letterSpacing: 1.2,
+		letterSpacing: 1,
 	},
 	metricValue: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
-		fontSize: 18,
+		fontSize: 16,
 		marginTop: 2,
 	},
 	savingsCta: {
 		backgroundColor: colors.orange,
-		paddingHorizontal: 14,
-		paddingVertical: 10,
+		paddingHorizontal: space.md,
+		paddingVertical: space.sm,
 		borderRadius: 10,
+		flexShrink: 0,
+		marginLeft: space.lg,
 	},
 	savingsCtaText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 13,
+		fontSize: 12,
 	},
 	sectionHeader: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		marginTop: 8,
+		marginTop: space.sm,
 	},
 	sectionTitle: {
 		color: colors.mutedText,
@@ -543,19 +690,19 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.medium,
 		fontSize: 12,
 	},
-	offersRow: { gap: 12, paddingRight: 20 },
+	offersRow: { gap: space.md, paddingRight: space.xl },
 	offerCard: {
 		// Wider than the old 240: the number now sits in a tile beside the
 		// text instead of above it, and the "En la 2da unidad" chip needs room
 		// to read on one line.
 		width: 262,
 		borderRadius: 18,
-		padding: 14,
-		gap: 10,
+		padding: space.mdPlus,
+		gap: space.smPlus,
 		backgroundColor: colors.card,
 		borderWidth: 1,
 		borderColor: colors.border,
-		shadowColor: colors.navy,
+		shadowColor: colors.shadow,
 		shadowOpacity: 0.06,
 		shadowRadius: 8,
 		shadowOffset: { width: 0, height: 3 },
@@ -565,16 +712,47 @@ const styles = StyleSheet.create({
 	offersEmpty: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 10,
+		gap: space.smPlus,
 		backgroundColor: colors.card,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		padding: 14,
+		borderColor: colors.divider,
+		padding: space.mdPlus,
+	},
+	offersErrorRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.smPlus,
+		backgroundColor: colors.card,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: colors.divider,
+		padding: space.mdPlus,
+	},
+	offersErrorText: {
+		flex: 1,
+		color: colors.mutedText2,
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 17,
+	},
+	offersRetryBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.xsPlus,
+		backgroundColor: colors.navy,
+		paddingHorizontal: space.smPlus,
+		paddingVertical: space.xsPlus,
+		borderRadius: 8,
+	},
+	offersRetryText: {
+		color: colors.buttonText,
+		fontFamily: typography.family.medium,
+		fontSize: 12,
 	},
 	offersEmptyText: {
 		flex: 1,
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 		lineHeight: 17,
@@ -584,7 +762,7 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "center",
 	},
-	offerStoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	offerStoreRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	storeBadge: {
 		width: 28,
 		height: 28,
@@ -597,22 +775,22 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: 10,
 	},
-	storeName: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	offerValidity: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-	offerBody: { flexDirection: "row", alignItems: "stretch", gap: 12 },
+	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
+	offerValidity: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
+	offerBody: { flexDirection: "row", alignItems: "stretch", gap: space.md },
 	// The percentage gets its own block instead of being one more line of
 	// text — this is the visual cue the cards were missing.
 	amountTile: {
 		width: 78,
 		borderRadius: 14,
-		paddingVertical: 8,
-		paddingHorizontal: 6,
+		paddingVertical: space.sm,
+		paddingHorizontal: space.xsPlus,
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 2,
 		backgroundColor: colors.navy,
 	},
-	amountTileFlat: { paddingVertical: 16 },
+	amountTileFlat: { paddingVertical: space.lg },
 	amountKickerRow: { flexDirection: "row", alignItems: "center", gap: 3 },
 	amountKicker: {
 		color: colors.cyan,
@@ -625,36 +803,36 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: 24,
 	},
-	offerBodyRight: { flex: 1, justifyContent: "center", gap: 6 },
+	offerBodyRight: { flex: 1, justifyContent: "center", gap: space.xsPlus },
 	appliesChip: {
 		alignSelf: "flex-start",
 		maxWidth: "100%",
-		paddingHorizontal: 8,
-		paddingVertical: 4,
+		paddingHorizontal: space.sm,
+		paddingVertical: space.xs,
 		borderRadius: 8,
 		backgroundColor: colors.softNavy,
 	},
 	// Warm for anything that is not simply taken off the price, so a
 	// "50% en la 2da unidad" never looks like a plain 50% off.
-	appliesChipWarm: { backgroundColor: "#FDECE6" },
-	appliesText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 11, lineHeight: 15 },
-	appliesTextWarm: { color: "#B44A2E" },
+	appliesChipWarm: { backgroundColor: colors.warmChip },
+	appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 11, lineHeight: 15 },
+	appliesTextWarm: { color: colors.warmChipText },
 	offerProduct: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: 12,
 		lineHeight: 16,
 	},
-	priceRow: { flexDirection: "row", alignItems: "baseline", gap: 6 },
-	priceNow: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
+	priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.xsPlus },
+	priceNow: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
 	priceWas: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.regular,
 		fontSize: 11,
 		textDecorationLine: "line-through",
 	},
-	offerSub: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
-	offerCaveatRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+	offerSub: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
+	offerCaveatRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
 	offerCaveat: {
 		flex: 1,
 		color: "#64748B",
@@ -664,8 +842,56 @@ const styles = StyleSheet.create({
 	},
 	// Matches offersRow above, so both carousels on this screen scroll the same.
 	productsRow: {
-		gap: 10,
-		paddingRight: 20,
+		gap: space.smPlus,
+		paddingRight: space.xl,
+	},
+	productsErrorRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.smPlus,
+		backgroundColor: colors.card,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: colors.divider,
+		padding: space.mdPlus,
+	},
+	productsErrorText: {
+		flex: 1,
+		color: colors.mutedText2,
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 17,
+	},
+	productsRetryBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.xsPlus,
+		backgroundColor: colors.navy,
+		paddingHorizontal: space.smPlus,
+		paddingVertical: space.xsPlus,
+		borderRadius: 8,
+	},
+	productsRetryText: {
+		color: colors.buttonText,
+		fontFamily: typography.family.medium,
+		fontSize: 12,
+	},
+	productsEmpty: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.smPlus,
+		backgroundColor: colors.card,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: colors.divider,
+		padding: space.mdPlus,
+	},
+	productsEmptyText: {
+		flex: 1,
+		color: colors.mutedText2,
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 17,
 	},
 	productCard: {
 		// Fixed width now that these scroll horizontally; flex:1 only made sense
@@ -673,28 +899,28 @@ const styles = StyleSheet.create({
 		width: 150,
 		backgroundColor: colors.card,
 		borderRadius: 14,
-		padding: 12,
-		gap: 6,
+		padding: space.md,
+		gap: space.xsPlus,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 	},
 	productIconWrap: {
 		width: "100%",
 		aspectRatio: 1,
 		borderRadius: 10,
-		backgroundColor: "#F8F9FB",
+		backgroundColor: colors.softWarm,
 		alignItems: "center",
 		justifyContent: "center",
-		marginBottom: 6,
+		marginBottom: space.xsPlus,
 	},
 	productName: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: 13,
 		lineHeight: 17,
 	},
 	productOfferFor: {
-		color: "#9CA3A8",
+		color: colors.subtleText,
 		fontFamily: typography.family.regular,
 		fontSize: 10,
 		lineHeight: 14,
@@ -707,45 +933,46 @@ const styles = StyleSheet.create({
 		marginTop: 2,
 	},
 	productPrice: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
 	},
 	// Slightly smaller than a price: a promotion headline is wordier and has to
 	// fit the narrow card without truncating.
 	productPromo: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 13,
 		lineHeight: 17,
 	},
 	productDeltaBadge: {
-		backgroundColor: "#E0F5EF",
-		paddingHorizontal: 8,
+		backgroundColor: colors.successSoft,
+		paddingHorizontal: space.sm,
 		paddingVertical: 3,
 		borderRadius: 6,
 	},
 	productDeltaText: {
-		color: "#1D9E75",
+		color: colors.successSoftText,
 		fontFamily: typography.family.medium,
 		fontSize: 11,
 	},
-	quickRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+	quickRow: { flexDirection: "row", gap: space.smPlus, marginTop: space.xs },
 	quickItem: {
 		flex: 1,
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
+		gap: space.sm,
 		backgroundColor: colors.card,
 		borderRadius: 10,
-		paddingVertical: 12,
+		paddingVertical: space.md,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 	},
 	quickLabel: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: 12,
 	},
-});
+	});
+}

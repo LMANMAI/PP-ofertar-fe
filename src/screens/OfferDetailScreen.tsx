@@ -1,53 +1,82 @@
+import { useMemo } from "react";
 import {
-	Pressable,
 	ScrollView,
 	StyleSheet,
 	Text,
 	View,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
-import { BottomNav, type TabKey } from "../components";
-import { offerBadge } from "../services";
-import type { Offer } from "../services";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { BottomNav, EmptyState, ScreenHeader, type TabKey } from "../components";
+import { offerBadge, offerPromo } from "../services";
+import type { Offer, PromoIcon } from "../services";
+import { formatCurrency, formatLongDate } from "../utils/format";
 
 type Props = {
-	offer: Offer;
+	offer: Offer | null;
 	onBack: () => void;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
 };
 
-function formatUntil(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
-}
-
 export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
+
+	if (!offer) {
+		return (
+			<View style={styles.safeArea}>
+				<ScreenHeader title="Detalle de oferta" onBack={onBack} />
+				<EmptyState
+					icon="pricetag-outline"
+					title="No encontramos esta oferta"
+					hint="Puede que ya no esté disponible o que el enlace esté desactualizado."
+				/>
+				<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+					<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+				</View>
+			</View>
+		);
+	}
+
 	const { badge, color } = offerBadge(offer.retailerName);
-	const until = formatUntil(offer.activeTo);
+	const until = formatLongDate(offer.activeTo, { year: true });
+	const expired = offer.activeTo != null && new Date(offer.activeTo).getTime() < Date.now();
+
+	// Same anatomy as the offer cards this screen is opened from (OffersScreen,
+	// HomeScreen): the amount-tile + applies-chip treatment, not a plain
+	// sentence, so the detail screen answers "how much do I actually get" at
+	// least as clearly as the card the user already tapped.
+	const promo = offerPromo(offer);
+	const catalogPct =
+		offer.kind === "catalog" && offer.discountPct != null && offer.discountPct >= 1
+			? `${Math.round(offer.discountPct)}%`
+			: null;
+	const amount = promo ? promo.amount : catalogPct;
+	const capped = promo?.capped ?? false;
+	const conditional = promo?.conditional ?? false;
+	const icon: PromoIcon = promo ? promo.icon : "pricetag-outline";
+	// Same filter as describePromo, so this screen can never contradict the
+	// ceiling it just showed in the tile above.
+	const everyPct = [
+		...new Set((offer.discountPercentages ?? []).filter((n) => n > 0 && n <= 100)),
+	];
+
+	const detailRows = [
+		offer.brand ? { label: "Marca", value: offer.brand } : null,
+		offer.category ? { label: "Categoría", value: offer.category } : null,
+	].filter((row): row is { label: string; value: string } => row !== null);
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Detalle de oferta</Text>
-			</View>
+			<ScreenHeader title="Detalle de oferta" onBack={onBack} />
 
 			<ScrollView
 				style={styles.scroll}
-				contentContainerStyle={{ paddingBottom: 16 }}
+				contentContainerStyle={{ paddingBottom: space.lg }}
 				showsVerticalScrollIndicator={false}
 			>
 				<View style={styles.hero}>
@@ -56,55 +85,101 @@ export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onSca
 							<View style={[styles.storeBadge, { backgroundColor: color }]}>
 								<Text style={styles.storeBadgeText}>{badge}</Text>
 							</View>
-							<Text style={styles.heroStoreName}>
+							<Text style={styles.heroStoreName} numberOfLines={1}>
 								{offer.retailerName}
 								{offer.province ? ` · ${offer.province}` : ""}
 							</Text>
 						</View>
 					</View>
-					<Text style={styles.heroTitle}>{offer.headline}</Text>
-					{offer.kind === "catalog" && offer.productName && (
-						<Text style={styles.heroSubtitle}>
-							{offer.productName}
-							{offer.price != null
-								? ` · $${Math.round(offer.price).toLocaleString("es-AR")}`
-								: ""}
-						</Text>
-					)}
+					<Text style={styles.heroTitle} numberOfLines={3}>{offer.headline}</Text>
 					{until && (
-						<View style={styles.validityBanner}>
-							<Ionicons name="calendar-outline" size={13} color="#99B2CC" />
-							<Text style={styles.validityText}>Vigente hasta el {until}</Text>
+						<View style={[styles.validityBanner, expired && styles.validityBannerExpired]}>
+							<Ionicons
+								name={expired ? "close-circle-outline" : "calendar-outline"}
+								size={13}
+								color={expired ? colors.dangerSoftText : colors.navyMutedText}
+							/>
+							<Text style={[styles.validityText, expired && styles.validityTextExpired]}>
+								{expired ? `Venció el ${until}` : `Vigente hasta el ${until}`}
+							</Text>
 						</View>
 					)}
 				</View>
 
 				<View style={styles.contentCard}>
-					<Text style={styles.sectionTitle}>Detalle</Text>
-					{[
-						offer.brand ? `Marca: ${offer.brand}` : null,
-						offer.category ? `Categoría: ${offer.category}` : null,
-						offer.retailerName ? `Supermercado: ${offer.retailerName}` : null,
-					]
-						.filter((line): line is string => line !== null)
-						.map((line) => (
-							<View key={line} style={styles.productRow}>
-								<View style={styles.bullet} />
-								<Text style={styles.productText}>{line}</Text>
+					<Text style={styles.sectionTitle}>Descuento</Text>
+					<View style={styles.offerBody}>
+						{amount ? (
+							<View style={styles.amountTile}>
+								<View style={styles.amountKickerRow}>
+									<Ionicons name={icon} size={12} color={colors.cyan} />
+									{capped && <Text style={styles.amountKicker}>HASTA</Text>}
+								</View>
+								<Text
+									style={styles.amountValue}
+									numberOfLines={1}
+									adjustsFontSizeToFit
+									minimumFontScale={0.6}
+								>
+									{amount}
+								</Text>
 							</View>
-						))}
+						) : (
+							<View style={[styles.amountTile, styles.amountTileFlat]}>
+								<Ionicons name={icon} size={26} color={colors.cyan} />
+							</View>
+						)}
+						<View style={styles.offerBodyRight}>
+							{offer.kind === "catalog" ? (
+								<>
+									<Text style={styles.offerProduct} numberOfLines={2}>
+										{offer.productName ?? offer.headline}
+									</Text>
+									{offer.price != null && (
+										<View style={styles.priceRow}>
+											<Text style={styles.priceNow}>{formatCurrency(offer.price)}</Text>
+											{offer.listPrice != null && offer.listPrice > offer.price && (
+												<Text style={styles.priceWas}>{formatCurrency(offer.listPrice)}</Text>
+											)}
+										</View>
+									)}
+								</>
+							) : (
+								<>
+									<View style={[styles.appliesChip, conditional && styles.appliesChipWarm]}>
+										<Text style={[styles.appliesText, conditional && styles.appliesTextWarm]}>
+											{promo ? promo.applies : offer.headline}
+										</Text>
+									</View>
+									{promo && <Text style={styles.offerDetail}>{promo.detail}</Text>}
+								</>
+							)}
+						</View>
+					</View>
+
+					{capped && everyPct.length > 1 && (
+						<Text style={styles.offerCaveat}>
+							El aviso muestra más de un porcentaje ({everyPct.map((p) => `${p}%`).join(", ")}) y no
+							dice a qué producto va cada uno, así que mostramos el mayor.
+						</Text>
+					)}
 
 					{offer.kind === "catalog" && offer.listPrice != null && offer.price != null && (
+						<Text style={styles.offerCaveat}>
+							Precio del último relevamiento del catálogo, no necesariamente de hoy.
+						</Text>
+					)}
+
+					{detailRows.length > 0 && (
 						<>
 							<View style={styles.divider} />
-							<Text style={styles.sectionTitle}>Precio</Text>
-							<Text style={styles.conditionText}>
-								Precio de lista ${Math.round(offer.listPrice).toLocaleString("es-AR")} · con la
-								oferta ${Math.round(offer.price).toLocaleString("es-AR")}
-							</Text>
-							<Text style={styles.conditionText}>
-								Precio del último relevamiento del catálogo, no necesariamente de hoy.
-							</Text>
+							<Text style={styles.sectionTitle}>Detalle</Text>
+							{detailRows.map((row) => (
+								<View key={row.label} style={styles.detailRow}>
+									<Text style={styles.detailLabel}>{row.label}</Text>
+									<Text style={styles.detailValue}>{row.value}</Text>
+								</View>
+							))}
 						</>
 					)}
 
@@ -133,38 +208,23 @@ export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onSca
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: {
-		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
-		height: 56,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: {
-		flex: 1,
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 17,
-	},
 	scroll: { flex: 1 },
 	hero: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 20,
-		paddingTop: 18,
+		paddingHorizontal: space.xl,
+		paddingTop: space.lg,
 		paddingBottom: 0,
-		gap: 8,
+		gap: space.sm,
 	},
 	heroTop: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
 	},
-	heroStoreRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+	heroStoreRow: { flexDirection: "row", alignItems: "center", gap: space.smPlus },
 	storeBadge: {
 		width: 28,
 		height: 28,
@@ -178,108 +238,129 @@ const styles = StyleSheet.create({
 		fontSize: 9,
 	},
 	heroStoreName: {
+		flex: 1,
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 14,
-	},
-	pointsBadge: {
-		backgroundColor: colors.cyan,
-		paddingHorizontal: 14,
-		paddingVertical: 6,
-		borderRadius: 20,
-	},
-	pointsBadgeText: {
-		color: colors.navy,
-		fontFamily: typography.family.medium,
-		fontSize: 11,
 	},
 	heroTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
-		fontSize: 26,
-		marginTop: 12,
-	},
-	heroSubtitle: {
-		color: "#99B2CC",
-		fontFamily: typography.family.regular,
-		fontSize: 14,
+		fontSize: typography.sizes.h1,
+		marginTop: space.md,
 	},
 	validityBanner: {
+		// Deliberately fixed, like the rest of this hero — not a token, because
+		// it's a deeper inset of colors.navy itself, which doesn't vary by theme.
 		backgroundColor: "#071632",
-		marginHorizontal: -20,
-		marginTop: 18,
-		paddingHorizontal: 20,
-		paddingVertical: 10,
+		marginHorizontal: -space.xl,
+		marginTop: space.lg,
+		paddingHorizontal: space.xl,
+		paddingVertical: space.smPlus,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 6,
+		gap: space.xsPlus,
 	},
+	validityBannerExpired: { backgroundColor: colors.dangerSoft },
 	validityText: {
-		color: "#99B2CC",
+		color: colors.navyMutedText,
 		fontFamily: typography.family.regular,
 		fontSize: 11,
 	},
+	validityTextExpired: { color: colors.dangerSoftText },
 	contentCard: {
 		backgroundColor: colors.card,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.divider,
 		borderRadius: 16,
-		marginHorizontal: 16,
-		marginTop: 12,
-		padding: 16,
+		marginHorizontal: space.lg,
+		marginTop: space.md,
+		padding: space.lg,
 	},
 	sectionTitle: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
-		marginBottom: 10,
+		marginBottom: space.smPlus,
 	},
-	productRow: {
-		flexDirection: "row",
+	offerBody: { flexDirection: "row", alignItems: "stretch", gap: space.mdPlus },
+	amountTile: {
+		width: 88,
+		borderRadius: 14,
+		paddingVertical: space.smPlus,
+		paddingHorizontal: space.xsPlus,
 		alignItems: "center",
-		gap: 10,
-		paddingVertical: 8,
+		justifyContent: "center",
+		gap: 2,
+		backgroundColor: colors.navy,
 	},
-	bullet: {
-		width: 6,
-		height: 6,
-		borderRadius: 3,
-		backgroundColor: colors.cyan,
+	amountTileFlat: { paddingVertical: space.lg },
+	amountKickerRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
+	amountKicker: {
+		color: colors.cyan,
+		fontFamily: typography.family.medium,
+		fontSize: 11,
+		letterSpacing: 0.8,
 	},
-	productText: {
-		color: "#374151",
+	amountValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 27 },
+	offerBodyRight: { flex: 1, justifyContent: "center", gap: space.xsPlus },
+	appliesChip: {
+		alignSelf: "flex-start",
+		maxWidth: "100%",
+		paddingHorizontal: 9,
+		paddingVertical: 5,
+		borderRadius: 8,
+		backgroundColor: colors.softNavy,
+	},
+	appliesChipWarm: { backgroundColor: colors.warmChip },
+	appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 13, lineHeight: 17 },
+	appliesTextWarm: { color: colors.warmChipText },
+	offerDetail: {
+		color: colors.mutedText2,
+		fontFamily: typography.family.regular,
+		fontSize: 12,
+		lineHeight: 16,
+	},
+	offerProduct: {
+		color: colors.defaultText,
+		fontFamily: typography.family.medium,
+		fontSize: 13,
+		lineHeight: 18,
+	},
+	priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.sm },
+	priceNow: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18 },
+	priceWas: {
+		color: colors.subtleText,
 		fontFamily: typography.family.regular,
 		fontSize: 13,
+		textDecorationLine: "line-through",
 	},
+	offerCaveat: {
+		color: colors.subtleText,
+		fontFamily: typography.family.regular,
+		fontSize: 11,
+		lineHeight: 15,
+		fontStyle: "italic",
+		marginTop: space.sm,
+	},
+	detailRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingVertical: space.sm,
+	},
+	detailLabel: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
+	detailValue: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	divider: {
 		height: 1,
-		backgroundColor: "#E5E7EB",
-		marginVertical: 16,
+		backgroundColor: colors.divider,
+		marginVertical: space.lg,
 	},
 	conditionText: {
-		color: "#6B7280",
+		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
 		fontSize: 12,
 		lineHeight: 18,
 	},
-	footer: {
-		paddingHorizontal: 16,
-		paddingTop: 12,
-		paddingBottom: 12,
-		backgroundColor: colors.card,
-		borderTopWidth: 1,
-		borderTopColor: "#E5E7EB",
-	},
-	activateButton: {
-		backgroundColor: colors.navy,
-		height: 48,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	activateButtonText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 15,
-	},
-});
+	});
+}

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView, { Circle, Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import * as Location from "expo-location";
 import { ensureLocationPermission } from "../location/permission";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
-import { BottomNav, type TabKey } from "../components";
+import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
+import { BottomNav, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { getFavoriteStores, getNearbyStores, getStoreChains, updateFavoriteStores } from "../services";
 import type { NearbyStore, StoreChain } from "../services";
@@ -36,10 +36,14 @@ type Props = {
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
+	onSelectStore?: (store: NearbyStore) => void;
 };
 
-export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
+export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, onScanPress, onSelectStore }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const isDark = useIsDarkMode();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [chains, setChains] = useState<StoreChain[]>([]);
 	const [favorites, setFavorites] = useState<Set<string>>(new Set());
 	const [radiusKm, setRadiusKm] = useState(5);
@@ -136,24 +140,16 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Mis tiendas favoritas</Text>
-			</View>
+			<ScreenHeader title="Mis tiendas favoritas" onBack={onBack} />
 
 			{loading ? (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
+				<LoadingState />
 			) : (
-				<ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+				<ScrollView contentContainerStyle={{ paddingBottom: space.lg }}>
 					<View style={styles.mapWrap}>
 						<MapView
 							provider={PROVIDER_DEFAULT}
+							customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
 							style={StyleSheet.absoluteFill}
 							region={{
 								latitude: coords.latitude,
@@ -175,6 +171,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 									title={s.name}
 									description={`${s.chainName} · ${s.distanceKm} km`}
 									pinColor={CHAIN_COLORS[s.chainSlug] ?? colors.navy}
+									onCalloutPress={() => onSelectStore?.(s)}
 								/>
 							))}
 						</MapView>
@@ -182,19 +179,14 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 
 					{locationDenied && (
 						<View style={styles.warnBanner}>
-							<Ionicons name="location-outline" size={16} color="#B45A14" />
+							<Ionicons name="location-outline" size={16} color={colors.warningSoftText} />
 							<Text style={styles.warnText}>
 								Sin permiso de ubicación: mostrando el centro de CABA
 							</Text>
 						</View>
 					)}
 
-					{error && (
-						<View style={styles.errorBanner}>
-							<Ionicons name="warning-outline" size={16} color="#E76F51" />
-							<Text style={styles.errorText}>{error}</Text>
-						</View>
-					)}
+					{error && <ErrorBanner message={error} />}
 
 					<Text style={styles.sectionLabel}>RADIO DE BÚSQUEDA</Text>
 					<View style={styles.radiusRow}>
@@ -231,7 +223,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 											</Text>
 										</View>
 										<View style={[styles.check, on && styles.checkOn]}>
-											{on && <Ionicons name="checkmark" size={14} color="#fff" />}
+											{on && <Ionicons name="checkmark" size={14} color={colors.buttonText} />}
 										</View>
 									</Pressable>
 									{idx < chains.length - 1 && <View style={styles.divider} />}
@@ -249,31 +241,26 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	mapWrap: { height: 280, backgroundColor: "#E5E7EB" },
-	warnBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, marginBottom: 0, backgroundColor: "#FFF7ED", borderRadius: 10, padding: 10 },
-	warnText: { flex: 1, color: "#B45A14", fontFamily: typography.family.medium, fontSize: 12 },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, marginBottom: 0, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 10 },
-	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 12 },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: 16 },
-	sectionHint: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginHorizontal: 16, marginTop: 4 },
-	radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginTop: 10 },
-	radiusChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: "#D8E1EE", backgroundColor: colors.card },
+	mapWrap: { height: 280, backgroundColor: colors.divider },
+	warnBanner: { flexDirection: "row", alignItems: "center", gap: space.sm, margin: space.lg, marginBottom: 0, backgroundColor: colors.warningSoft, borderRadius: 10, padding: space.smPlus },
+	warnText: { flex: 1, color: colors.warningSoftText, fontFamily: typography.family.medium, fontSize: 12 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 18, marginHorizontal: space.lg },
+	sectionHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginHorizontal: space.lg, marginTop: space.xs },
+	radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginHorizontal: space.lg, marginTop: space.smPlus },
+	radiusChip: { paddingHorizontal: space.mdPlus, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
 	radiusChipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
-	radiusText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	radiusTextOn: { color: "#fff" },
-	chainList: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: "#E5E7EB", marginHorizontal: 16, marginTop: 10, overflow: "hidden" },
-	chainRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+	radiusText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
+	radiusTextOn: { color: colors.buttonText },
+	chainList: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, marginHorizontal: space.lg, marginTop: space.smPlus, overflow: "hidden" },
+	chainRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.mdPlus, paddingVertical: space.md },
 	dot: { width: 12, height: 12, borderRadius: 6 },
-	chainName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	chainMeta: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: "#D8E1EE", alignItems: "center", justifyContent: "center" },
+	chainName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
+	chainMeta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
 	checkOn: { backgroundColor: colors.cyan, borderColor: colors.cyan },
-	divider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 38 },
-});
+	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 38 },
+	});
+}

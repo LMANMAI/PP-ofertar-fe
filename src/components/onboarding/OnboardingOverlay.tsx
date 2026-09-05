@@ -5,8 +5,8 @@ import {
 	View,
 	useWindowDimensions,
 } from "react-native";
-import type { RefObject } from "react";
-import { colors, typography } from "../../theme/designSystem";
+import { useMemo, type RefObject } from "react";
+import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 import type { OnboardingTargetId } from "./OnboardingProvider";
 
 export type SpotlightRect = {
@@ -36,6 +36,8 @@ export function OnboardingOverlay({
 	overlayRef,
 }: Props) {
 	const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const tooltipHeight = 190;
 	const placeAbove = Boolean(
 		spotlight &&
@@ -129,7 +131,8 @@ export function OnboardingOverlay({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	overlay: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
 	shade: {
 		position: "absolute",
@@ -153,7 +156,7 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.card,
 		borderRadius: 16,
 		padding: 18,
-		shadowColor: colors.navy,
+		shadowColor: colors.shadow,
 		shadowOpacity: 0.25,
 		shadowRadius: 16,
 		elevation: 10,
@@ -175,7 +178,7 @@ const styles = StyleSheet.create({
 		textTransform: "uppercase",
 	},
 	title: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 19,
 		marginTop: 5,
@@ -191,7 +194,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		marginTop: 16,
+		marginTop: space.lg,
 	},
 	skip: {
 		color: colors.mutedText,
@@ -201,12 +204,13 @@ const styles = StyleSheet.create({
 	next: {
 		backgroundColor: colors.navy,
 		borderRadius: 9,
-		paddingHorizontal: 16,
-		paddingVertical: 10,
+		paddingHorizontal: space.lg,
+		paddingVertical: space.smPlus,
 	},
 	nextText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
 		fontSize: 12,
 	},
-});
+	});
+}

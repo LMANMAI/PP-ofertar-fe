@@ -2,12 +2,15 @@ import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import {
 	ActivityIndicator,
+	KeyboardAvoidingView,
+	Platform,
 	Pressable,
+	ScrollView,
 	StyleSheet,
 	Text,
 	View,
 } from "react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { InputField } from "../components";
 
@@ -18,7 +21,7 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { login } from "../services/authApi";
 import type { Session } from "../auth/session";
 
@@ -36,6 +39,8 @@ export function AuthLoginScreen({
 	onForgotPassword,
 }: AuthLoginScreenProps) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [fontsLoaded] = useFonts({
 		PlusJakartaSans_400Regular,
 		PlusJakartaSans_500Medium,
@@ -76,93 +81,114 @@ export function AuthLoginScreen({
 			<View style={styles.topSection}>
 				<StatusBar style="light" translucent />
 				<View style={styles.header}>
-					<Pressable onPress={onBackPress} style={styles.backButton}>
+					<Pressable onPress={onBackPress} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 						<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 					</Pressable>
 				</View>
 			</View>
 
-			<View style={[styles.content, { paddingBottom: insets.bottom }]}>
-				<Text style={styles.title}>Iniciar sesión</Text>
-				<Text style={styles.subtitle}>
-					Ingresá a tu cuenta para seguir ahorrando
-				</Text>
-
-				<View style={styles.form}>
-					<InputField
-						label="Correo electrónico"
-						leftIcon=""
-						value={email}
-						onChangeText={setEmail}
-						keyboardType="email-address"
-						autoCapitalize="none"
-					/>
-					<InputField
-						label="Contraseña"
-						leftIcon=""
-						value={password}
-						onChangeText={setPassword}
-						secureTextEntry
-						showPasswordToggle
-					/>
-				</View>
-
-				{error && (
-					<View style={styles.errorBox}>
-						<Ionicons name="alert-circle" size={16} color="#A8341E" />
-						<Text style={styles.errorText}>{error}</Text>
-					</View>
-				)}
-
-				<Pressable style={styles.forgotButton} onPress={onForgotPassword}>
-					<Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-				</Pressable>
-
-				<Pressable
-					onPress={loading ? undefined : handleLogin}
-					style={({ pressed }) => [
-						styles.primaryButton,
-						pressed && !loading && styles.pressed,
-						loading && { opacity: 0.55 },
+			<KeyboardAvoidingView
+				style={{ flex: 1 }}
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				keyboardVerticalOffset={insets.top}
+			>
+				<ScrollView
+					contentContainerStyle={[
+						styles.content,
+						{ paddingBottom: insets.bottom + 24 },
 					]}
+					keyboardShouldPersistTaps="handled"
 				>
-					{loading ? (
-						<ActivityIndicator size="small" color={colors.buttonText} />
-					) : (
-						<Text style={styles.primaryButtonText}>Iniciar sesión</Text>
-					)}
-				</Pressable>
-
-				<Pressable onPress={onGoToRegister} style={styles.footerLinkWrap}>
-					<Text style={styles.footerText}>
-						¿No tenés cuenta?{" "}
-						<Text style={styles.footerLink}>Registrate gratis</Text>
+					<Text style={styles.title}>Iniciar sesión</Text>
+					<Text style={styles.subtitle}>
+						Ingresá a tu cuenta para seguir ahorrando
 					</Text>
-				</Pressable>
-			</View>
+
+					<View style={styles.form}>
+						<InputField
+							label="Correo electrónico"
+							value={email}
+							onChangeText={setEmail}
+							keyboardType="email-address"
+							autoCapitalize="none"
+						/>
+						<InputField
+							label="Contraseña"
+							value={password}
+							onChangeText={setPassword}
+							secureTextEntry
+							showPasswordToggle
+						/>
+					</View>
+
+					{error && (
+						<View style={styles.errorBox}>
+							<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
+							<Text style={styles.errorText}>{error}</Text>
+						</View>
+					)}
+
+					<Pressable style={styles.forgotButton} onPress={onForgotPassword}>
+						<Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+					</Pressable>
+
+					<Pressable
+						onPress={loading ? undefined : handleLogin}
+						style={({ pressed }) => [
+							styles.primaryButton,
+							pressed && !loading && styles.pressed,
+							loading && { opacity: 0.55 },
+						]}
+					>
+						{loading ? (
+							<ActivityIndicator size="small" color={colors.buttonText} />
+						) : (
+							<Text style={styles.primaryButtonText}>Iniciar sesión</Text>
+						)}
+					</Pressable>
+
+					<Pressable onPress={onGoToRegister} style={styles.footerLinkWrap}>
+						<Text style={styles.footerText}>
+							¿No tenés cuenta?{" "}
+							<Text style={styles.footerLink}>Registrate gratis</Text>
+						</Text>
+					</Pressable>
+				</ScrollView>
+			</KeyboardAvoidingView>
 		</View>
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	statusBarBg: { backgroundColor: colors.navy },
 	loader: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.card },
 	topSection: { backgroundColor: colors.navy },
-	header: { height: 56, backgroundColor: colors.navy, justifyContent: "center", paddingHorizontal: 12 },
+	header: { height: 56, backgroundColor: colors.navy, justifyContent: "center", paddingHorizontal: space.md },
 	backButton: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-	content: { flex: 1, paddingHorizontal: 20, paddingTop: 24, backgroundColor: colors.card },
+	content: { flex: 1, paddingHorizontal: space.xl, paddingTop: space.xxl, backgroundColor: colors.card },
 	title: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 28, lineHeight: 36 },
-	subtitle: { marginTop: 6, color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 17, lineHeight: 26 },
-	form: { marginTop: 24, gap: 16 },
-	errorBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	forgotButton: { alignSelf: "flex-end", marginTop: 8 },
+	subtitle: { marginTop: space.xs, color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 17, lineHeight: 26 },
+	// xxl (24) is a deliberate, larger break: title+subtitle are the screen's
+	// intro, the form below is the actual task, and the gap should read as a
+	// change of section, not just "next line."
+	form: { marginTop: space.xxl, gap: space.lg },
+	errorBox: { marginTop: space.md, paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	forgotButton: { alignSelf: "flex-end", marginTop: space.sm },
 	forgotText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 16, textDecorationLine: "underline" },
-	primaryButton: { height: 52, borderRadius: 10, backgroundColor: colors.navy, alignItems: "center", justifyContent: "center", marginTop: 14 },
+	// lg (16), not the old ad hoc 14: the forgot-password link is a recovery
+	// path, this button is the actual commit action — the gap between them
+	// should read as a bigger break than the tight sibling spacing above it,
+	// not a rounding error away from it.
+	primaryButton: { height: 52, borderRadius: 10, backgroundColor: colors.navy, alignItems: "center", justifyContent: "center", marginTop: space.lg },
 	primaryButtonText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
-	footerLinkWrap: { marginTop: 18, alignItems: "center" },
+	// xl (20): the clearest break on the screen — everything above is the
+	// login task, this is the exit to a different one.
+	footerLinkWrap: { marginTop: space.xl, alignItems: "center" },
 	footerText: { textAlign: "center", color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	footerLink: { color: colors.navy, fontFamily: typography.family.medium, textDecorationLine: "underline" },
+	footerLink: { color: colors.defaultText, fontFamily: typography.family.medium, textDecorationLine: "underline" },
 	pressed: { opacity: 0.88 },
-});
+	});
+}

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
 	ActivityIndicator,
 	Image,
@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { colors } from "../theme/designSystem";
+import { space, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 type Props = {
 	onDone: () => void;
@@ -16,6 +16,9 @@ type Props = {
 
 export function LoaderScreen({ onDone, durationMs = 1500 }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const isDark = useIsDarkMode();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 
 	useEffect(() => {
 		const t = setTimeout(onDone, durationMs);
@@ -25,7 +28,7 @@ export function LoaderScreen({ onDone, durationMs = 1500 }: Props) {
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="dark" translucent />
+			<StatusBar style={isDark ? "light" : "dark"} translucent />
 			<View style={[styles.center, { paddingBottom: insets.bottom }]}>
 				<Image
 					source={require("../../assets/logo_ofertar.png")}
@@ -37,7 +40,8 @@ export function LoaderScreen({ onDone, durationMs = 1500 }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	statusBarBg: { backgroundColor: colors.card },
 	center: {
@@ -47,5 +51,6 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.card,
 	},
 	logo: { width: 72, height: 72, borderRadius: 12 },
-	spinner: { marginTop: 24 },
-});
+	spinner: { marginTop: space.xxl },
+	});
+}

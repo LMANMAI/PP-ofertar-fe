@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+	ActivityIndicator,
+	Image,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -9,58 +11,64 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, type TabKey } from "../components";
-
-type Store = {
-	id: string;
-	code: string;
-	color: string;
-	name: string;
-	price: string;
-	rank: string;
-	rawPrice: number;
-	delta: string | null;
-	deltaTone: "good" | "bad" | null;
-	best?: boolean;
-};
-
-const STORES: Store[] = [
-	{ id: "dia", code: "DI", color: "#0D80CC", name: "Día", price: "$2.010", rawPrice: 2010, rank: "🥇 Más barato", delta: "-18%", deltaTone: "good", best: true },
-	{ id: "coto", code: "CO", color: "#CC1A1A", name: "Coto", price: "$2.450", rawPrice: 2450, rank: "2°  $2.450", delta: null, deltaTone: null },
-	{ id: "carrefour", code: "CA", color: "#0059A6", name: "Carrefour", price: "$2.580", rawPrice: 2580, rank: "3°  $2.580", delta: "+5%", deltaTone: "bad" },
-	{ id: "jumbo", code: "JU", color: "#00804D", name: "Jumbo", price: "$2.640", rawPrice: 2640, rank: "4°  $2.640", delta: "+8%", deltaTone: "bad" },
-	{ id: "vea", code: "VE", color: "#990000", name: "Vea", price: "$2.720", rawPrice: 2720, rank: "5°  $2.720", delta: "+11%", deltaTone: "bad" },
-];
-
-const FILTERS = ["Cerca tuyo", "Precio", "Disponibilidad", "Marca"] as const;
+import { getProductoPorEan } from "../services/sepaApi";
+import type { ProductoDetalleResponse } from "../services/sepaApi";
 
 type Props = {
-	productName?: string;
-	productBrand?: string;
-	lastPrice?: string;
+	productName: string;
+	barcode: string | null;
 	onBack: () => void;
-	onSelectStore: (storeId: string) => void;
-	onSave?: () => void;
+	onScanBarcode: () => void;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
 };
 
+type Estado = "sin-codigo" | "buscando" | "resultado" | "error";
+
+const formatearPrecio = (valor: number | null) =>
+	valor == null
+		? "—"
+		: valor.toLocaleString("es-AR", {
+				style: "currency",
+				currency: "ARS",
+				maximumFractionDigits: 0,
+			});
+
 export function ComparePricesScreen({
-	productName = "Aceite Natura girasol 1.5L",
-	productBrand = "NATURA",
-	lastPrice = "Último precio: $2.450",
+	productName,
+	barcode,
 	onBack,
-	onSelectStore,
-	onSave,
+	onScanBarcode,
 	activeTab,
 	onSelectTab,
 	onScanPress,
 }: Props) {
 	const insets = useSafeAreaInsets();
-	const [filter, setFilter] = useState<string>("Precio");
-	const [saved, setSaved] = useState(false);
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
+	const [estado, setEstado] = useState<Estado>(barcode ? "buscando" : "sin-codigo");
+	const [producto, setProducto] = useState<ProductoDetalleResponse | null>(null);
+	const [mensajeError, setMensajeError] = useState<string | null>(null);
+
+	const buscar = useCallback(async (ean: string) => {
+		setEstado("buscando");
+		try {
+			setProducto(await getProductoPorEan(ean));
+			setEstado("resultado");
+		} catch (e) {
+			setMensajeError(
+				e instanceof Error ? e.message : "No pudimos consultar el producto.",
+			);
+			setEstado("error");
+		}
+	}, []);
+
+	useEffect(() => {
+		if (barcode) buscar(barcode);
+	}, [barcode, buscar]);
 
 	return (
 		<View style={styles.safeArea}>
@@ -68,140 +76,45 @@ export function ComparePricesScreen({
 			<StatusBar style="light" translucent />
 
 			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
+				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.headerTitle}>Comparar</Text>
-				<Pressable onPress={() => setSaved((s) => !s)} style={styles.favButton}>
-					<Ionicons
-						name={saved ? "heart" : "heart-outline"}
-						size={22}
-						color={saved ? "#EF4444" : colors.cyan}
-					/>
-				</Pressable>
+				<View style={{ width: 32 }} />
 			</View>
 
-			<ScrollView
-				style={styles.scroll}
-				contentContainerStyle={[
-					styles.scrollContent,
-					{ paddingBottom: insets.bottom + 20 },
-				]}
-				showsVerticalScrollIndicator={false}
-			>
-				<View style={styles.productCard}>
-					<View style={styles.productThumb}>
-						<Ionicons name="cube-outline" size={28} color="#9CA3A8" />
-					</View>
-					<View style={{ flex: 1, gap: 4 }}>
-						<Text style={styles.productBrand}>{productBrand}</Text>
-						<Text style={styles.productName}>{productName}</Text>
-						<Text style={styles.productLastPrice}>{lastPrice}</Text>
-					</View>
-				</View>
-
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={styles.filtersRow}
-				>
-					{FILTERS.map((f) => {
-						const active = f === filter;
-						return (
-							<Pressable
-								key={f}
-								onPress={() => setFilter(f)}
-								style={[styles.filterChip, active && styles.filterChipActive]}
-							>
-								<Text
-									style={[
-										styles.filterChipText,
-										active && styles.filterChipTextActive,
-									]}
-								>
-									{f}
-								</Text>
-							</Pressable>
-						);
-					})}
-				</ScrollView>
-
-				<Text style={styles.sectionLabel}>ORDENADO POR PRECIO ↑</Text>
-
-				{STORES.map((s) => (
-					<Pressable
-						key={s.id}
-						onPress={() => onSelectStore(s.id)}
-						style={[styles.storeRow, s.best && styles.storeRowBest]}
-					>
-						<View style={styles.storeLeft}>
-							<View style={[styles.storeBadge, { backgroundColor: s.color }]}>
-								<Text style={styles.storeBadgeText}>{s.code}</Text>
-							</View>
-							<View style={{ gap: 3 }}>
-								<Text style={styles.storeName}>{s.name}</Text>
-								<View style={styles.storeMetaRow}>
-									<Ionicons name="location-sharp" size={11} color="#9CA3A8" />
-									<Text
-										style={[
-											styles.storeMetaText,
-											s.deltaTone === "bad" && s.id === "vea" && { color: "#EF4444" },
-											s.best && styles.storeMetaTextBest,
-										]}
-									>
-										{s.rank}
-									</Text>
-								</View>
-								{s.best && (
-									<View style={styles.bestChip}>
-										<Text style={styles.bestChipText}>Mejor precio</Text>
-									</View>
-								)}
-							</View>
-						</View>
-						<View style={styles.storeRight}>
-							<Text style={styles.storePrice}>{s.price}</Text>
-							{s.delta && (
-								<Text
-									style={[
-										styles.storeDelta,
-										s.deltaTone === "good"
-											? styles.storeDeltaGood
-											: styles.storeDeltaBad,
-									]}
-								>
-									{s.delta}
-								</Text>
-							)}
-						</View>
+			{estado === "sin-codigo" ? (
+				<View style={styles.centrado}>
+					<Ionicons name="barcode-outline" size={40} color={colors.mutedText} />
+					<Text style={styles.centradoTitulo}>No leímos el código de este producto</Text>
+					<Text style={styles.centradoTexto}>
+						El ticket no tenía un código de barras legible para{" "}
+						<Text style={{ fontFamily: typography.family.bold }}>{productName}</Text>
+						, así que no tenemos precios verificados para compararlo todavía.
+						Escaneá el código del producto para ver precios reales.
+					</Text>
+					<Pressable style={styles.botonPrimario} onPress={onScanBarcode}>
+						<Ionicons name="barcode-outline" size={18} color={colors.buttonText} />
+						<Text style={styles.botonPrimarioTexto}>Escanear código</Text>
 					</Pressable>
-				))}
-
-				<View style={styles.summaryRow}>
-					<View style={styles.summaryCard}>
-						<Text style={styles.summaryLabel}>PRECIO PROMEDIO</Text>
-						<Text style={styles.summaryValue}>$2.480</Text>
-					</View>
-					<View style={styles.summaryCard}>
-						<Text style={styles.summaryLabel}>AHORRO VS. MÁS CARO</Text>
-						<Text style={[styles.summaryValue, { color: "#1D9E75" }]}>26%</Text>
-						<Text style={styles.summaryHint}>↓ -$710 vs Vea</Text>
-					</View>
 				</View>
-
-				<Pressable
-					style={styles.saveButton}
-					onPress={() => {
-						setSaved(true);
-						onSave?.();
-					}}
-				>
-					<Text style={styles.saveButtonText}>{saved ? "Guardado ✓" : "Guardar"}</Text>
-				</Pressable>
-				<Pressable style={styles.cancelButton} onPress={onBack}>
-					<Text style={styles.cancelButtonText}>Cancelar</Text>
-				</Pressable>
-			</ScrollView>
+			) : estado === "buscando" ? (
+				<View style={styles.centrado}>
+					<ActivityIndicator color={colors.cyan} />
+					<Text style={styles.centradoTexto}>Buscando precios de {productName}…</Text>
+				</View>
+			) : estado === "error" ? (
+				<View style={styles.centrado}>
+					<Ionicons name="cloud-offline-outline" size={40} color={colors.orange} />
+					<Text style={styles.centradoTitulo}>No pudimos buscarlo</Text>
+					<Text style={styles.centradoTexto}>{mensajeError}</Text>
+					<Pressable style={styles.botonPrimario} onPress={() => barcode && buscar(barcode)}>
+						<Text style={styles.botonPrimarioTexto}>Reintentar</Text>
+					</Pressable>
+				</View>
+			) : (
+				<Resultado producto={producto!} fallbackNombre={productName} colors={colors} styles={styles} />
+			)}
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
@@ -210,195 +123,274 @@ export function ComparePricesScreen({
 	);
 }
 
-const styles = StyleSheet.create({
+function Resultado({
+	producto,
+	fallbackNombre,
+	colors,
+	styles,
+}: {
+	producto: ProductoDetalleResponse;
+	fallbackNombre: string;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
+}) {
+	return (
+		<ScrollView style={styles.resultado} contentContainerStyle={styles.resultadoContent}>
+			<View style={styles.productoCard}>
+				{producto.imagenUrl ? (
+					<Image source={{ uri: producto.imagenUrl }} style={styles.productoImagen} resizeMode="contain" />
+				) : (
+					<View style={[styles.productoImagen, styles.imagenPlaceholder]}>
+						<Ionicons name="cube-outline" size={28} color={colors.mutedText} />
+					</View>
+				)}
+				<View style={styles.productoInfo}>
+					<Text style={styles.productoNombre} numberOfLines={3}>
+						{producto.descripcion ?? fallbackNombre}
+					</Text>
+					{producto.marca ? <Text style={styles.productoMarca}>{producto.marca}</Text> : null}
+					<Text style={styles.productoEan}>EAN {producto.ean}</Text>
+				</View>
+			</View>
+
+			{producto.sinPrecios ? (
+				<View style={styles.avisoSinPrecios}>
+					<Ionicons name="information-circle-outline" size={20} color={colors.infoSoftText} />
+					<Text style={styles.avisoTexto}>
+						{producto.fuenteDatos === "ninguna"
+							? "No encontramos este producto. Puede ser un código interno del comercio."
+							: "SEPA todavía no publica precios de este producto."}
+					</Text>
+				</View>
+			) : (
+				<>
+					<View style={styles.precioCard}>
+						<Text style={styles.precioLabel}>Precio más bajo</Text>
+						<Text style={styles.precioDestacado}>{formatearPrecio(producto.precioMinimo)}</Text>
+						<Text style={styles.precioRango}>
+							Promedio {formatearPrecio(producto.precioPromedio)} · Máximo{" "}
+							{formatearPrecio(producto.precioMaximo)}
+						</Text>
+					</View>
+
+					{producto.comercios.length > 0 ? (
+						<View style={styles.comerciosWrap}>
+							<Text style={styles.seccionTitulo}>Dónde comprarlo</Text>
+							{producto.comercios.map((comercio, index) => (
+								<View
+									key={`${comercio.comercioId}-${index}`}
+									style={[styles.comercioFila, index === 0 && styles.comercioMasBarato]}
+								>
+									<View style={styles.comercioInfo}>
+										<Text style={styles.comercioNombre} numberOfLines={1}>
+											{comercio.bandera || comercio.razonSocial || "Comercio"}
+										</Text>
+										<Text style={styles.comercioSucursales}>
+											{comercio.cantidadSucursales === 1
+												? "1 sucursal"
+												: `${comercio.cantidadSucursales} sucursales`}
+										</Text>
+									</View>
+									<View style={styles.comercioPrecioWrap}>
+										{index === 0 ? (
+											<View style={styles.badgeBarato}>
+												<Text style={styles.badgeBaratoTexto}>Más barato</Text>
+											</View>
+										) : null}
+										<Text style={styles.comercioPrecio}>{formatearPrecio(comercio.precioMinimo)}</Text>
+									</View>
+								</View>
+							))}
+						</View>
+					) : null}
+
+					{producto.fechaDataset ? (
+						<Text style={styles.pieDatos}>Datos de SEPA al {producto.fechaDataset}</Text>
+					) : null}
+				</>
+			)}
+		</ScrollView>
+	);
+}
+
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: {
 		backgroundColor: colors.navy,
-		paddingHorizontal: 12,
+		paddingHorizontal: space.md,
 		height: 56,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: space.sm,
 	},
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	headerTitle: {
 		flex: 1,
+		textAlign: "center",
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 17,
 	},
-	favButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	scroll: { flex: 1 },
-	scrollContent: { padding: 16, gap: 12 },
-	productCard: {
-		backgroundColor: colors.card,
-		borderRadius: 16,
-		padding: 16,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 14,
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-	},
-	productThumb: {
-		width: 58,
-		height: 58,
-		borderRadius: 10,
-		backgroundColor: colors.background,
+	centrado: {
+		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
+		gap: space.md,
+		paddingHorizontal: 32,
+		backgroundColor: colors.background,
 	},
-	productBrand: {
-		color: "#9CA3A8",
-		fontFamily: typography.family.medium,
-		fontSize: 10,
-		letterSpacing: 1,
+	centradoTitulo: {
+		color: colors.defaultText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.bodyL,
+		textAlign: "center",
 	},
-	productName: {
-		color: colors.navy,
-		fontFamily: typography.family.medium,
-		fontSize: 15,
-	},
-	productLastPrice: {
-		color: "#6B7280",
+	centradoTexto: {
+		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 12,
+		fontSize: typography.sizes.caption,
+		lineHeight: typography.lineHeights.caption,
+		textAlign: "center",
 	},
-	filtersRow: { gap: 8, paddingRight: 16 },
-	filterChip: {
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 20,
+	resultado: { flex: 1 },
+	resultadoContent: { padding: space.xl, gap: space.lg },
+	productoCard: {
+		flexDirection: "row",
+		gap: space.mdPlus,
 		backgroundColor: colors.card,
+		borderRadius: 16,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: colors.border,
+		padding: space.mdPlus,
 	},
-	filterChipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
-	filterChipText: {
-		color: "#6B7280",
+	productoImagen: { width: 88, height: 88, borderRadius: 12, backgroundColor: colors.softWarm },
+	imagenPlaceholder: { alignItems: "center", justifyContent: "center" },
+	productoInfo: { flex: 1, justifyContent: "center", gap: 3 },
+	productoNombre: {
+		color: colors.defaultText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.body,
+		lineHeight: typography.lineHeights.body,
+	},
+	productoMarca: {
+		color: colors.mutedText,
 		fontFamily: typography.family.medium,
-		fontSize: 11,
-		letterSpacing: 0.3,
+		fontSize: typography.sizes.caption,
 	},
-	filterChipTextActive: { color: colors.buttonText },
-	sectionLabel: {
-		color: "#9CA3A8",
+	productoEan: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.overline,
+		marginTop: 2,
+	},
+	avisoSinPrecios: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		gap: space.smPlus,
+		backgroundColor: colors.infoSoft,
+		borderRadius: 14,
+		padding: space.mdPlus,
+	},
+	avisoTexto: {
+		flex: 1,
+		color: colors.infoSoftText,
 		fontFamily: typography.family.medium,
-		fontSize: 10,
-		letterSpacing: 1.2,
-		marginTop: 4,
+		fontSize: typography.sizes.caption,
+		lineHeight: typography.lineHeights.caption,
 	},
-	storeRow: {
-		backgroundColor: colors.card,
-		borderRadius: 12,
-		paddingHorizontal: 14,
-		paddingVertical: 12,
+	precioCard: {
+		backgroundColor: colors.softCyan,
+		borderRadius: 16,
+		padding: 18,
+		gap: 2,
+	},
+	precioLabel: {
+		color: colors.defaultText,
+		fontFamily: typography.family.medium,
+		fontSize: typography.sizes.overline,
+		textTransform: "uppercase",
+		letterSpacing: 0.5,
+	},
+	precioDestacado: {
+		color: colors.defaultText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.h1,
+	},
+	precioRango: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.caption,
+	},
+	comerciosWrap: { gap: space.sm },
+	seccionTitulo: {
+		color: colors.defaultText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.body,
+		marginBottom: 2,
+	},
+	comercioFila: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-	},
-	storeRowBest: { borderColor: "#1D9E75", borderWidth: 1.5 },
-	storeLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
-	storeBadge: {
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	storeBadgeText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.bold,
-		fontSize: 12,
-	},
-	storeName: {
-		color: colors.navy,
-		fontFamily: typography.family.medium,
-		fontSize: 14,
-	},
-	storeMetaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-	storeMetaText: {
-		color: "#9CA3A8",
-		fontFamily: typography.family.regular,
-		fontSize: 12,
-	},
-	storeMetaTextBest: { color: "#22C55E" },
-	bestChip: {
-		alignSelf: "flex-start",
-		backgroundColor: "#E0F5EF",
-		paddingHorizontal: 10,
-		paddingVertical: 4,
-		borderRadius: 4,
-	},
-	bestChipText: {
-		color: "#1D9E75",
-		fontFamily: typography.family.medium,
-		fontSize: 11,
-		letterSpacing: 0.3,
-	},
-	storeRight: { alignItems: "flex-end", gap: 3 },
-	storePrice: {
-		color: colors.navy,
-		fontFamily: typography.family.bold,
-		fontSize: 15,
-	},
-	storeDelta: { fontFamily: typography.family.medium, fontSize: 12 },
-	storeDeltaGood: { color: "#1D9E75" },
-	storeDeltaBad: { color: "#EF4444" },
-	summaryRow: { flexDirection: "row", gap: 12, marginTop: 4 },
-	summaryCard: {
-		flex: 1,
 		backgroundColor: colors.card,
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
 		borderRadius: 12,
-		padding: 14,
-		gap: 4,
+		borderWidth: 1,
+		borderColor: colors.border,
+		paddingHorizontal: space.mdPlus,
+		paddingVertical: space.md,
 	},
-	summaryLabel: {
-		color: "#9CA3A8",
+	comercioMasBarato: { borderColor: colors.cyan, backgroundColor: colors.softCyan },
+	comercioInfo: { flex: 1, gap: 2 },
+	comercioNombre: {
+		color: colors.defaultText,
 		fontFamily: typography.family.medium,
-		fontSize: 9,
-		letterSpacing: 0.8,
+		fontSize: typography.sizes.body,
 	},
-	summaryValue: {
-		color: colors.navy,
+	comercioSucursales: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.overline,
+	},
+	comercioPrecioWrap: { alignItems: "flex-end", gap: 3 },
+	comercioPrecio: {
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
-		fontSize: 22,
+		fontSize: typography.sizes.body,
 	},
-	summaryHint: {
-		color: "#1D9E75",
-		fontFamily: typography.family.medium,
-		fontSize: 12,
-	},
-	saveButton: {
-		marginTop: 12,
+	badgeBarato: {
 		backgroundColor: colors.navy,
-		height: 48,
-		borderRadius: 10,
-		alignItems: "center",
-		justifyContent: "center",
+		paddingHorizontal: space.sm,
+		paddingVertical: 2,
+		borderRadius: 6,
 	},
-	saveButtonText: {
+	badgeBaratoTexto: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 15,
+		fontSize: 10,
 	},
-	cancelButton: {
-		borderWidth: 2,
-		borderColor: "#1D3557",
-		height: 48,
-		borderRadius: 10,
+	pieDatos: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.overline,
+		textAlign: "center",
+	},
+	botonPrimario: {
+		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: colors.card,
+		gap: space.sm,
+		backgroundColor: colors.navy,
+		borderRadius: 14,
+		paddingVertical: 15,
+		paddingHorizontal: space.xxl,
+		marginTop: space.xs,
 	},
-	cancelButtonText: {
-		color: "#1D3557",
-		fontFamily: typography.family.medium,
-		fontSize: 15,
+	botonPrimarioTexto: {
+		color: colors.buttonText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.body,
 	},
-});
+	});
+}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	Image,
@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
 /**
  * Phone cameras shoot 3000-4000px wide, which is far more than the OCR model
@@ -39,6 +39,8 @@ type Props = {
 
 export function CaptureTicketScreen({ onBack, onSend }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const cameraRef = useRef<CameraView>(null);
 	const [permission, requestPermission] = useCameraPermissions();
 	const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
@@ -124,7 +126,7 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 			<CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
 
 			<View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
-				<Pressable onPress={onBack} style={styles.closeButton}>
+				<Pressable onPress={onBack} style={styles.closeButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cerrar">
 					<Ionicons name="close" size={22} color={colors.buttonText} />
 				</Pressable>
 				<Text style={styles.topTitle}>Ticket de compra</Text>
@@ -162,8 +164,10 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 									style={styles.deleteButton}
 									onPress={() => handleDelete(photo.id)}
 									hitSlop={6}
+									accessibilityRole="button"
+									accessibilityLabel="Eliminar foto"
 								>
-									<Ionicons name="close-circle" size={20} color="#fff" />
+									<Ionicons name="close-circle" size={20} color={colors.buttonText} />
 								</Pressable>
 							</View>
 						))}
@@ -196,15 +200,16 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: "#000" },
 	permissionWrap: {
 		flex: 1,
 		backgroundColor: colors.navy,
-		paddingHorizontal: 24,
+		paddingHorizontal: space.xxl,
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 14,
+		gap: space.mdPlus,
 	},
 	permissionTitle: {
 		color: colors.buttonText,
@@ -220,10 +225,10 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 	},
 	permissionButton: {
-		marginTop: 8,
+		marginTop: space.sm,
 		backgroundColor: colors.cyan,
-		paddingHorizontal: 20,
-		paddingVertical: 14,
+		paddingHorizontal: space.xl,
+		paddingVertical: space.mdPlus,
 		borderRadius: 10,
 	},
 	permissionButtonText: {
@@ -231,7 +236,7 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: 14,
 	},
-	cancelButton: { padding: 12 },
+	cancelButton: { padding: space.md },
 	cancelText: {
 		color: "rgba(255,255,255,0.7)",
 		fontFamily: typography.family.medium,
@@ -240,8 +245,8 @@ const styles = StyleSheet.create({
 	topBar: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingBottom: 10,
+		paddingHorizontal: space.lg,
+		paddingBottom: space.smPlus,
 		backgroundColor: "rgba(0,0,0,0.55)",
 	},
 	closeButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
@@ -270,19 +275,19 @@ const styles = StyleSheet.create({
 	cornerBL: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 8 },
 	cornerBR: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 8 },
 	frameHint: {
-		marginTop: 16,
+		marginTop: space.lg,
 		color: "rgba(255,255,255,0.85)",
 		fontFamily: typography.family.medium,
 		fontSize: 13,
 	},
 	controlsPanel: {
 		backgroundColor: "rgba(0,0,0,0.85)",
-		paddingTop: 14,
-		paddingHorizontal: 16,
-		gap: 14,
+		paddingTop: space.mdPlus,
+		paddingHorizontal: space.lg,
+		gap: space.mdPlus,
 	},
 	thumbnailsStrip: { maxHeight: 72 },
-	thumbnailsContent: { gap: 10, paddingHorizontal: 4 },
+	thumbnailsContent: { gap: space.smPlus, paddingHorizontal: space.xs },
 	thumbnailWrap: {
 		width: 58,
 		height: 72,
@@ -299,7 +304,7 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.navy,
 		borderRadius: 999,
 		minWidth: 18,
-		paddingHorizontal: 4,
+		paddingHorizontal: space.xs,
 		paddingVertical: 2,
 		alignItems: "center",
 	},
@@ -319,7 +324,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		paddingHorizontal: 12,
+		paddingHorizontal: space.md,
 	},
 	captureButton: {
 		width: 72,
@@ -340,7 +345,7 @@ const styles = StyleSheet.create({
 	sendButton: {
 		backgroundColor: colors.navy,
 		borderRadius: 12,
-		paddingVertical: 14,
+		paddingVertical: space.mdPlus,
 		alignItems: "center",
 	},
 	sendButtonDisabled: { backgroundColor: "rgba(255,255,255,0.12)" },
@@ -349,4 +354,5 @@ const styles = StyleSheet.create({
 		fontFamily: typography.family.bold,
 		fontSize: 15,
 	},
-});
+	});
+}

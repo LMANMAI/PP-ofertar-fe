@@ -1,4 +1,5 @@
 import { describePromo, type Offer, type PromoMechanic } from "./offersApi";
+import { displayProductName } from "../utils/productName";
 
 const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
@@ -211,8 +212,16 @@ export async function getRecurringProducts(
 	// them, an undefined here takes the whole screen down instead of degrading.
 	return products.map((p) => ({
 		...p,
+		description: displayProductName(p.description),
+		bestOffer: p.bestOffer && {
+			...p.bestOffer,
+			productName: p.bestOffer.productName && displayProductName(p.bestOffer.productName),
+		},
 		campaignOffers: p.campaignOffers ?? [],
-		alternativeOffers: p.alternativeOffers ?? [],
+		alternativeOffers: (p.alternativeOffers ?? []).map((alt) => ({
+			...alt,
+			productName: displayProductName(alt.productName),
+		})),
 	}));
 }
 

@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
-import { colors, typography } from "../theme/designSystem";
-import { InputField, PasswordStrengthBar, BottomNav, type TabKey } from "../components";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { InputField, PasswordStrengthBar, BottomNav, ScreenHeader, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { changePassword } from "../services/authApi";
 
@@ -20,6 +19,8 @@ type Props = {
 
 export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [currentPw, setCurrentPw] = useState("");
 	const [newPw, setNewPw] = useState("");
 	const [confirmPw, setConfirmPw] = useState("");
@@ -82,24 +83,17 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={() => onBack()} style={styles.backButton}>
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Cambiar contraseña</Text>
-			</View>
+			<ScreenHeader title="Cambiar contraseña" onBack={() => onBack()} />
 
 			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-			<ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 140 }} keyboardShouldPersistTaps="handled">
+			<ScrollView contentContainerStyle={{ padding: space.xl, gap: space.lg, paddingBottom: insets.bottom + 140 }} keyboardShouldPersistTaps="handled">
 				<Text style={styles.description}>
 					Elegí una contraseña segura de al menos 8 caracteres con mayúsculas, números y caracteres especiales.
 				</Text>
 
-				<InputField label="Contraseña actual" leftIcon="" value={currentPw} onChangeText={setCurrentPw} secureTextEntry showPasswordToggle />
+				<InputField label="Contraseña actual" value={currentPw} onChangeText={setCurrentPw} secureTextEntry showPasswordToggle />
 
-				<InputField label="Nueva contraseña" leftIcon="" value={newPw} onChangeText={setNewPw} secureTextEntry showPasswordToggle />
+				<InputField label="Nueva contraseña" value={newPw} onChangeText={setNewPw} secureTextEntry showPasswordToggle />
 
 				<PasswordStrengthBar
 					minLength={checks.minLength}
@@ -109,11 +103,11 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 					matches={checks.matches}
 				/>
 
-				<InputField label="Repetí tu nueva contraseña" leftIcon="" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry showPasswordToggle />
+				<InputField label="Repetí tu nueva contraseña" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry showPasswordToggle />
 
 				{error && (
 					<View style={styles.errorBox}>
-						<Ionicons name="alert-circle" size={16} color="#A8341E" />
+						<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
 						<Text style={styles.errorText}>{error}</Text>
 					</View>
 				)}
@@ -148,25 +142,23 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	description: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20, marginBottom: 4 },
+	description: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20, marginBottom: space.xs },
 	submitBtn: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
+		gap: space.sm,
 		backgroundColor: colors.navy,
 		height: 52,
 		borderRadius: 12,
-		marginTop: 4,
+		marginTop: space.xs,
 	},
 	submitBtnDisabled: { opacity: 0.5 },
 	submitText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
-	errorBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-});
+	errorBox: { paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	});
+}

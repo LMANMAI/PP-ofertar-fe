@@ -1,33 +1,34 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { memo, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
-import { getRecurringProducts, getTickets } from "../services";
+import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { getRecurringProducts, getTickets, offerBadge } from "../services";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, ForgottenProductsSheet, forgottenIn, type TabKey } from "../components";
+import {
+	BottomNav,
+	EmptyState,
+	ErrorBanner,
+	ForgottenProductsSheet,
+	forgottenIn,
+	LoadingState,
+	ScreenHeader,
+	type TabKey,
+} from "../components";
 import { hasBeenAnnounced, markAnnounced } from "../store/announcedTickets";
+import { formatCurrency, formatTicketTimestamp } from "../utils/format";
 
-function formatCurrency(value: number | null | undefined): string {
-	if (value == null) return "$0";
-	return `$${Math.round(value).toLocaleString("es-AR")}`;
-}
-
-function formatDate(iso: string): string {
-	const d = new Date(iso);
-	return d.toLocaleDateString("es-AR", {
-		day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-	});
-}
-
-function storeBadge(name: string | null): { code: string; color: string } {
-	if (!name) return { code: "TI", color: "#5C6B84" };
-	const words = name.split(" ");
-	const code = words.map((w) => w[0] ?? "").join("").toUpperCase().slice(0, 2);
-	const color = "#0D80CC";
-	return { code, color };
+/** Compares only what TicketRow actually renders — status, totals, item
+ * count, store name — not a deep-equal of the full ticket (line items etc.),
+ * which would cost more than the render it's meant to save. */
+function ticketsAreEqual(a: TicketResponse, b: TicketResponse): boolean {
+	return (
+		a.status === b.status &&
+		a.total === b.total &&
+		a.totalDiscounts === b.totalDiscounts &&
+		a.storeName === b.storeName &&
+		a.items.length === b.items.length
+	);
 }
 
 type Props = {
@@ -56,6 +57,9 @@ export function TicketHistoryScreen({
 	onTicketAnnounced,
 }: Props) {
 	const insets = useSafeAreaInsets();
+	const isTablet = useIsTablet();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [tickets, setTickets] = useState<TicketResponse[]>([]);
 	const [forgotten, setForgotten] = useState<RecurringProduct[]>([]);
 	const [forgottenVisible, setForgottenVisible] = useState(false);
@@ -66,7 +70,17 @@ export function TicketHistoryScreen({
 	const loadTickets = async () => {
 		try {
 			const data = await getTickets(session.token);
-			setTickets(data);
+			// Keeps each unchanged ticket's object identity across a refetch —
+			// the 5s poll below refetches the whole list on every tick, and
+			// replacing every object wholesale would defeat TicketRow's memo
+			// for every row, not just the one still processing.
+			setTickets((current) => {
+				const previousById = new Map(current.map((t) => [t.id, t]));
+				return data.map((t) => {
+					const previous = previousById.get(t.id);
+					return previous && ticketsAreEqual(previous, t) ? previous : t;
+				});
+			});
 			setError(null);
 			await maybeAnnounceForgotten(data);
 		} catch (err) {
@@ -138,120 +152,66 @@ export function TicketHistoryScreen({
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Historial de tickets</Text>
-			</View>
+			<ScreenHeader title="Historial de tickets" onBack={onBack} />
 
-			{loading && (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
-			)}
+			{loading && <LoadingState />}
 
-			{error && !loading && (
-				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color="#E76F51" />
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			)}
+			{error && !loading && <ErrorBanner message={error} />}
 
 			{!loading && !error && tickets.length === 0 && (
-				<View style={styles.emptyWrap}>
-					<Ionicons name="receipt-outline" size={56} color={colors.border} />
-					<Text style={styles.emptyTitle}>Sin tickets aún</Text>
-					<Text style={styles.emptyHint}>Escaneá tu primer ticket y aparecerá acá</Text>
-				</View>
+				<EmptyState
+					icon="receipt-outline"
+					title="Sin tickets aún"
+					hint="Escaneá tu primer ticket y aparecerá acá"
+				/>
 			)}
 
 			{!loading && tickets.length > 0 && (
-				<ScrollView
-					contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 24 }}
+				<FlatList
+					// Same restructure as OffersScreen: two columns once the viewport
+					// is tablet-wide, instead of one column stretched edge to edge.
+					key={isTablet ? "grid" : "list"}
+					numColumns={isTablet ? 2 : 1}
+					columnWrapperStyle={isTablet ? { gap: space.smPlus } : undefined}
+					data={tickets}
+					keyExtractor={(t) => String(t.id)}
+					contentContainerStyle={{ padding: space.lg, gap: space.smPlus, paddingBottom: insets.bottom + 24 }}
+					ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
 					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.cyan} />}
-				>
-					<View style={styles.summary}>
-						<View style={{ flex: 1 }}>
-							<Text style={styles.summaryLabel}>GASTADO</Text>
-							<Text style={styles.summaryValue}>{formatCurrency(totalSpent)}</Text>
-							<Text style={styles.summaryHint}>en {tickets.length} tickets</Text>
+					ListHeaderComponent={
+						<View style={styles.summary}>
+							<View style={{ flex: 1 }}>
+								<Text style={styles.summaryLabel}>GASTADO</Text>
+								<Text style={styles.summaryValue}>{formatCurrency(totalSpent)}</Text>
+								<Text style={styles.summaryHint}>en {tickets.length} tickets</Text>
+							</View>
+							<View style={styles.summaryDivider} />
+							<View style={{ flex: 1 }}>
+								<Text style={styles.summaryLabel}>AHORRADO</Text>
+								<Text style={[styles.summaryValue, { color: colors.success }]}>{formatCurrency(totalSaved)}</Text>
+								<Text style={styles.summaryHint}>descuentos</Text>
+							</View>
 						</View>
-						<View style={styles.summaryDivider} />
-						<View style={{ flex: 1 }}>
-							<Text style={styles.summaryLabel}>AHORRADO</Text>
-							<Text style={[styles.summaryValue, { color: "#22C55E" }]}>{formatCurrency(totalSaved)}</Text>
-							<Text style={styles.summaryHint}>descuentos</Text>
-						</View>
-					</View>
-
-					{tickets.map((t) => {
-						const badge = storeBadge(t.storeName);
-						const ticketTotal = t.total;
-						// Null while the ticket is still being processed, and the
-						// backend also leaves it null when nothing was discounted.
-						const ticketSavings = t.totalDiscounts ?? 0;
-						const isPending = t.status === "PENDING";
-						return (
-							<Pressable
-								key={t.id}
-								// A ticket still being read has no items or totals yet, so
-								// opening it would show an empty screen.
-								style={[styles.row, isPending && styles.rowPending]}
-								onPress={() => !isPending && onSelectTicket(t)}
-								disabled={isPending}
-							>
-								<View style={[styles.badge, { backgroundColor: badge.color }]}>
-									<Text style={styles.badgeText}>{badge.code}</Text>
-								</View>
-								<View style={{ flex: 1 }}>
-									<Text style={styles.store}>
-										{t.storeName || (isPending ? "Leyendo tu ticket…" : "Ticket sin nombre")}
-									</Text>
-									<Text style={styles.date}>
-										{isPending
-											? "Podés seguir usando la app mientras tanto"
-											: `${formatDate(t.createdAt)} · ${t.items.length} productos`}
-									</Text>
-								</View>
-								<View style={{ alignItems: "flex-end" }}>
-									{isPending ? (
-										<ActivityIndicator size="small" color={colors.cyan} />
-									) : (
-										<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
-									)}
-									<View style={styles.statusRow}>
-{!isPending && ticketSavings != null && ticketSavings > 0 && (
-											<Text style={styles.savings}>-{formatCurrency(ticketSavings)}</Text>
-										)}
-										<View
-											style={[
-												styles.statusBadge,
-												t.status === "FAILED"
-													? styles.statusFailed
-													: isPending
-														? styles.statusPending
-														: styles.statusOk,
-											]}
-										>
-											<Text
-												style={[
-													styles.statusText,
-													t.status === "FAILED" && { color: "#E76F51" },
-													isPending && { color: "#B45A14" },
-												]}
-											>
-												{t.status === "PROCESSED" ? "OK" : t.status === "FAILED" ? "Falló" : "Procesando"}
-											</Text>
-										</View>
-									</View>
-								</View>
-							</Pressable>
-						);
-					})}
-				</ScrollView>
+					}
+					ListHeaderComponentStyle={{ marginBottom: space.smPlus }}
+					renderItem={({ item: t }) => (
+						<TicketRow
+							ticket={t}
+							isTablet={isTablet}
+							onSelectTicket={onSelectTicket}
+							colors={colors}
+							styles={styles}
+						/>
+					)}
+					// A ticket still PENDING re-polls every 5s (see the effect above),
+					// which replaces the whole `tickets` array — without memoizing the
+					// row, every visible ticket re-renders on each poll, not just the
+					// one still processing.
+					removeClippedSubviews
+					initialNumToRender={10}
+					maxToRenderPerBatch={10}
+					windowSize={9}
+				/>
 			)}
 
 			<ForgottenProductsSheet
@@ -267,35 +227,105 @@ export function TicketHistoryScreen({
 	);
 }
 
-const styles = StyleSheet.create({
-	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 12 },
-	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 13 },
-	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 60 },
-	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18 },
-	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14 },
-	summary: { flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: 16 },
-	summaryDivider: { width: 1, height: 40, backgroundColor: "#E5E7EB", marginHorizontal: 12, alignSelf: "center" },
-	summaryLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
-	summaryValue: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18, marginTop: 4 },
-	summaryHint: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB" },
-	badge: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-	badgeText: { color: "#fff", fontFamily: typography.family.bold, fontSize: 12 },
-	store: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	date: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
-	total: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
-	statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
-	savings: { color: "#22C55E", fontFamily: typography.family.medium, fontSize: 11 },
-	statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-	statusOk: { backgroundColor: "#E0F5EF" },
-	statusFailed: { backgroundColor: "rgba(231,111,81,0.15)" },
-	statusPending: { backgroundColor: "#FFF7ED" },
-	rowPending: { opacity: 0.75 },
-	statusText: { fontFamily: typography.family.medium, fontSize: 10, color: "#15803D" },
+const TicketRow = memo(function TicketRow({
+	ticket: t,
+	isTablet,
+	onSelectTicket,
+	colors,
+	styles,
+}: {
+	ticket: TicketResponse;
+	isTablet: boolean;
+	onSelectTicket: (ticket: TicketResponse) => void;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
+}) {
+	const badge = offerBadge(t.storeName);
+	const ticketTotal = t.total;
+	// Null while the ticket is still being processed, and the
+	// backend also leaves it null when nothing was discounted.
+	const ticketSavings = t.totalDiscounts ?? 0;
+	const isPending = t.status === "PENDING";
+	return (
+		<Pressable
+			// A ticket still being read has no items or totals yet, so
+			// opening it would show an empty screen.
+			style={[styles.row, isPending && styles.rowPending, isTablet && { flex: 1 }]}
+			onPress={() => !isPending && onSelectTicket(t)}
+			disabled={isPending}
+			accessibilityRole="button"
+			accessibilityLabel={`Ticket de ${t.storeName || "comercio sin nombre"}, ${formatCurrency(ticketTotal)}`}
+		>
+			<View style={[styles.badge, { backgroundColor: badge.color }]}>
+				<Text style={styles.badgeText}>{badge.badge}</Text>
+			</View>
+			<View style={{ flex: 1 }}>
+				<Text style={styles.store}>
+					{t.storeName || (isPending ? "Leyendo tu ticket…" : "Ticket sin nombre")}
+				</Text>
+				<Text style={styles.date}>
+					{isPending
+						? "Podés seguir usando la app mientras tanto"
+						: `${formatTicketTimestamp(t.createdAt)} · ${t.items.length} productos`}
+				</Text>
+			</View>
+			<View style={{ alignItems: "flex-end" }}>
+				{isPending ? (
+					<ActivityIndicator size="small" color={colors.cyan} />
+				) : (
+					<Text style={styles.total}>{formatCurrency(ticketTotal)}</Text>
+				)}
+				<View style={styles.statusRow}>
+					{!isPending && ticketSavings != null && ticketSavings > 0 && (
+						<Text style={styles.savings}>-{formatCurrency(ticketSavings)}</Text>
+					)}
+					<View
+						style={[
+							styles.statusBadge,
+							t.status === "FAILED"
+								? styles.statusFailed
+								: isPending
+									? styles.statusPending
+									: styles.statusOk,
+						]}
+					>
+						<Text
+							style={[
+								styles.statusText,
+								t.status === "FAILED" && { color: colors.orange },
+								isPending && { color: colors.warningSoftText },
+							]}
+						>
+							{t.status === "PROCESSED" ? "OK" : t.status === "FAILED" ? "Falló" : "Procesando"}
+						</Text>
+					</View>
+				</View>
+			</View>
+		</Pressable>
+	);
 });
+
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
+	safeArea: { flex: 1, backgroundColor: colors.background },
+	summary: { flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: space.lg },
+	summaryDivider: { width: 1, height: 40, backgroundColor: colors.divider, marginHorizontal: space.md, alignSelf: "center" },
+	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
+	summaryValue: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18, marginTop: space.xs },
+	summaryHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	row: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.card, padding: space.mdPlus, borderRadius: 12, borderWidth: 1, borderColor: colors.divider },
+	badge: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+	badgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 12 },
+	store: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
+	date: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
+	total: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 14 },
+	statusRow: { flexDirection: "row", alignItems: "center", gap: space.xsPlus, marginTop: 2 },
+	savings: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11 },
+	statusBadge: { paddingHorizontal: space.xsPlus, paddingVertical: 2, borderRadius: 6 },
+	statusOk: { backgroundColor: colors.successSoft },
+	statusFailed: { backgroundColor: colors.dangerSoft },
+	statusPending: { backgroundColor: colors.warningSoft },
+	rowPending: { opacity: 0.75 },
+	statusText: { fontFamily: typography.family.medium, fontSize: 10, color: colors.successSoftText },
+	});
+}

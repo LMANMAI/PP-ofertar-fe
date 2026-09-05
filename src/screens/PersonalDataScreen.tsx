@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Animated, Dimensions, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
-import { colors, typography } from "../theme/designSystem";
-import { InputField, BottomNav, type TabKey } from "../components";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { InputField, BottomNav, ScreenHeader, type TabKey } from "../components";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { getProfile, updateProfile, uploadProfilePicture } from "../services/authApi";
@@ -20,6 +19,8 @@ const MAX_IMAGE_SIZE_MB = 5;
 
 export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [fetching, setFetching] = useState(false);
 	const [first, setFirst] = useState(splitName(session.user.name).firstName);
 	const [last, setLast] = useState(splitName(session.user.name).lastName);
@@ -169,16 +170,13 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={() => onBack()} style={styles.backButton}>
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Datos personales</Text>
-			</View>
+			<ScreenHeader title="Datos personales" onBack={() => onBack()} />
 
-			<ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 120 }}>
+			<KeyboardAvoidingView
+				style={{ flex: 1 }}
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+			>
+			<ScrollView contentContainerStyle={{ padding: space.xl, gap: space.lg, paddingBottom: insets.bottom + 120 }} keyboardShouldPersistTaps="handled">
 				<View style={styles.avatarRow}>
 					<View style={styles.avatar}>
 						{picUploading ? (
@@ -194,36 +192,36 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 						style={({ pressed }) => [styles.avatarEdit, pressed && { opacity: 0.7 }]}
 						hitSlop={8}
 					>
-						<Ionicons name="camera-outline" size={14} color={colors.navy} />
+						<Ionicons name="camera-outline" size={14} color={colors.infoSoftText} />
 						<Text style={styles.avatarEditText}>{profilePic ? "Cambiar foto" : "Agregar foto"}</Text>
 					</Pressable>
 				</View>
 
 				{picError && (
 					<View style={styles.picFeedbackBox}>
-						<Ionicons name="alert-circle" size={16} color="#A8341E" />
+						<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
 						<Text style={styles.picFeedbackTextError}>{picError}</Text>
 					</View>
 				)}
 				{picSuccess && (
 					<View style={styles.picFeedbackBoxSuccess}>
-						<Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+						<Ionicons name="checkmark-circle" size={16} color={colors.successSoftText} />
 						<Text style={styles.picFeedbackTextSuccess}>Foto actualizada</Text>
 					</View>
 				)}
 
 				{fetching ? (
-					<ActivityIndicator size="small" color={colors.cyan} style={{ marginTop: 16 }} />
+					<ActivityIndicator size="small" color={colors.cyan} style={{ marginTop: space.lg }} />
 				) : (
 					<>
-						<InputField label="Nombre" leftIcon="" value={first} onChangeText={setFirst} />
-						<InputField label="Apellido" leftIcon="" value={last} onChangeText={setLast} />
-						<InputField label="Correo electrónico" leftIcon="" value={email} onChangeText={() => {}} />
-						<InputField label="Teléfono" leftIcon="" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+						<InputField label="Nombre" value={first} onChangeText={setFirst} />
+						<InputField label="Apellido" value={last} onChangeText={setLast} />
+						<InputField label="Correo electrónico" value={email} onChangeText={() => {}} />
+						<InputField label="Teléfono" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
 
 						{saveError && (
 							<View style={styles.errorBox}>
-								<Ionicons name="alert-circle" size={16} color="#A8341E" />
+								<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
 								<Text style={styles.errorText}>{saveError}</Text>
 							</View>
 						)}
@@ -241,6 +239,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 					</>
 				)}
 			</ScrollView>
+			</KeyboardAvoidingView>
 
 			<Modal visible={showSheet} transparent animationType="none" onRequestClose={closeSheet}>
 				<Pressable style={styles.sheetOverlay} onPress={closeSheet}>
@@ -275,7 +274,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 											pressed && { opacity: 0.7 },
 										]}
 									>
-										<Ionicons name="trash-outline" size={20} color="#EF4444" />
+										<Ionicons name="trash-outline" size={20} color={colors.danger} />
 										<Text style={styles.sheetOptionTextDanger}>Eliminar foto actual</Text>
 									</Pressable>
 								)}
@@ -299,36 +298,34 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	avatarRow: { alignItems: "center", gap: 10, paddingVertical: 12 },
+	avatarRow: { alignItems: "center", gap: space.smPlus, paddingVertical: space.md },
 	avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
 	avatarImage: { width: "100%", height: "100%" },
 	avatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 26 },
-	avatarEdit: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#E8F6FC", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
-	avatarEditText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-	picFeedbackBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	picFeedbackTextError: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	picFeedbackBoxSuccess: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#ECFDF5", borderWidth: 1, borderColor: "#A7F3D0", flexDirection: "row", alignItems: "center", gap: 8 },
-	picFeedbackTextSuccess: { flex: 1, color: "#16A34A", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
-	saveBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: 4 },
+	avatarEdit: { flexDirection: "row", alignItems: "center", gap: space.xsPlus, backgroundColor: colors.infoSoft, paddingHorizontal: space.md, paddingVertical: space.xsPlus, borderRadius: 14 },
+	avatarEditText: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: 12 },
+	picFeedbackBox: { paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
+	picFeedbackTextError: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	picFeedbackBoxSuccess: { paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.successSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
+	picFeedbackTextSuccess: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	saveBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: space.xs },
 	saveText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-	errorBox: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#FDECEA", borderWidth: 1, borderColor: "#F5C1B8", flexDirection: "row", alignItems: "center", gap: 8 },
-	errorText: { flex: 1, color: "#A8341E", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	errorBox: { paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-	sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
-	sheetContent: { gap: 20 },
+	sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: space.xxl, paddingTop: space.md, paddingBottom: 40 },
+	sheetContent: { gap: space.xl },
 	sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#D1D5DB", alignSelf: "center" },
-	sheetTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 18, textAlign: "center", marginBottom: 4 },
-	sheetOptions: { gap: 10 },
-	sheetOption: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.navy, height: 52, borderRadius: 12, paddingHorizontal: 18 },
-	sheetOptionDanger: { backgroundColor: colors.card, borderWidth: 1, borderColor: "#EF4444" },
+	sheetTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 18, textAlign: "center", marginBottom: space.xs },
+	sheetOptions: { gap: space.smPlus },
+	sheetOption: { flexDirection: "row", alignItems: "center", gap: space.mdPlus, backgroundColor: colors.navy, height: 52, borderRadius: 12, paddingHorizontal: 18 },
+	sheetOptionDanger: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
 	sheetOptionText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-	sheetOptionTextDanger: { color: "#EF4444", fontFamily: typography.family.medium, fontSize: 15 },
-	sheetCancel: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 20 },
-	sheetCancelText: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 15 },
-});
+	sheetOptionTextDanger: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
+	sheetCancel: { alignSelf: "center", paddingVertical: space.smPlus, paddingHorizontal: space.xl },
+	sheetCancelText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 15 },
+	});
+}

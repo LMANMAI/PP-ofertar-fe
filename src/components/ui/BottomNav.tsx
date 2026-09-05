@@ -1,9 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../../theme/designSystem";
+import { space, typography, useThemeColors } from "../../theme/designSystem";
 import { useOnboardingTarget } from "../onboarding/OnboardingProvider";
 
-export type TabKey = "home" | "offers" | "scan" | "points" | "profile";
+export type TabKey = "home" | "offers" | "scan" | "history" | "profile";
 
 type Props = {
 	active: TabKey;
@@ -28,10 +28,10 @@ const ITEMS: Item[] = [
 		iconActive: "pricetag",
 	},
 	{
-		key: "points",
-		label: "Puntos",
-		icon: "star-outline",
-		iconActive: "star",
+		key: "history",
+		label: "Tickets",
+		icon: "receipt-outline",
+		iconActive: "receipt",
 	},
 	{
 		key: "profile",
@@ -42,13 +42,17 @@ const ITEMS: Item[] = [
 ];
 
 export function BottomNav({ active, onSelect, onScanPress }: Props) {
+	const colors = useThemeColors();
 	const navigationTarget = useOnboardingTarget("main-navigation");
 	const scanTarget = useOnboardingTarget("scan-ticket");
 	return (
 		<View
 			ref={navigationTarget.ref}
 			onLayout={navigationTarget.onLayout}
-			style={styles.wrap}
+			style={[
+				styles.wrap,
+				{ backgroundColor: colors.card, borderTopColor: colors.border },
+			]}
 		>
 			<View style={styles.row}>
 				{ITEMS.slice(0, 2).map((it) => (
@@ -61,13 +65,21 @@ export function BottomNav({ active, onSelect, onScanPress }: Props) {
 					/>
 				))}
 
-				<Pressable style={styles.scanWrap} onPress={onScanPress}>
+				<Pressable
+					style={styles.scanWrap}
+					onPress={onScanPress}
+					accessibilityRole="tab"
+					accessibilityLabel="Escanear ticket"
+					accessibilityState={{ selected: active === "scan" }}
+					hitSlop={4}
+				>
 					<View
 						ref={scanTarget.ref}
 						onLayout={scanTarget.onLayout}
 						style={[
 							styles.scanButton,
-							active === "scan" && styles.scanButtonActive,
+							{ backgroundColor: colors.navy, shadowColor: colors.navy },
+							active === "scan" && { backgroundColor: colors.cyan },
 						]}
 					>
 						<Ionicons
@@ -103,14 +115,27 @@ function NavItem({
 	active: boolean;
 	onPress: () => void;
 }) {
+	const colors = useThemeColors();
 	return (
-		<Pressable style={styles.item} onPress={onPress}>
+		<Pressable
+			style={styles.item}
+			onPress={onPress}
+			accessibilityRole="tab"
+			accessibilityLabel={label}
+			accessibilityState={{ selected: active }}
+		>
 			<Ionicons
 				name={icon}
 				size={22}
-				color={active ? colors.navy : colors.mutedText}
+				color={active ? colors.defaultText : colors.mutedText}
 			/>
-			<Text style={[styles.itemLabel, active && styles.itemLabelActive]}>
+			<Text
+				style={[
+					styles.itemLabel,
+					{ color: colors.mutedText },
+					active && { color: colors.defaultText },
+				]}
+			>
 				{label}
 			</Text>
 		</Pressable>
@@ -119,12 +144,10 @@ function NavItem({
 
 const styles = StyleSheet.create({
 	wrap: {
-		backgroundColor: colors.card,
 		borderTopWidth: 1,
-		borderTopColor: colors.border,
-		paddingHorizontal: 8,
-		paddingTop: 10,
-		paddingBottom: 10,
+		paddingHorizontal: space.sm,
+		paddingTop: space.smPlus,
+		paddingBottom: space.smPlus,
 	},
 	row: {
 		flexDirection: "row",
@@ -134,17 +157,13 @@ const styles = StyleSheet.create({
 	item: {
 		flex: 1,
 		alignItems: "center",
-		gap: 4,
-		paddingVertical: 4,
+		gap: space.xs,
+		paddingVertical: space.xs,
 	},
 	itemLabel: {
 		fontFamily: typography.family.medium,
 		fontSize: 11,
 		lineHeight: 14,
-		color: colors.mutedText,
-	},
-	itemLabelActive: {
-		color: colors.navy,
 	},
 	scanWrap: {
 		flex: 1,
@@ -155,17 +174,12 @@ const styles = StyleSheet.create({
 		width: 56,
 		height: 56,
 		borderRadius: 28,
-		backgroundColor: colors.navy,
 		alignItems: "center",
 		justifyContent: "center",
 		marginTop: -18,
-		shadowColor: colors.navy,
 		shadowOffset: { width: 0, height: 6 },
 		shadowOpacity: 0.25,
 		shadowRadius: 12,
 		elevation: 6,
-	},
-	scanButtonActive: {
-		backgroundColor: colors.cyan,
 	},
 });

@@ -1,18 +1,13 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { useEffect, useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { getSavingsReport } from "../services";
 import type { SavingsReportResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, type TabKey } from "../components";
-
-function formatCurrency(value: number | null | undefined): string {
-	if (value == null) return "$0";
-	return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, Tag, type TabKey } from "../components";
+import { formatCurrencyExact } from "../utils/format";
 
 function formatMonth(date: Date): string {
 	return date.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
@@ -24,8 +19,6 @@ function yyyyMM(date: Date): string {
 	return `${y}-${m}`;
 }
 
-const CAT_COLORS = ["#7DD4F5", "#0D80CC", "#22C55E", "#F2B61D", "#9CA3A8", "#E76F51"];
-
 type Props = {
 	onBack: () => void;
 	session: Session;
@@ -36,6 +29,12 @@ type Props = {
 
 export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
+	const CAT_COLORS = useMemo(
+		() => [colors.cyan, "#0D80CC", colors.success, "#F2B61D", colors.subtleText, colors.orange],
+		[colors],
+	);
 	const [report, setReport] = useState<SavingsReportResponse | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -82,55 +81,58 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 		? Math.max(...report.byCategory.map((c) => c.totalDiscounts), 1)
 		: 1;
 
+	const now = new Date();
+	const isCurrentMonth = selectedMonth.getFullYear() === now.getFullYear()
+		&& selectedMonth.getMonth() === now.getMonth();
+
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Análisis mensual</Text>
-			</View>
+			<ScreenHeader title="Análisis mensual" onBack={onBack} />
 
 			<View style={styles.monthSelector}>
-				<Pressable onPress={prevMonth} style={styles.monthArrow}>
-					<Ionicons name="chevron-back" size={18} color={colors.navy} />
+				<Pressable onPress={prevMonth} style={styles.monthArrow} accessibilityRole="button" accessibilityLabel="Mes anterior">
+					<Ionicons name="chevron-back" size={18} color={colors.defaultText} />
 				</Pressable>
 				<Text style={styles.monthLabel}>{formatMonth(selectedMonth)}</Text>
-				<Pressable onPress={nextMonth} style={styles.monthArrow}>
-					<Ionicons name="chevron-forward" size={18} color={colors.navy} />
+				<Pressable
+					onPress={nextMonth}
+					disabled={isCurrentMonth}
+					style={[styles.monthArrow, isCurrentMonth && styles.monthArrowDisabled]}
+					accessibilityRole="button"
+					accessibilityLabel="Mes siguiente"
+					accessibilityState={{ disabled: isCurrentMonth }}
+				>
+					<Ionicons name="chevron-forward" size={18} color={isCurrentMonth ? colors.border : colors.defaultText} />
 				</Pressable>
 			</View>
 
-			{loading && (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
-			)}
+			{loading && <LoadingState />}
 
-			{error && (
-				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color="#E76F51" />
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
+			{error && !loading && <ErrorBanner message={error} />}
+
+			{!loading && !error && !report && (
+				<EmptyState
+					icon="bar-chart-outline"
+					title="No hay datos para este mes"
+					hint="Todavía no encontramos un reporte de ahorro para el mes seleccionado."
+				/>
 			)}
 
 			{!loading && !error && report && (
 				<ScrollView
 					style={{ flex: 1 }}
-					contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }}>
+					contentContainerStyle={{ padding: space.lg, gap: space.mdPlus, paddingBottom: space.xxl }}>
 					<View style={styles.heroCard}>
 						<Text style={styles.heroLabel}>
 							GASTO TOTAL · {formatMonth(selectedMonth).toUpperCase()}
 						</Text>
 						<Text style={styles.heroValue}>
-							{formatCurrency(report.summary.totalSpent)}
+							{formatCurrencyExact(report.summary.totalSpent)}
 						</Text>
 						<View style={styles.heroRow}>
 							<Tag text={`${report.summary.ticketCount} tickets`} />
 							{report.summary.totalSavings != null && report.summary.totalSavings > 0 && (
-								<Tag text={`${formatCurrency(report.summary.totalSavings)} ahorrado`} tone="cyan" />
+								<Tag text={`${formatCurrencyExact(report.summary.totalSavings)} ahorrado`} tone="cyan" />
 							)}
 							{savingsPct && (
 								<Tag text={`${savingsPct}% del total`} tone="cyan" />
@@ -148,7 +150,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 										<View style={{ flex: 1 }}>
 											<View style={styles.catHeader}>
 												<Text style={styles.catName}>{c.category}</Text>
-												<Text style={styles.catAmount}>{formatCurrency(c.totalDiscounts)}</Text>
+												<Text style={styles.catAmount}>{formatCurrencyExact(c.totalDiscounts)}</Text>
 											</View>
 											<View style={styles.catBarTrack}>
 												<View style={[styles.catBarFill, { width: `${(c.totalDiscounts / maxPercent) * 100}%`, backgroundColor: CAT_COLORS[idx % CAT_COLORS.length] }]} />
@@ -167,11 +169,11 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 							<View style={styles.catsCard}>
 								{report.byStore.map((s, idx) => (
 									<View key={s.storeName} style={[styles.catRow, idx === report.byStore.length - 1 && { borderBottomWidth: 0 }]}>
-										<Ionicons name="storefront-outline" size={16} color={colors.navy} />
+										<Ionicons name="storefront-outline" size={16} color={colors.defaultText} />
 										<View style={{ flex: 1 }}>
 											<Text style={styles.catName}>{s.storeName}</Text>
 										</View>
-										<Text style={styles.catAmount}>{formatCurrency(s.totalDiscounts)}</Text>
+										<Text style={styles.catAmount}>{formatCurrencyExact(s.totalDiscounts)}</Text>
 									</View>
 								))}
 							</View>
@@ -180,16 +182,16 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 
 					<View style={styles.highlightsRow}>
 							<View style={styles.highlightPill}>
-								<Ionicons name="trending-up-outline" size={16} color="#22C55E" />
+								<Ionicons name="trending-up-outline" size={16} color={colors.success} />
 								<View>
 									<Text style={styles.highlightValue}>
-										{formatCurrency(report.summary.averageSavings)}
+										{formatCurrencyExact(report.summary.averageSavings)}
 									</Text>
 									<Text style={styles.highlightLabel}>prom. por ticket</Text>
 								</View>
 							</View>
 							<View style={styles.highlightPill}>
-								<Ionicons name="pricetags-outline" size={16} color={colors.navy} />
+								<Ionicons name="pricetags-outline" size={16} color={colors.defaultText} />
 								<View>
 									<Text style={styles.highlightValue}>{report.byCategory.length}</Text>
 									<Text style={styles.highlightLabel}>categorías</Text>
@@ -206,63 +208,44 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 	);
 }
 
-function Tag({ text, tone }: { text: string; tone?: "cyan" }) {
-	return (
-		<View style={[styles.tag, tone === "cyan" ? styles.tagCyan : styles.tagMuted]}>
-			<Text style={[styles.tagText, tone === "cyan" ? styles.tagTextCyan : styles.tagTextMuted]}>{text}</Text>
-		</View>
-	);
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	monthSelector: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 12, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
+	monthSelector: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: space.md, gap: space.md, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
 	monthArrow: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	monthLabel: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15, textTransform: "capitalize" },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 12 },
-	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 13 },
-	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: 20, gap: 8 },
+	monthArrowDisabled: { opacity: 0.4 },
+	monthLabel: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textTransform: "capitalize" },
+	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: space.xl, gap: space.sm },
 	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
-	heroValue: { color: "#fff", fontFamily: typography.family.bold, fontSize: 34 },
-	heroRow: { flexDirection: "row", gap: 6, marginTop: 4 },
-	tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-	tagMuted: { backgroundColor: "rgba(255,255,255,0.12)" },
-	tagCyan: { backgroundColor: colors.cyan },
-	tagText: { fontFamily: typography.family.medium, fontSize: 11 },
-	tagTextMuted: { color: "rgba(255,255,255,0.85)" },
-	tagTextCyan: { color: colors.navy },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
-	catsCard: { backgroundColor: colors.card, borderRadius: 14, padding: 6 },
-	catRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
+	heroValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 34 },
+	heroRow: { flexDirection: "row", gap: space.xsPlus, marginTop: space.xs },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
+	catsCard: { backgroundColor: colors.card, borderRadius: 14, padding: space.xsPlus },
+	catRow: { flexDirection: "row", alignItems: "center", gap: space.smPlus, paddingHorizontal: space.smPlus, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
 	catDot: { width: 10, height: 10, borderRadius: 5 },
-	catHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-	catName: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	catAmount: { color: "#6B7280", fontFamily: typography.family.medium, fontSize: 12 },
-	catBarTrack: { height: 6, backgroundColor: "#F8F9FB", borderRadius: 3, overflow: "hidden" },
+	catHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: space.xs },
+	catName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
+	catAmount: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 12 },
+	catBarTrack: { height: 6, backgroundColor: colors.softWarm, borderRadius: 3, overflow: "hidden" },
 	catBarFill: { height: 6, borderRadius: 3 },
-	catPct: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 13, width: 54, textAlign: "right" },
+	catPct: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 13, width: 54, textAlign: "right" },
 	highlightsRow: {
 		flexDirection: "row",
-		gap: 10,
+		gap: space.smPlus,
 	},
 	highlightPill: {
 		flex: 1,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 10,
+		gap: space.smPlus,
 		backgroundColor: colors.card,
 		borderRadius: 12,
-		padding: 14,
+		padding: space.mdPlus,
 		borderWidth: 1,
 		borderColor: colors.border,
 	},
 	highlightValue: {
-		color: colors.navy,
+		color: colors.defaultText,
 		fontFamily: typography.family.bold,
 		fontSize: 15,
 	},
@@ -272,4 +255,5 @@ const styles = StyleSheet.create({
 		fontSize: 11,
 		marginTop: 1,
 	},
-});
+	});
+}

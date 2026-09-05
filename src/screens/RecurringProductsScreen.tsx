@@ -1,19 +1,23 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	AccessibilityInfo,
+	LayoutAnimation,
+	Platform,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	Text,
+	UIManager,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { campaignOfferToOffer, describeCampaignDiscount, getRecurringProducts, offerSavings, sortByOfferRelevance } from "../services";
-import type { CampaignOffer, RecurringProduct } from "../services";
+import type { CampaignOffer, Offer, RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
-import type { Offer } from "../services";
-import { BottomNav, type TabKey } from "../components";
-
-function formatCurrency(value: number | null | undefined): string {
-	if (value == null) return "$0";
-	return `$${Math.round(value).toLocaleString("es-AR")}`;
-}
+import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
+import { formatCurrency, formatLongDate } from "../utils/format";
 
 function formatFrequency(purchaseCount: number, ticketCount: number): string {
 	const times = purchaseCount === 1 ? "1 vez" : `${purchaseCount} veces`;
@@ -21,21 +25,17 @@ function formatFrequency(purchaseCount: number, ticketCount: number): string {
 	return `Comprado ${times} en ${trips}`;
 }
 
-/** Retailers publish these as ISO strings, but the field is free text in the
- * scraper's schema — anything unparseable is dropped rather than rendered to
- * the user as "Invalid Date". */
-function formatDate(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return d.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
-}
-
 function daysUntil(iso: string | null): number | null {
 	if (!iso) return null;
 	const d = new Date(iso);
 	if (Number.isNaN(d.getTime())) return null;
 	return Math.ceil((d.getTime() - Date.now()) / 86_400_000);
+}
+
+// The old architecture's bridge needs this opt-in per-platform; the New
+// Architecture (Fabric) ignores it and LayoutAnimation just works.
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+	UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 /** Whether any shown promotion carries OCR-read percentages, which is what the
@@ -53,18 +53,46 @@ type Props = {
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
-	/** Opens a promotion in the offers detail, where the legal text is shown in
-	 * full instead of clipped to three lines. The second argument carries the
-	 * rebuilt offer because the feed may not contain this promotion. */
+	/** Opens a promotion in the offers detail, where its full legal text lives.
+	 * The second argument carries the rebuilt offer because the feed may not
+	 * contain this promotion. */
 	onOpenOffer?: (id: string, fallback?: Offer | null) => void;
 };
 
 export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTab, onScanPress, onOpenOffer }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [products, setProducts] = useState<RecurringProduct[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [expandedId, setExpandedId] = useState<string | null>(null);
+	const reduceMotion = useRef(false);
+
+	useEffect(() => {
+		AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+			reduceMotion.current = enabled;
+		});
+		const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", (enabled) => {
+			reduceMotion.current = enabled;
+		});
+		return () => sub.remove();
+	}, []);
+
+	// Stable across renders so ProductCard's React.memo isn't defeated by a
+	// fresh closure every time any card toggles — otherwise every card in the
+	// list re-renders (including their off-screen detail sections) on every
+	// single tap, not just the one that changed.
+	const handleToggle = useCallback((id: string) => {
+		// The detail block used to just pop in/out with the rest of the card
+		// jumping to make room. Animating the layout pass this triggers makes
+		// it read as the card growing to reveal its detail, not the list
+		// reflowing under the user's thumb.
+		if (!reduceMotion.current) {
+			LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+		}
+		setExpandedId((current) => (current === id ? null : id));
+	}, []);
 
 	useEffect(() => {
 		setLoading(true);
@@ -89,38 +117,22 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Productos recurrentes</Text>
-			</View>
+			<ScreenHeader title="Productos recurrentes" onBack={onBack} />
 
-			{loading && (
-				<View style={styles.loaderWrap}>
-					<ActivityIndicator size="small" color={colors.cyan} />
-				</View>
-			)}
+			{loading && <LoadingState />}
 
-			{error && !loading && (
-				<View style={styles.errorBanner}>
-					<Ionicons name="warning-outline" size={18} color="#E76F51" />
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			)}
+			{error && !loading && <ErrorBanner message={error} />}
 
 			{!loading && !error && products.length === 0 && (
-				<View style={styles.emptyWrap}>
-					<Ionicons name="repeat-outline" size={56} color={colors.border} />
-					<Text style={styles.emptyTitle}>Todavía no detectamos productos recurrentes</Text>
-					<Text style={styles.emptyHint}>Escaneá más tickets para que podamos reconocer tus compras habituales</Text>
-				</View>
+				<EmptyState
+					icon="repeat-outline"
+					title="Todavía no detectamos productos recurrentes"
+					hint="Escaneá más tickets para que podamos reconocer tus compras habituales"
+				/>
 			)}
 
 			{!loading && !error && products.length > 0 && (
-				<ScrollView contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 24 }}>
+				<ScrollView contentContainerStyle={{ padding: space.lg, gap: space.smPlus, paddingBottom: insets.bottom + space.xxl }}>
 					<Text style={styles.intro}>
 						{offerCount > 0
 							? `${offerCount} de tus ${products.length} productos habituales tienen oferta ahora. Tocá cualquiera para ver el detalle.`
@@ -129,266 +141,17 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 
 					{products.map((p) => {
 						const id = p.barcode || p.description;
-						const isExpanded = expandedId === id;
-						const offer = p.bestOffer;
-						const savings = offer ? offerSavings(offer) : null;
-						const discountPct = offer?.discountPct ?? savings?.pct ?? null;
-						const campaigns = p.campaignOffers.slice(0, 3);
-						const hasAnything = offer != null || campaigns.length > 0;
-
 						return (
-							<View key={id} style={styles.card}>
-								{/* Only the header toggles. With the whole card pressable,
-								    trying to read a truncated line further down collapsed the
-								    card instead. */}
-								<Pressable
-									style={styles.cardHeader}
-									onPress={() => setExpandedId(isExpanded ? null : id)}
-								>
-									<Ionicons name="repeat-outline" size={18} color={colors.cyan} />
-									<View style={{ flex: 1 }}>
-										<Text style={styles.name}>{p.description}</Text>
-										<Text style={styles.freq}>{formatFrequency(p.purchaseCount, p.ticketCount)}</Text>
-									</View>
-									{hasAnything && (
-										<Ionicons
-											name={isExpanded ? "chevron-up" : "chevron-down"}
-											size={18}
-											color="#9CA3A8"
-										/>
-									)}
-								</Pressable>
-
-								{offer ? (
-									<View style={{ gap: 4 }}>
-										<View style={styles.bestRow}>
-											<View style={styles.bestChip}>
-												<Ionicons name="trophy" size={11} color="#fff" />
-												<Text style={styles.bestText}>Mejor en {offer.retailerName}</Text>
-											</View>
-											<View style={styles.priceGroup}>
-												{discountPct != null && discountPct >= 1 && (
-													<View style={styles.discountBadge}>
-														<Text style={styles.discountText}>-{Math.round(discountPct)}%</Text>
-													</View>
-												)}
-												<Text style={styles.price}>{formatCurrency(offer.price)}</Text>
-											</View>
-										</View>
-										{/* Always visible, never only in the expanded detail: the match is
-										    by brand and kind of product, so the price can belong to another
-										    size or variety. Hiding which product it is turned a bag of
-										    flour into "the best price" for a bottle of oil. */}
-										{offer.productName && (
-											<Text style={styles.offerProduct} numberOfLines={2}>
-												Precio de: {offer.productName}
-											</Text>
-										)}
-									</View>
-								) : campaigns.length > 0 ? (
-									// A campaign promotion with no catalog price is still an offer;
-									// calling it "sin ofertas activas" was hiding a real one.
-									<View style={styles.bestRow}>
-										<View style={styles.campaignChip}>
-											<Ionicons name="megaphone" size={11} color="#fff" />
-											<Text style={styles.bestText}>
-												{describeCampaignDiscount(campaigns[0]) ?? "Promoción vigente"} en{" "}
-												{campaigns[0].retailerName}
-											</Text>
-										</View>
-									</View>
-								) : p.alternativeOffers.length > 0 ? (
-									// Saying "sin ofertas" while listing one right below it was a
-									// straight contradiction.
-									<Text style={styles.noOffer}>
-										Sin oferta de esta marca, pero hay otra marca en oferta
-									</Text>
-								) : (
-									<Text style={styles.noOffer}>Sin ofertas activas por ahora</Text>
-								)}
-
-								{isExpanded && hasAnything && (
-									<View style={styles.detailBlock}>
-										{offer &&
-											(savings ? (
-												<>
-													<View style={styles.detailRow}>
-														<Text style={styles.detailLabel}>Precio de lista</Text>
-														<Text style={styles.strikePrice}>{formatCurrency(offer.listPrice)}</Text>
-													</View>
-													<View style={styles.detailRow}>
-														<Text style={styles.detailLabel}>Precio con la oferta</Text>
-														<Text style={styles.detailValue}>{formatCurrency(offer.price)}</Text>
-													</View>
-													<View style={styles.savingsRow}>
-														<Ionicons name="pricetag" size={13} color="#15803D" />
-														<Text style={styles.savingsText}>
-															Ahorrás {formatCurrency(savings.amount)} ({Math.round(savings.pct)}%) sobre el
-															precio de lista
-														</Text>
-													</View>
-													<Text style={styles.detailNote}>
-														Es el precio más bajo que tenemos registrado para un producto de la misma marca
-														y del mismo tipo, entre los súper que seguís. Puede ser otra presentación o
-														tamaño del que comprás vos, y el dato es del último relevamiento, no
-														necesariamente de hoy.
-													</Text>
-												</>
-											) : (
-												<Text style={styles.detailNote}>
-													{offer.retailerName} no publicó precio de lista para este producto, así que no
-													podemos calcular cuánto representa el descuento.
-												</Text>
-											))}
-
-										{offer?.promoLabel && (
-											// Attributed to the retailer: unattributed, this validity window
-											// sat next to a different chain's promotion and read as if both
-											// belonged to the same offer.
-											<View style={styles.promoRow}>
-												<Ionicons name="megaphone-outline" size={13} color={colors.navy} />
-												<Text style={styles.promoText}>
-													{offer.retailerName}: {offer.promoLabel}
-												</Text>
-											</View>
-										)}
-
-										{offer && p.lastPaidPrice != null && (
-											<View style={styles.paidBlock}>
-												<View style={styles.detailRow}>
-													{/* The date is when the receipt was scanned, not when the
-													    purchase happened — the ticket carries no emission date.
-													    Worded so it stays true either way, including when an old
-													    receipt is scanned today. */}
-													<Text style={styles.detailLabel}>
-														En tu último ticket escaneado
-														{formatDate(p.lastPaidAt) ? ` (${formatDate(p.lastPaidAt)})` : ""}
-													</Text>
-													<Text style={styles.detailValue}>{formatCurrency(p.lastPaidPrice)}</Text>
-												</View>
-												{p.lastPaidPrice > offer.price ? (
-													<Text style={styles.paidBetter}>
-														La oferta está {formatCurrency(p.lastPaidPrice - offer.price)} por debajo de lo
-														que pagaste
-													</Text>
-												) : (
-													<Text style={styles.paidWorse}>
-														La última vez lo conseguiste más barato que esta oferta
-													</Text>
-												)}
-												{/* Both numbers are per unit, and the offer can be a different
-												    size, so this is a reference point and not a saving. */}
-												<Text style={styles.paidCaveat}>
-													Compará la presentación antes de decidir: los precios pueden ser de tamaños
-													distintos.
-												</Text>
-											</View>
-										)}
-
-										{campaigns.length > 0 && (
-											<View style={styles.campaignBlock}>
-												<Text style={styles.campaignTitle}>OTRAS PROMOCIONES VIGENTES</Text>
-												<Text style={styles.campaignIntro}>
-													Promociones publicadas por el súper, con sus propias condiciones. No son precios
-													por unidad, así que no se comparan de forma directa con el mejor precio de arriba.
-												</Text>
-												{campaigns.map((c, i) => {
-													const until = formatDate(c.activeTo);
-													const days = daysUntil(c.activeTo);
-													const discount = describeCampaignDiscount(c);
-													const full = campaignOfferToOffer(c);
-													const openable = full != null && onOpenOffer != null;
-													return (
-														<Pressable
-															key={`${c.retailerName}-${i}`}
-															style={styles.campaignRow}
-															disabled={!openable}
-															onPress={() => full && onOpenOffer?.(full.id, full)}
-														>
-															<Ionicons name="time-outline" size={13} color={colors.navy} />
-															<View style={{ flex: 1 }}>
-																<Text style={styles.campaignHeadline}>
-																	{discount ? `${discount} · ` : ""}
-																	{c.retailerName}
-																	{c.province ? ` · ${c.province}` : ""}
-																</Text>
-																{until && (
-																	<Text style={styles.campaignUntil}>
-																		Vigente hasta el {until}
-																		{days != null && days >= 0 && days <= 7
-																			? days === 0
-																				? " · vence hoy"
-																				: ` · quedan ${days} día${days === 1 ? "" : "s"}`
-																			: ""}
-																	</Text>
-																)}
-																{c.legalText && (
-																	<Text style={styles.campaignLegal} numberOfLines={3}>
-																		{c.legalText}
-																	</Text>
-																)}
-																{openable && (
-																	<Text style={styles.campaignLink}>Ver la promoción completa</Text>
-																)}
-															</View>
-															{openable && (
-																<Ionicons name="chevron-forward" size={14} color={colors.navy} />
-															)}
-														</Pressable>
-													);
-												})}
-												<Text style={styles.campaignDisclaimer}>
-													Las promociones las publica el súper y pueden cambiar sin aviso. Verificá la
-													vigencia y consultá el stock en la sucursal: no garantizamos que el producto
-													esté disponible en la que elijas.
-												</Text>
-												{hasGuessedPercentages(campaigns) && (
-													<Text style={styles.campaignDisclaimer}>
-														Algún porcentaje se leyó de la imagen de la promoción y puede no ser exacto,
-														confirmalo en el local.
-													</Text>
-												)}
-											</View>
-										)}
-
-										{p.totalDiscounts > 0 && (
-											<View style={styles.historyRow}>
-												<Ionicons name="receipt-outline" size={13} color="#6B7280" />
-												<Text style={styles.historyText}>
-													Ya llevás {formatCurrency(p.totalDiscounts)} ahorrados en este producto por descuentos
-													de tus tickets
-												</Text>
-											</View>
-										)}
-									</View>
-								)}
-
-								{p.alternativeOffers.length > 0 && (
-									<View style={styles.altBlock}>
-										<Text style={styles.altTitle}>TAMBIÉN EN OFERTA (OTRAS MARCAS)</Text>
-										{p.alternativeOffers.map((alt, i) => (
-											<View key={`${alt.productName}-${i}`} style={styles.altRow}>
-												<Ionicons name="swap-horizontal-outline" size={13} color="#9CA3A8" />
-												{/* Two lines and the retailer named: on one line the product
-												    got cut mid-word, and the price was shown without saying
-												    which supermarket it was from. */}
-												<View style={{ flex: 1 }}>
-													<Text style={styles.altName} numberOfLines={2}>
-														{alt.productName}
-													</Text>
-													{alt.retailerName && (
-														<Text style={styles.altRetailer}>en {alt.retailerName}</Text>
-													)}
-												</View>
-												{alt.discountPct != null && (
-													<Text style={styles.altDiscount}>-{Math.round(alt.discountPct)}%</Text>
-												)}
-												<Text style={styles.altPrice}>{formatCurrency(alt.price)}</Text>
-											</View>
-										))}
-									</View>
-								)}
-							</View>
+							<ProductCard
+								key={id}
+								id={id}
+								product={p}
+								isExpanded={expandedId === id}
+								onToggle={handleToggle}
+								onOpenOffer={onOpenOffer}
+								colors={colors}
+								styles={styles}
+							/>
 						);
 					})}
 				</ScrollView>
@@ -401,63 +164,333 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 	);
 }
 
-const styles = StyleSheet.create({
-	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-	errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, backgroundColor: "#FEF2F2", borderRadius: 10, padding: 12 },
-	errorText: { flex: 1, color: "#991B1B", fontFamily: typography.family.medium, fontSize: 13 },
-	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingBottom: 60, paddingHorizontal: 40 },
-	emptyTitle: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 16, textAlign: "center" },
-	emptyHint: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
-	intro: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 12, borderWidth: 1, borderColor: "#E5E7EB" },
-	cardHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-	name: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	freq: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
-	bestRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	bestChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#22C55E", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-	campaignChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.navy, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-	bestText: { color: "#fff", fontFamily: typography.family.medium, fontSize: 11 },
-	priceGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
-	discountBadge: { backgroundColor: "#DCFCE7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-	discountText: { color: "#15803D", fontFamily: typography.family.bold, fontSize: 11 },
-	price: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 15 },
-	noOffer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12 },
-	detailBlock: { borderTopWidth: 1, borderTopColor: "#E5E7EB", paddingTop: 10, gap: 8 },
-	detailRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	detailLabel: { flex: 1, color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12 },
-	detailValue: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 13 },
-	strikePrice: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 13, textDecorationLine: "line-through" },
-	savingsRow: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#F0FDF4", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
-	savingsText: { flex: 1, color: "#15803D", fontFamily: typography.family.bold, fontSize: 13 },
-	detailNote: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
-	promoRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-	promoText: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-	paidBlock: { borderTopWidth: 1, borderTopColor: "#F1F5F9", paddingTop: 8, gap: 4 },
-	offerProduct: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
-	paidBetter: { color: "#15803D", fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
-	paidCaveat: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
-	paidWorse: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
-	campaignBlock: { borderTopWidth: 1, borderTopColor: "#F1F5F9", paddingTop: 10, gap: 8 },
-	campaignTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
-	campaignIntro: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
-	campaignRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-	campaignHeadline: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
-	campaignUntil: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	campaignLegal: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, marginTop: 3 },
-	campaignLink: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 11, marginTop: 4, textDecorationLine: "underline" },
-	campaignDisclaimer: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, fontStyle: "italic" },
-	historyRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-	historyText: { flex: 1, color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
-	altBlock: { borderTopWidth: 1, borderTopColor: "#E5E7EB", paddingTop: 10, gap: 6 },
-	altTitle: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
-	altRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-	altName: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
-	altRetailer: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 11, marginTop: 1 },
-	altDiscount: { color: "#22C55E", fontFamily: typography.family.medium, fontSize: 11 },
-	altPrice: { color: colors.navy, fontFamily: typography.family.medium, fontSize: 12 },
+/** One card in the list, split out and memoized so toggling one product's
+ * expanded detail doesn't re-render every other card — with the campaign and
+ * alternative-offer sub-lists this screen can carry, re-running that JSX for
+ * every product on every single tap was the actual jank source. */
+const ProductCard = memo(function ProductCard({
+	id,
+	product: p,
+	isExpanded,
+	onToggle,
+	onOpenOffer,
+	colors,
+	styles,
+}: {
+	id: string;
+	product: RecurringProduct;
+	isExpanded: boolean;
+	onToggle: (id: string) => void;
+	onOpenOffer?: (id: string, fallback?: Offer | null) => void;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
+}) {
+	const offer = p.bestOffer;
+	const savings = offer ? offerSavings(offer) : null;
+	const discountPct = offer?.discountPct ?? savings?.pct ?? null;
+	const campaigns = p.campaignOffers.slice(0, 3);
+	const hasAnything = offer != null || campaigns.length > 0;
+
+	return (
+		<View style={styles.card}>
+			{/* Only the header toggles. With the whole card pressable,
+			    trying to read a truncated line further down collapsed the
+			    card instead. */}
+			<Pressable
+				style={styles.cardHeader}
+				onPress={() => hasAnything && onToggle(id)}
+				disabled={!hasAnything}
+				accessibilityRole={hasAnything ? "button" : undefined}
+				accessibilityLabel={`${p.description}. ${formatFrequency(p.purchaseCount, p.ticketCount)}`}
+				accessibilityHint={hasAnything ? (isExpanded ? "Toca para contraer el detalle" : "Toca para ver el detalle") : undefined}
+				accessibilityState={hasAnything ? { expanded: isExpanded } : undefined}
+			>
+				<Ionicons name="repeat-outline" size={18} color={colors.cyan} />
+				<View style={{ flex: 1 }}>
+					<Text style={styles.name}>{p.description}</Text>
+					<Text style={styles.freq}>{formatFrequency(p.purchaseCount, p.ticketCount)}</Text>
+				</View>
+				{hasAnything && (
+					<Ionicons
+						name={isExpanded ? "chevron-up" : "chevron-down"}
+						size={18}
+						color={colors.subtleText}
+					/>
+				)}
+			</Pressable>
+
+			{offer ? (
+				<View style={{ gap: space.xs }}>
+					<View style={styles.bestRow}>
+						<View style={styles.bestChip}>
+							<Ionicons name="trophy" size={11} color={colors.buttonText} />
+							<Text style={styles.bestText}>Mejor en {offer.retailerName}</Text>
+						</View>
+						<View style={styles.priceGroup}>
+							{discountPct != null && discountPct >= 1 && (
+								<View style={styles.discountBadge}>
+									<Text style={styles.discountText}>-{Math.round(discountPct)}%</Text>
+								</View>
+							)}
+							<Text style={styles.price}>{formatCurrency(offer.price)}</Text>
+						</View>
+					</View>
+					{/* Always visible, never only in the expanded detail: the match is
+					    by brand and kind of product, so the price can belong to another
+					    size or variety. Hiding which product it is turned a bag of
+					    flour into "the best price" for a bottle of oil. */}
+					{offer.productName && (
+						<Text style={styles.offerProduct} numberOfLines={2}>
+							Precio de: {offer.productName}
+						</Text>
+					)}
+				</View>
+			) : campaigns.length > 0 ? (
+				// A campaign promotion with no catalog price is still an offer;
+				// calling it "sin ofertas activas" was hiding a real one.
+				<View style={styles.bestRow}>
+					<View style={styles.campaignChip}>
+						<Ionicons name="megaphone" size={11} color={colors.buttonText} />
+						<Text style={styles.bestText}>
+							{describeCampaignDiscount(campaigns[0]) ?? "Promoción vigente"} en{" "}
+							{campaigns[0].retailerName}
+						</Text>
+					</View>
+				</View>
+			) : p.alternativeOffers.length > 0 ? (
+				// Saying "sin ofertas" while listing one right below it was a
+				// straight contradiction.
+				<Text style={styles.noOffer}>
+					Sin oferta de esta marca, pero hay otra marca en oferta
+				</Text>
+			) : (
+				<Text style={styles.noOffer}>Sin ofertas activas por ahora</Text>
+			)}
+
+			{isExpanded && hasAnything && (
+				<View style={styles.detailBlock}>
+					{/* Everything about the one offer this card already shows — price
+					    comparison, which promo it comes from, how it compares to what
+					    you actually paid last time — grouped under one heading instead
+					    of running straight into "other promotions" below with nothing
+					    to mark where one ends and the next begins. */}
+					{offer && (
+						<View style={styles.detailGroup}>
+							<Text style={styles.detailGroupTitle}>ESTE PRECIO</Text>
+							{savings ? (
+								<>
+									<View style={styles.detailRow}>
+										<Text style={styles.detailLabel}>Precio de lista</Text>
+										<Text style={styles.strikePrice}>{formatCurrency(offer.listPrice)}</Text>
+									</View>
+									<View style={styles.detailRow}>
+										<Text style={styles.detailLabel}>Precio con la oferta</Text>
+										<Text style={styles.detailValue}>{formatCurrency(offer.price)}</Text>
+									</View>
+									<View style={styles.savingsRow}>
+										<Ionicons name="pricetag" size={13} color={colors.successSoftText} />
+										<Text style={styles.savingsText}>
+											Ahorrás {formatCurrency(savings.amount)} ({Math.round(savings.pct)}%) sobre el
+											precio de lista
+										</Text>
+									</View>
+									<Text style={styles.detailNote}>
+										El mejor precio registrado para un producto de la misma marca y tipo — puede
+										ser otra presentación o tamaño del que comprás vos.
+									</Text>
+								</>
+							) : (
+								<Text style={styles.detailNote}>
+									{offer.retailerName} no publicó precio de lista para este producto, así que no
+									podemos calcular cuánto representa el descuento.
+								</Text>
+							)}
+
+							{offer.promoLabel && (
+								// Attributed to the retailer: unattributed, this validity window
+								// sat next to a different chain's promotion and read as if both
+								// belonged to the same offer.
+								<View style={styles.promoRow}>
+									<Ionicons name="megaphone-outline" size={13} color={colors.infoSoftText} />
+									<Text style={styles.promoText}>
+										{offer.retailerName}: {offer.promoLabel}
+									</Text>
+								</View>
+							)}
+
+							{p.lastPaidPrice != null && (
+								<View style={styles.paidBlock}>
+									<View style={styles.detailRow}>
+										{/* The date is when the receipt was scanned, not when the
+										    purchase happened — the ticket carries no emission date.
+										    Worded so it stays true either way, including when an old
+										    receipt is scanned today. */}
+										<Text style={styles.detailLabel}>
+											En tu último ticket escaneado
+											{formatLongDate(p.lastPaidAt) ? ` (${formatLongDate(p.lastPaidAt)})` : ""}
+										</Text>
+										<Text style={styles.detailValue}>{formatCurrency(p.lastPaidPrice)}</Text>
+									</View>
+									{p.lastPaidPrice > offer.price ? (
+										<Text style={styles.paidBetter}>
+											La oferta está {formatCurrency(p.lastPaidPrice - offer.price)} por debajo de lo
+											que pagaste
+										</Text>
+									) : (
+										<Text style={styles.paidWorse}>
+											La última vez lo conseguiste más barato que esta oferta
+										</Text>
+									)}
+								</View>
+							)}
+						</View>
+					)}
+
+					{campaigns.length > 0 && (
+						<View style={styles.campaignBlock}>
+							<Text style={styles.campaignTitle}>OTRAS PROMOCIONES VIGENTES</Text>
+							{campaigns.map((c, i) => {
+								const until = formatLongDate(c.activeTo);
+								const days = daysUntil(c.activeTo);
+								const discount = describeCampaignDiscount(c);
+								const full = campaignOfferToOffer(c);
+								const openable = full != null && onOpenOffer != null;
+								return (
+									<Pressable
+										key={`${c.retailerName}-${i}`}
+										style={styles.campaignRow}
+										disabled={!openable}
+										onPress={() => full && onOpenOffer?.(full.id, full)}
+										accessibilityRole={openable ? "button" : undefined}
+										accessibilityLabel={`${discount ? `${discount} en ` : ""}${c.retailerName}${c.province ? `, ${c.province}` : ""}${until ? `. Vigente hasta el ${until}` : ""}`}
+										accessibilityHint={openable ? "Ver la promoción completa" : undefined}
+									>
+										<Ionicons name="time-outline" size={13} color={colors.defaultText} />
+										<View style={{ flex: 1 }}>
+											<Text style={styles.campaignHeadline}>
+												{discount ? `${discount} · ` : ""}
+												{c.retailerName}
+												{c.province ? ` · ${c.province}` : ""}
+											</Text>
+											{until && (
+												<Text style={styles.campaignUntil}>
+													Vigente hasta el {until}
+													{days != null && days >= 0 && days <= 7 && (
+														<Text style={styles.campaignUrgent}>
+															{days === 0 ? " · vence hoy" : ` · quedan ${days} día${days === 1 ? "" : "s"}`}
+														</Text>
+													)}
+												</Text>
+											)}
+											{openable && (
+												<Text style={styles.campaignLink}>Ver la promoción completa</Text>
+											)}
+										</View>
+										{openable && (
+											<Ionicons name="chevron-forward" size={14} color={colors.defaultText} />
+										)}
+									</Pressable>
+								);
+							})}
+							{hasGuessedPercentages(campaigns) && (
+								<Text style={styles.campaignDisclaimer}>
+									Algún porcentaje se leyó de la imagen de la promoción y puede no ser exacto,
+									confirmalo en el local.
+								</Text>
+							)}
+						</View>
+					)}
+
+					{p.totalDiscounts > 0 && (
+						<View style={styles.historyRow}>
+							<Ionicons name="receipt-outline" size={13} color={colors.successSoftText} />
+							<Text style={styles.historyText}>
+								Ya llevás {formatCurrency(p.totalDiscounts)} ahorrados en este producto por descuentos
+								de tus tickets
+							</Text>
+						</View>
+					)}
+				</View>
+			)}
+
+			{p.alternativeOffers.length > 0 && (
+				<View style={styles.altBlock}>
+					<Text style={styles.altTitle}>TAMBIÉN EN OFERTA (OTRAS MARCAS)</Text>
+					{p.alternativeOffers.map((alt, i) => (
+						<View key={`${alt.productName}-${i}`} style={styles.altRow}>
+							<Ionicons name="swap-horizontal-outline" size={13} color={colors.subtleText} />
+							{/* Two lines and the retailer named: on one line the product
+							    got cut mid-word, and the price was shown without saying
+							    which supermarket it was from. */}
+							<View style={{ flex: 1 }}>
+								<Text style={styles.altName} numberOfLines={2}>
+									{alt.productName}
+								</Text>
+								{alt.retailerName && (
+									<Text style={styles.altRetailer}>en {alt.retailerName}</Text>
+								)}
+							</View>
+							{alt.discountPct != null && (
+								<Text style={styles.altDiscount}>-{Math.round(alt.discountPct)}%</Text>
+							)}
+							<Text style={styles.altPrice}>{formatCurrency(alt.price)}</Text>
+						</View>
+					))}
+				</View>
+			)}
+		</View>
+	);
 });
+
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
+	safeArea: { flex: 1, backgroundColor: colors.background },
+	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
+	card: { backgroundColor: colors.card, borderRadius: 12, padding: space.mdPlus, gap: space.md, borderWidth: 1, borderColor: colors.divider },
+	cardHeader: { flexDirection: "row", alignItems: "center", gap: space.smPlus },
+	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
+	freq: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
+	bestRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+	bestChip: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.success, paddingHorizontal: space.smPlus, paddingVertical: space.xs, borderRadius: 10 },
+	campaignChip: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.navy, paddingHorizontal: space.smPlus, paddingVertical: space.xs, borderRadius: 10 },
+	bestText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 11 },
+	priceGroup: { flexDirection: "row", alignItems: "center", gap: space.xsPlus },
+	discountBadge: { backgroundColor: colors.successSoft, paddingHorizontal: space.xsPlus, paddingVertical: 2, borderRadius: 6 },
+	discountText: { color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 11 },
+	price: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
+	noOffer: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
+	detailBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: space.smPlus, gap: space.sm },
+	detailGroup: { gap: space.sm },
+	detailGroupTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
+	detailRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+	detailLabel: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
+	detailValue: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
+	strikePrice: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 13, textDecorationLine: "line-through" },
+	savingsRow: { flexDirection: "row", alignItems: "center", gap: space.xsPlus, backgroundColor: colors.successSoft, borderRadius: 8, paddingHorizontal: space.smPlus, paddingVertical: space.sm },
+	savingsText: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 13 },
+	detailNote: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
+	promoRow: { flexDirection: "row", alignItems: "center", gap: space.xsPlus },
+	promoText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
+	paidBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.sm, gap: space.xs },
+	offerProduct: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
+	paidBetter: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
+	paidWorse: { color: colors.warningSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
+	campaignBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.smPlus, gap: space.sm },
+	campaignTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
+	campaignRow: { flexDirection: "row", alignItems: "flex-start", gap: space.xsPlus },
+	campaignHeadline: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
+	campaignUntil: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
+	campaignUrgent: { color: colors.warningSoftText, fontFamily: typography.family.medium },
+	campaignLink: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 11, marginTop: space.xs, textDecorationLine: "underline" },
+	campaignDisclaimer: { color: colors.warningSoftText, fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, fontStyle: "italic" },
+	historyRow: { flexDirection: "row", alignItems: "flex-start", gap: space.xsPlus },
+	historyText: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
+	altBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: space.smPlus, gap: space.xsPlus },
+	altTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
+	altRow: { flexDirection: "row", alignItems: "flex-start", gap: space.xsPlus },
+	altName: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
+	altRetailer: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 11, marginTop: 1 },
+	altDiscount: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11 },
+	altPrice: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
+	});
+}

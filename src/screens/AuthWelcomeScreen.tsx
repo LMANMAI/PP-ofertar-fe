@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, typography } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { Ionicons } from "@expo/vector-icons";
 
 type AuthWelcomeScreenProps = {
@@ -33,6 +34,8 @@ export function AuthWelcomeScreen({
 	onBiometricLogin,
 }: AuthWelcomeScreenProps) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [fontsLoaded] = useFonts({
 		PlusJakartaSans_400Regular,
 		PlusJakartaSans_500Medium,
@@ -118,7 +121,7 @@ export function AuthWelcomeScreen({
 						</Pressable>
 					)}
 
-					<Text style={styles.legalText}>
+					<Text style={[styles.legalText, !showBiometricButton && styles.legalTextBreak]}>
 						Al continuar aceptás los términos y la política de privacidad.
 					</Text>
 				</View>
@@ -127,7 +130,8 @@ export function AuthWelcomeScreen({
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		backgroundColor: colors.navy,
@@ -138,9 +142,9 @@ const styles = StyleSheet.create({
 	background: {
 		flex: 1,
 		backgroundColor: colors.navy,
-		paddingHorizontal: 24,
-		paddingTop: 10,
-		paddingBottom: 10,
+		paddingHorizontal: space.xxl,
+		paddingTop: space.smPlus,
+		paddingBottom: space.smPlus,
 		overflow: "hidden",
 	},
 	zoneTop: {
@@ -154,8 +158,8 @@ const styles = StyleSheet.create({
 		flex: 1.1,
 	},
 	zoneCta: {
-		paddingBottom: 6,
-		gap: 10,
+		paddingBottom: space.xsPlus,
+		gap: space.sm,
 	},
 	loader: {
 		flex: 1,
@@ -165,14 +169,18 @@ const styles = StyleSheet.create({
 	},
 	hero: {
 		maxWidth: 324,
-		gap: 12,
 		justifyContent: "center",
 	},
+	// No blanket gap here on purpose: the four elements below read as two
+	// groups — a tight brand lockup (logo, name, tagline), then a clear break
+	// into the actual pitch (headline, body) — so each gap is spelled out
+	// explicitly rather than inherited from a container value that would
+	// silently stack with these anyway.
 	badgeIcon: {
 		width: 84,
 		height: 84,
 		borderRadius: 7,
-		marginBottom: 12,
+		marginBottom: space.md,
 	},
 	overline: {
 		color: colors.cyan,
@@ -181,7 +189,7 @@ const styles = StyleSheet.create({
 		lineHeight: 14,
 		letterSpacing: 2.2,
 		textTransform: "uppercase",
-		marginTop: 2,
+		marginTop: space.xs,
 	},
 	brandTitle: {
 		color: colors.buttonText,
@@ -193,7 +201,7 @@ const styles = StyleSheet.create({
 		color: colors.cyan,
 	},
 	headline: {
-		marginTop: 8,
+		marginTop: space.xl,
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
 		fontSize: 36,
@@ -204,14 +212,11 @@ const styles = StyleSheet.create({
 		color: colors.cyan,
 	},
 	body: {
-		marginTop: 8,
+		marginTop: space.sm,
 		color: "rgba(255, 255, 255, 0.58)",
 		fontFamily: typography.family.regular,
 		fontSize: 17,
 		lineHeight: 26,
-	},
-	footer: {
-		gap: 10,
 	},
 	primaryButton: {
 		height: 52,
@@ -242,19 +247,28 @@ const styles = StyleSheet.create({
 		lineHeight: 16,
 	},
 	legalText: {
-		marginTop: 2,
 		color: "rgba(255, 255, 255, 0.35)",
 		fontFamily: typography.family.regular,
 		fontSize: 10,
 		lineHeight: 14,
 		textAlign: "left",
 	},
+	// Only needed when the biometric row is absent: legalText then sits
+	// directly under the CTA pair and needs the same "new group" break the
+	// biometric button otherwise provides.
+	legalTextBreak: {
+		marginTop: space.md,
+	},
+	// The break before this tertiary action: primary/secondary are the
+	// decision, this and the legal line are the footnote — grouped tight to
+	// each other (the container's own gap.sm), separated from the CTAs above.
 	biometricButton: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 8,
-		paddingVertical: 8,
+		gap: space.sm,
+		paddingVertical: space.sm,
+		marginTop: space.md,
 	},
 	biometricButtonText: {
 		color: "rgba(255,255,255,0.45)",
@@ -265,4 +279,5 @@ const styles = StyleSheet.create({
 	pressed: {
 		opacity: 0.88,
 	},
-});
+	});
+}

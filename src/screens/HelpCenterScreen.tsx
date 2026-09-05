@@ -1,65 +1,98 @@
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { useMemo, useState } from "react";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, typography } from "../theme/designSystem";
-import { BottomNav, type TabKey } from "../components";
+import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { BottomNav, ScreenHeader, type TabKey } from "../components";
+import { POINTS_PER_REFERRAL } from "../data/rewards";
 
 type Faq = { id: string; q: string; a: string };
 
 const FAQS: Faq[] = [
-	{ id: "1", q: "¿Cómo escaneo un ticket?", a: "Desde el botón central del bottom nav (ícono ticket). Apuntá la cámara al ticket completo y esperá la confirmación." },
-	{ id: "2", q: "¿Cuántos puntos gano por ticket?", a: "Depende del monto y la tienda. Promedio: 1 punto por cada $20 de compra." },
-	{ id: "3", q: "¿Mis datos están seguros?", a: "Sí. Usamos encriptación de nivel bancario y nunca compartimos tu información personal con terceros." },
-	{ id: "4", q: "¿Cómo activo una oferta?", a: "Desde la pestaña Ofertas, tocá la oferta y luego 'Activar oferta'. Te damos un código para mostrar en caja." },
-	{ id: "5", q: "¿Puedo cambiar mi nivel?", a: "Tu nivel sube automáticamente cuando alcanzás los puntos requeridos. Mirá 'Niveles de fidelidad' para ver los umbrales." },
+	{ id: "1", q: "¿Cómo escaneo un ticket?", a: "Tocá el botón con el ícono de ticket en el centro de la barra inferior. Apuntá la cámara al ticket completo y esperá la confirmación." },
+	{ id: "2", q: "¿Cómo gano puntos?", a: `Si te registrás usando el código de invitación de un amigo, ganás ${POINTS_PER_REFERRAL} puntos. Encontrá tu propio código para compartir en la pestaña Puntos.` },
+	{ id: "3", q: "¿Mis datos están seguros?", a: "Guardamos lo mínimo necesario para que funcione tu cuenta y nunca compartimos tu información personal con terceros." },
+	{ id: "4", q: "¿Cómo veo el detalle de una oferta?", a: "Desde la pestaña Ofertas, tocá cualquier oferta para ver en qué sucursales aplica, hasta cuándo dura y las condiciones." },
+	{ id: "5", q: "¿Para qué sirven los puntos por referidos?", a: "OfertAR todavía no tiene suscripción paga, así que por ahora es una vista previa: podés guardar tu interés en descuentos o un mes gratis para el día que esa función exista. Mirá los canjes disponibles en la pestaña Puntos." },
 ];
 
 type Props = { onBack: () => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
 
 export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
+	const colors = useThemeColors();
+	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [open, setOpen] = useState<string | null>(null);
+	const [query, setQuery] = useState("");
+
+	const filteredFaqs = useMemo(() => {
+		const q = query.trim().toLowerCase();
+		if (!q) return FAQS;
+		return FAQS.filter(
+			(f) => f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q),
+		);
+	}, [query]);
+
+	const handleContactSupport = () => {
+		Linking.openURL("mailto:soporte@ofertar.app?subject=Consulta%20desde%20la%20app");
+	};
+
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton}>
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Centro de ayuda</Text>
-			</View>
+			<ScreenHeader title="Centro de ayuda" onBack={onBack} />
 
-			<ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 24 }}>
+			<ScrollView contentContainerStyle={{ padding: space.lg, gap: space.md, paddingBottom: insets.bottom + space.xxl }}>
 				<View style={styles.searchBox}>
-					<Ionicons name="search" size={16} color="#9CA3A8" />
-					<Text style={styles.searchPlaceholder}>Buscar en ayuda</Text>
+					<Ionicons name="search" size={16} color={colors.subtleText} />
+					<TextInput
+						style={styles.searchInput}
+						value={query}
+						onChangeText={setQuery}
+						placeholder="Buscar en ayuda"
+						placeholderTextColor={colors.subtleText}
+						accessibilityLabel="Buscar en ayuda"
+					/>
+					{query.length > 0 && (
+						<Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityRole="button" accessibilityLabel="Limpiar búsqueda">
+							<Ionicons name="close-circle" size={16} color={colors.subtleText} />
+						</Pressable>
+					)}
 				</View>
 
 				<Text style={styles.sectionLabel}>PREGUNTAS FRECUENTES</Text>
-				<View style={styles.faqCard}>
-					{FAQS.map((f, idx) => (
-						<View key={f.id}>
-							<Pressable
-								style={styles.faqRow}
-								onPress={() => setOpen(open === f.id ? null : f.id)}
-							>
-								<Text style={styles.faqQ}>{f.q}</Text>
-								<Ionicons
-									name={open === f.id ? "chevron-up" : "chevron-down"}
-									size={18}
-									color="#9CA3A8"
-								/>
-							</Pressable>
-							{open === f.id && <Text style={styles.faqA}>{f.a}</Text>}
-							{idx < FAQS.length - 1 && <View style={styles.divider} />}
-						</View>
-					))}
-				</View>
+				{filteredFaqs.length === 0 ? (
+					<View style={styles.emptyWrap}>
+						<Text style={styles.emptyText}>
+							No encontramos resultados para &quot;{query}&quot;.
+						</Text>
+					</View>
+				) : (
+					<View style={styles.faqCard}>
+						{filteredFaqs.map((f, idx) => (
+							<View key={f.id}>
+								<Pressable
+									style={styles.faqRow}
+									onPress={() => setOpen(open === f.id ? null : f.id)}
+									accessibilityRole="button"
+									accessibilityLabel={f.q}
+									accessibilityHint={open === f.id ? "Toca para contraer la respuesta" : "Toca para ver la respuesta"}
+									accessibilityState={{ expanded: open === f.id }}
+								>
+									<Text style={styles.faqQ}>{f.q}</Text>
+									<Ionicons
+										name={open === f.id ? "chevron-up" : "chevron-down"}
+										size={18}
+										color={colors.subtleText}
+									/>
+								</Pressable>
+								{open === f.id && <Text style={styles.faqA}>{f.a}</Text>}
+								{idx < filteredFaqs.length - 1 && <View style={styles.divider} />}
+							</View>
+						))}
+					</View>
+				)}
 
-				<Pressable style={styles.contactBtn}>
+				<Pressable style={styles.contactBtn} onPress={handleContactSupport}>
 					<Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.buttonText} />
 					<Text style={styles.contactText}>Contactar soporte</Text>
 				</Pressable>
@@ -72,20 +105,20 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 	);
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: { backgroundColor: colors.navy, paddingHorizontal: 12, height: 56, flexDirection: "row", alignItems: "center", gap: 8 },
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: { flex: 1, color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 17 },
-	searchBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.card, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#E5E7EB" },
-	searchPlaceholder: { color: "#9CA3A8", fontFamily: typography.family.regular, fontSize: 14 },
-	sectionLabel: { color: "#9CA3A8", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: 8 },
+	searchBox: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.card, padding: space.md, borderRadius: 10, borderWidth: 1, borderColor: colors.divider },
+	searchInput: { flex: 1, color: colors.defaultText, fontFamily: typography.family.regular, fontSize: 14, padding: 0 },
+	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: space.sm },
+	emptyWrap: { backgroundColor: colors.card, borderRadius: 12, padding: space.xl, alignItems: "center" },
+	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, textAlign: "center" },
 	faqCard: { backgroundColor: colors.card, borderRadius: 12, overflow: "hidden" },
-	faqRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 },
-	faqQ: { flex: 1, color: colors.navy, fontFamily: typography.family.medium, fontSize: 14 },
-	faqA: { color: "#6B7280", fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 14 },
-	divider: { height: 1, backgroundColor: "#E5E7EB", marginHorizontal: 16 },
-	contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: colors.navy, height: 48, borderRadius: 10 },
+	faqRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: space.lg },
+	faqQ: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
+	faqA: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: space.lg, paddingBottom: space.mdPlus },
+	divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: space.lg },
+	contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm, backgroundColor: colors.navy, height: 48, borderRadius: 10 },
 	contactText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
-});
+	});
+}
