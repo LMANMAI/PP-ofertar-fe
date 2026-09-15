@@ -1,12 +1,14 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { getRecurringProducts, getTickets, offerBadge } from "../services";
+import { deleteAllTickets, getRecurringProducts, getTickets, offerBadge } from "../services";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
 import {
 	BottomNav,
+	ConfirmSheet,
 	EmptyState,
 	ErrorBanner,
 	ForgottenProductsSheet,
@@ -66,6 +68,8 @@ export function TicketHistoryScreen({
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [refreshing, setRefreshing] = useState(false);
+	const [clearConfirmVisible, setClearConfirmVisible] = useState(false);
+	const [clearing, setClearing] = useState(false);
 
 	const loadTickets = async () => {
 		try {
@@ -150,9 +154,37 @@ export function TicketHistoryScreen({
 	const totalSpent = tickets.reduce((sum, t) => sum + (t.total ?? 0), 0);
 	const totalSaved = tickets.reduce((sum, t) => sum + (t.totalDiscounts ?? 0), 0);
 
+	const handleClearHistory = async () => {
+		setClearing(true);
+		try {
+			await deleteAllTickets(session.token);
+			setTickets([]);
+			setClearConfirmVisible(false);
+		} catch (err) {
+			Alert.alert("Error", err instanceof Error ? err.message : "No se pudo vaciar el historial");
+		} finally {
+			setClearing(false);
+		}
+	};
+
 	return (
 		<View style={styles.safeArea}>
-			<ScreenHeader title="Historial de tickets" onBack={onBack} />
+			<ScreenHeader
+				title="Historial de tickets"
+				onBack={onBack}
+				right={
+					tickets.length > 0 ? (
+						<Pressable
+							onPress={() => setClearConfirmVisible(true)}
+							hitSlop={8}
+							accessibilityRole="button"
+							accessibilityLabel="Vaciar historial de tickets"
+						>
+							<Ionicons name="trash-outline" size={20} color={colors.buttonText} />
+						</Pressable>
+					) : undefined
+				}
+			/>
 
 			{loading && <LoadingState />}
 
@@ -219,6 +251,23 @@ export function TicketHistoryScreen({
 				visible={forgottenVisible}
 				onClose={() => setForgottenVisible(false)}
 			/>
+
+			<Modal visible={clearConfirmVisible} animationType="fade" transparent onRequestClose={() => setClearConfirmVisible(false)}>
+				<View style={styles.clearBackdrop}>
+					<ConfirmSheet
+						icon="trash-outline"
+						iconTone="danger"
+						title="¿Vaciar historial?"
+						subtitle="Se borran todos tus tickets y no los vas a poder recuperar."
+						confirmLabel={clearing ? "Vaciando..." : "Vaciar historial"}
+						confirmTone="danger"
+						confirmDisabled={clearing}
+						onConfirm={handleClearHistory}
+						cancelLabel="Cancelar"
+						onCancel={() => setClearConfirmVisible(false)}
+					/>
+				</View>
+			</Modal>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
@@ -308,6 +357,7 @@ const TicketRow = memo(function TicketRow({
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
+	clearBackdrop: { flex: 1, backgroundColor: "rgba(10,31,68,0.7)", justifyContent: "center", paddingHorizontal: space.xxl },
 	summary: { flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: space.lg },
 	summaryDivider: { width: 1, height: 40, backgroundColor: colors.divider, marginHorizontal: space.md, alignSelf: "center" },
 	summaryLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },

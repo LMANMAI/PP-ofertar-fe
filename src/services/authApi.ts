@@ -132,6 +132,22 @@ export async function changePassword(
 	}
 }
 
+export async function deleteAccount(token: string, password: string): Promise<void> {
+	const res = await fetch(`${BASE_URL}/users/me`, {
+		method: "DELETE",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${token}`,
+		},
+		body: JSON.stringify({ password }),
+	});
+
+	if (!res.ok) {
+		const message = await parseApiError(res);
+		throw new Error(message);
+	}
+}
+
 export async function uploadProfilePicture(
 	token: string,
 	base64: string,

@@ -4,6 +4,7 @@ export {
 	getTicket,
 	updateTicket,
 	deleteTicket,
+	deleteAllTickets,
 	getSavingsReport,
 } from "./ticketApi";
 
@@ -20,6 +21,7 @@ export {
 	getProfile,
 	updateProfile,
 	changePassword,
+	deleteAccount,
 } from "./authApi";
 
 export type {

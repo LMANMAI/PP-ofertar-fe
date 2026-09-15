@@ -32,6 +32,7 @@ type Props = {
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
 	onLogout: () => void;
+	onDeleteAccount: () => void;
 	onOpenPersonalData: () => void;
 	onOpenPayment: () => void;
 	onOpenStores: () => void;
@@ -75,6 +76,7 @@ export function ProfileScreen({
 	onSelectTab,
 	onScanPress,
 	onLogout,
+	onDeleteAccount,
 	onOpenPersonalData,
 	onOpenPayment,
 	onOpenStores,
@@ -310,6 +312,10 @@ export function ProfileScreen({
 					<Ionicons name="log-out-outline" size={18} color={colors.danger} />
 					<Text style={styles.logoutText}>Cerrar sesión</Text>
 				</Pressable>
+
+				<Pressable style={styles.deleteAccountButton} onPress={onDeleteAccount}>
+					<Text style={styles.deleteAccountText}>Eliminar cuenta</Text>
+				</Pressable>
 			</ScrollView>
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
@@ -366,5 +372,7 @@ function createStyles(colors: ColorTokens) {
 	themeOptionTextActive: { color: colors.buttonText },
 	logoutButton: { marginTop: space.sm, height: 48, borderRadius: 10, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm },
 	logoutText: { color: colors.danger, fontFamily: typography.family.medium, fontSize: 15 },
+	deleteAccountButton: { height: 40, alignItems: "center", justifyContent: "center" },
+	deleteAccountText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 13, textDecorationLine: "underline" },
 	});
 }

@@ -15,6 +15,7 @@ import {
 	CheckEmailScreen,
 	ComparePricesScreen,
 	ConfirmRedeemScreen,
+	DeleteAccountScreen,
 	FavoriteStoresScreen,
 	GoogleChooseAccountScreen,
 	GoogleFirstTimeScreen,
@@ -74,7 +75,7 @@ type Screen =
 	| "offerDetail"
 	| "points" | "rewardDetail" | "confirmRedeem" | "redeemSuccess"
 	| "pointsHistory"
-	| "personalData" | "paymentMethods" | "favoriteStores" | "helpCenter" | "logoutConfirm"
+	| "personalData" | "paymentMethods" | "favoriteStores" | "helpCenter" | "logoutConfirm" | "deleteAccount"
 	| "ticketHistory" | "ticketDetail" | "monthlyAnalysis" | "recurringProducts" | "smartList";
 
 export default function App() {
@@ -545,6 +546,7 @@ export default function App() {
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
 					onLogout={() => setScreen("logoutConfirm")}
+					onDeleteAccount={() => setScreen("deleteAccount")}
 					onOpenPersonalData={() => setScreen("personalData")}
 					onOpenPayment={() => setScreen("paymentMethods")}
 					onOpenStores={() => setScreen("favoriteStores")}
@@ -765,6 +767,17 @@ export default function App() {
 				<LogoutConfirmScreen
 					onCancel={() => goMain("profile")}
 					onConfirm={handleLogout}
+				/>
+			)}
+
+			{screen === "deleteAccount" && session && (
+				<DeleteAccountScreen
+					session={session}
+					onBack={() => goMain("profile")}
+					onDeleted={handleLogout}
+					activeTab={tab}
+					onSelectTab={handleSelectTab}
+					onScanPress={handleScanPress}
 				/>
 			)}
 

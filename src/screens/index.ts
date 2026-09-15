@@ -14,6 +14,7 @@ export { PasswordRecoveryScreen } from "./PasswordRecoveryScreen";
 export { CheckEmailScreen } from "./CheckEmailScreen";
 export { ChangePasswordScreen } from "./ChangePasswordScreen";
 export { ChangePasswordAuthScreen } from "./ChangePasswordAuthScreen";
+export { DeleteAccountScreen } from "./DeleteAccountScreen";
 export { PasswordSuccessScreen } from "./PasswordSuccessScreen";
 export { HomeScreen } from "./HomeScreen";
 export { OffersScreen } from "./OffersScreen";
