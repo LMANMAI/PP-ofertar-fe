@@ -67,13 +67,14 @@ export function ComparePricesScreen({
 	}, []);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the scanned barcode changes
 		if (barcode) buscar(barcode);
 	}, [barcode, buscar]);
 
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 
 			<View style={styles.header}>
 				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">

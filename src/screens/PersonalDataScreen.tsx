@@ -11,13 +11,20 @@ import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { getProfile, updateProfile, uploadProfilePicture } from "../services/authApi";
 
-type Props = { session: Session; onBack: (message?: string) => void; activeTab: TabKey; onSelectTab: (t: TabKey) => void; onScanPress: () => void };
+type Props = {
+	session: Session;
+	onBack: (message?: string) => void;
+	activeTab: TabKey;
+	onSelectTab: (t: TabKey) => void;
+	onScanPress: () => void;
+	onSessionUpdate?: (session: Session) => void;
+};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const MAX_IMAGE_SIZE_MB = 5;
 
-export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, onScanPress }: Props) {
+export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, onScanPress, onSessionUpdate }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -38,6 +45,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 
 	useEffect(() => {
 		if (session.user.phone === null) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches the full profile on mount when phone hasn't been loaded yet
 			setFetching(true);
 			getProfile(session.token)
 				.then((profile) => {
@@ -106,7 +114,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 
 			const result = await uploadProfilePicture(session.token, base64);
 			setProfilePic(result.user.profilePicture);
-			session.user.profilePicture = result.user.profilePicture;
+			onSessionUpdate?.({ ...session, user: { ...session.user, profilePicture: result.user.profilePicture } });
 			setPicSuccess(true);
 		} catch (err) {
 			setPicError(err instanceof Error ? err.message : "Error al subir la foto");
@@ -143,7 +151,7 @@ export function PersonalDataScreen({ session, onBack, activeTab, onSelectTab, on
 		try {
 			await uploadProfilePicture(session.token, "");
 			setProfilePic(null);
-			session.user.profilePicture = null;
+			onSessionUpdate?.({ ...session, user: { ...session.user, profilePicture: null } });
 			setPicSuccess(true);
 		} catch (err) {
 			setPicError(err instanceof Error ? err.message : "Error al eliminar la foto");

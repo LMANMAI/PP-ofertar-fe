@@ -27,7 +27,7 @@ export function GoogleChooseAccountScreen({ onBack, onSelect }: Props) {
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style={isDark ? "light" : "dark"} translucent />
+			<StatusBar style={isDark ? "light" : "dark"} />
 			<View style={styles.header}>
 				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 					<Ionicons name="close" size={22} color={colors.defaultText} />

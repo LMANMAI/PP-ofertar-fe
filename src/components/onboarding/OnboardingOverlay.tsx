@@ -133,7 +133,7 @@ export function OnboardingOverlay({
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
-	overlay: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
+	overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 20 },
 	shade: {
 		position: "absolute",
 		left: 0,

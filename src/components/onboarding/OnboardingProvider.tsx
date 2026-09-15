@@ -152,6 +152,7 @@ export function OnboardingProvider({
 
 	useEffect(() => {
 		if (storageKey) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect -- resets the tour when the logged-in user changes
 			setActive(false);
 			setStepIndex(0);
 			setSpotlight(null);
@@ -160,6 +161,7 @@ export function OnboardingProvider({
 
 	useEffect(() => {
 		if (!eligible && active) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect -- ends the tour when the surface stops being eligible mid-run
 			setActive(false);
 			setSpotlight(null);
 		}
@@ -167,6 +169,7 @@ export function OnboardingProvider({
 
 	useEffect(() => {
 		if (!active) return;
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- clears the previous step's highlight before measuring the next target
 		setSpotlight(null);
 		const id = STEPS[stepIndex]?.id;
 		if (!id) return;
@@ -212,8 +215,13 @@ export function useOnboardingTarget(id: OnboardingTargetId) {
 		throw new Error(
 			"useOnboardingTarget debe usarse dentro de OnboardingProvider",
 		);
-	return {
-		ref: (node: View | null) => context.registerTarget(id, node),
-		onLayout: (event: LayoutChangeEvent) => context.registerLayout(id, event),
-	};
+	const attachRef = useCallback(
+		(node: View | null) => context.registerTarget(id, node),
+		[context, id],
+	);
+	const onLayout = useCallback(
+		(event: LayoutChangeEvent) => context.registerLayout(id, event),
+		[context, id],
+	);
+	return { attachRef, onLayout };
 }

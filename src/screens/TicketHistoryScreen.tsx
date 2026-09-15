@@ -131,6 +131,7 @@ export function TicketHistoryScreen({
 	};
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount
 		setLoading(true);
 		loadTickets().finally(() => setLoading(false));
 	}, []);

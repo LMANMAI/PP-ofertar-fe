@@ -10,7 +10,7 @@ export function LogoutConfirmScreen({ onCancel, onConfirm }: Props) {
 	const insets = useSafeAreaInsets();
 	return (
 		<View style={[styles.backdrop, { paddingTop: insets.top }]}>
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 			<ConfirmSheet
 				icon="log-out-outline"
 				iconTone="danger"

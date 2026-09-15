@@ -39,6 +39,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 	const [forgottenVisible, setForgottenVisible] = useState(false);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the ticket id changes
 		setLoading(true);
 		getTicket(session.token, ticketId)
 			.then(setTicket)
