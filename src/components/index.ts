@@ -10,6 +10,8 @@ export { EmptyState } from "./ui/EmptyState";
 export { ErrorBanner } from "./ui/ErrorBanner";
 export { LoadingState } from "./ui/LoadingState";
 export { Tag } from "./ui/Tag";
+export { ChainMarkerPin } from "./ui/ChainMarkerPin";
+export { StoreBadge } from "./ui/StoreBadge";
 export { ConfirmSheet } from "./ui/ConfirmSheet";
 export {
 	OnboardingProvider,

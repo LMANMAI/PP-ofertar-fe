@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import {
+	ActivityIndicator,
 	FlatList,
 	Pressable,
 	StyleSheet,
@@ -18,9 +19,10 @@ import {
 	type OffersFilterState,
 	ScreenHeader,
 	type TabKey,
+	StoreBadge,
 } from "../components";
 import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { ALL_CATEGORIES, getOffers, offerBadge, offerCategories, offerPromo } from "../services";
+import { ALL_CATEGORIES, getOffers, offerCategories, offerCategoryLabel, offerPromo } from "../services";
 import type { Offer, PromoIcon } from "../services";
 import type { Session } from "../auth/session";
 import { formatLongDate } from "../utils/format";
@@ -30,8 +32,28 @@ type Props = {
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
-	onOpenOffer: (offerId: string) => void;
+	/** Se manda la oferta entera, no solo el id. Esta pantalla tiene su propia
+	 * lista —paginada y filtrada— distinta de la que guarda el router, asi que
+	 * cualquier oferta de la pagina 2 en adelante, o traida por un filtro, no
+	 * existe del otro lado y el detalle abre vacio. */
+	onOpenOffer: (offerId: string, fallback?: Offer | null) => void;
 };
+
+/** The backend caps a page at 50; asking for more silently gets 50 anyway. */
+const PAGE_SIZE = 50;
+
+/** The chains present in a page of offers, named and sorted for the filter. */
+function retailersOf(offers: Offer[]): { slug: string; name: string }[] {
+	const bySlug = new Map<string, string>();
+	for (const o of offers) {
+		if (o.retailerSlug && o.retailerName && !bySlug.has(o.retailerSlug)) {
+			bySlug.set(o.retailerSlug, o.retailerName);
+		}
+	}
+	return [...bySlug.entries()]
+		.map(([slug, name]) => ({ slug, name }))
+		.sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
 
 export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onOpenOffer }: Props) {
 	const insets = useSafeAreaInsets();
@@ -48,38 +70,83 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 	});
 	const [filterVisible, setFilterVisible] = useState(false);
 	const [filterSection, setFilterSection] = useState<OffersFilterSection>("retailers");
+	/** The chains to offer as chips, captured from an unfiltered page. Deriving
+	 * them from the current page would erase every other chain the moment one
+	 * is picked, leaving no way back. */
+	const [knownRetailers, setKnownRetailers] = useState<{ slug: string; name: string }[]>([]);
+	/** Same reasoning as knownRetailers: captured while no category is picked,
+	 * so choosing one does not leave the sheet with a single option. */
+	const [knownCategories, setKnownCategories] = useState<string[]>([]);
+	const [page, setPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [loadingMore, setLoadingMore] = useState(false);
 
-	useEffect(() => {
-		setLoading(true);
-		getOffers(session.token, 1, 50)
+	// Stable keys, so re-selecting the same values does not refetch.
+	const chainKey = [...filter.retailerSlugs].sort().join(",");
+	const categoryKey = [...filter.categories].sort().join(",");
+
+	/**
+	 * One page of the feed. `append` distinguishes scrolling further down from
+	 * starting over, which is what happens when the chain filter changes: the
+	 * query is different, so the pages behind it are too.
+	 */
+	const loadPage = (target: number, append: boolean) => {
+		const chains = chainKey ? chainKey.split(",") : undefined;
+		const categories = categoryKey ? categoryKey.split(",") : undefined;
+		if (append) setLoadingMore(true);
+		else setLoading(true);
+		getOffers(session.token, target, PAGE_SIZE, chains, categories)
 			.then((data) => {
-				setOffers(data.items);
+				setOffers((prev) => {
+					if (!append) return data.items;
+					// The catalog can shift between two requests, so the same offer
+					// can arrive twice; keep the copy already on screen.
+					const seen = new Set(prev.map((o) => o.id));
+					return [...prev, ...data.items.filter((o) => !seen.has(o.id))];
+				});
+				// Captured from an unfiltered page only, so picking one chain does
+				// not erase the chips for all the others.
+				if (!append && !chains) setKnownRetailers(retailersOf(data.items));
+				if (!append && !categories) {
+					setKnownCategories(offerCategories(data.items).filter((c) => c !== ALL_CATEGORIES));
+				}
+				setPage(data.page);
+				setTotalPages(Math.max(1, data.totalPages));
 				setError(null);
 			})
 			.catch((err) => {
-				setError(err instanceof Error ? err.message : "Error al cargar las ofertas");
+				// A failed "load more" leaves what is already on screen alone; only
+				// a failed first page is worth taking it over.
+				if (!append) setError(err instanceof Error ? err.message : "Error al cargar las ofertas");
 			})
-			.finally(() => setLoading(false));
-	}, [session.token]);
+			.finally(() => {
+				if (append) setLoadingMore(false);
+				else setLoading(false);
+			});
+	};
+
+	useEffect(() => {
+		loadPage(1, false);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [session.token, chainKey, categoryKey]);
 
 	// Built from the offers on screen rather than a fixed list, so a filter
 	// never offers a chip or checkbox that matches nothing.
 	const categories = useMemo(
-		() => offerCategories(offers).filter((c) => c !== ALL_CATEGORIES),
-		[offers],
+		() =>
+			knownCategories.length > 0
+				? knownCategories
+				: offerCategories(offers).filter((c) => c !== ALL_CATEGORIES),
+		[knownCategories, offers],
 	);
-	const retailers = useMemo(() => {
-		const bySlug = new Map<string, string>();
-		for (const o of offers) {
-			if (o.retailerSlug && o.retailerName && !bySlug.has(o.retailerSlug)) {
-				bySlug.set(o.retailerSlug, o.retailerName);
-			}
-		}
-		return [...bySlug.entries()]
-			.map(([slug, name]) => ({ slug, name }))
-			.sort((a, b) => a.name.localeCompare(b.name, "es"));
-	}, [offers]);
+	const retailers = useMemo(
+		() => (knownRetailers.length > 0 ? knownRetailers : retailersOf(offers)),
+		[knownRetailers, offers],
+	);
 
+	// Both filters now narrow the query, so this is a no-op against a current
+	// backend. Kept so an app talking to one that predates the parameters still
+	// behaves the way it used to instead of ignoring the filter entirely.
 	const visibleOffers = useMemo(() => {
 		return offers.filter((o) => {
 			if (filter.retailerSlugs.size > 0 && (!o.retailerSlug || !filter.retailerSlugs.has(o.retailerSlug))) {
@@ -137,6 +204,17 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 					showsVerticalScrollIndicator={false}
 					data={visibleOffers}
 					keyExtractor={(o) => o.id}
+					onEndReachedThreshold={0.5}
+					onEndReached={() => {
+						if (!loading && !loadingMore && page < totalPages) loadPage(page + 1, true);
+					}}
+					ListFooterComponent={
+						loadingMore ? (
+							<View style={styles.loadingMore}>
+								<ActivityIndicator color={colors.subtleText} />
+							</View>
+						) : null
+					}
 					ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
 					ListHeaderComponent={
 						<>
@@ -237,11 +315,10 @@ const OfferCard = memo(function OfferCard({
 	styles,
 }: {
 	offer: Offer;
-	onOpenOffer: (offerId: string) => void;
+	onOpenOffer: (offerId: string, fallback?: Offer | null) => void;
 	colors: ColorTokens;
 	styles: ReturnType<typeof createStyles>;
 }) {
-	const { badge, color } = offerBadge(offer.retailerName);
 	const until = formatLongDate(offer.activeTo);
 	const promo = offerPromo(offer);
 	const catalogPct =
@@ -260,17 +337,20 @@ const OfferCard = memo(function OfferCard({
 	const everyPct = [
 		...new Set((offer.discountPercentages ?? []).filter((n) => n > 0 && n <= 100)),
 	];
+	// La categoría, que hasta ahora sólo se veía abriendo la oferta —y ni
+	// siquiera siempre: colgaba de la línea de marca, así que una oferta sin
+	// marca la escondía del todo—. `offerCategoryLabel` es una función de
+	// módulo, no una closure nueva por render, así que no toca el memo.
+	const category = offerCategoryLabel(offer.category);
 
 	return (
 		<Pressable
-			onPress={() => onOpenOffer(offer.id)}
+			onPress={() => onOpenOffer(offer.id, offer)}
 			style={({ pressed }) => [styles.offerCard, pressed && styles.offerCardPressed]}
 		>
 			<View style={styles.offerHeader}>
 				<View style={styles.offerStoreRow}>
-					<View style={[styles.storeBadge, { backgroundColor: color }]}>
-						<Text style={styles.storeBadgeText}>{badge}</Text>
-					</View>
+					<StoreBadge retailerSlug={offer.retailerSlug} retailerName={offer.retailerName} />
 					<Text style={styles.storeName} numberOfLines={1}>
 						{offer.retailerName}
 						{offer.province ? ` · ${offer.province}` : ""}
@@ -333,12 +413,29 @@ const OfferCard = memo(function OfferCard({
 				</View>
 			</View>
 
-			{until && <Text style={styles.offerValidity}>Vigente hasta el {until}</Text>}
+			{/* Categoría y vigencia comparten renglón en vez de sumar uno cada una.
+			    Sin ninguna de las dos no se dibuja la fila, así que una oferta de
+			    folleto —sin categoría y muchas veces sin vigencia— no queda con un
+			    hueco donde antes no había nada. */}
+			{(category !== null || until !== null) && (
+				<View style={styles.offerMetaRow}>
+					{category !== null && (
+						<View style={styles.categoryChip} accessibilityLabel={`Categoría: ${category}`}>
+							<Ionicons name="pricetags-outline" size={11} color={colors.mutedText2} />
+							<Text style={styles.categoryChipText} numberOfLines={1}>
+								{category}
+							</Text>
+						</View>
+					)}
+					{until !== null && <Text style={styles.offerValidity}>Vigente hasta el {until}</Text>}
+				</View>
+			)}
 
+			{/* Sólo la marca: la categoría se mudó al chip de arriba y repetirla acá
+			    sería decir dos veces lo mismo en la misma card. */}
 			{offer.brand && (
 				<Text style={styles.offerApplies} numberOfLines={1}>
 					{offer.brand}
-					{offer.category ? ` · ${offer.category}` : ""}
 				</Text>
 			)}
 
@@ -366,6 +463,7 @@ function createStyles(colors: ColorTokens) {
 	listHeader: { gap: space.md, marginBottom: space.md },
 	offerRow: { gap: space.md },
 	offerCol: { flex: 1 },
+	loadingMore: { paddingVertical: 20, alignItems: "center" },
 	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
 	filterBarRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginTop: space.xs },
 	filterPill: {
@@ -459,9 +557,41 @@ function createStyles(colors: ColorTokens) {
 	},
 	offerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	offerStoreRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.sm },
-	storeBadge: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 10 },
 	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
+	// Un solo renglón para los dos metadatos de contexto. `flexWrap` está porque
+	// en tablet la card va a media pantalla: ahí una categoría larga más "Vigente
+	// hasta el 31 de diciembre" no entran juntas y la vigencia baja sola, en vez
+	// de recortarse.
+	offerMetaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: space.sm },
+	// La categoría va como chip y no como una línea más de texto porque es,
+	// además, el eje por el que se filtra: mismo ícono que la píldora
+	// "Categorías" de la barra de filtros, mismo borde `divider` y mismo texto
+	// apagado, así que se lee como "de acá sale ese filtro". Deliberadamente
+	// distinto del chip de "aplica a", que va lleno y en negrita porque dice algo
+	// de la promoción; la categoría es contexto, no una promesa comercial.
+	// El relleno es `background` —el fondo de la pantalla— así que sobre la card
+	// se lee como un hueco: claro sobre blanco en tema claro, oscuro sobre la
+	// superficie de card en tema oscuro. Los dos son tokens, no hex fijos.
+	categoryChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.xs,
+		flexShrink: 1,
+		maxWidth: "100%",
+		paddingHorizontal: space.sm,
+		paddingVertical: 3,
+		borderRadius: 999,
+		borderWidth: 1,
+		borderColor: colors.divider,
+		backgroundColor: colors.background,
+	},
+	categoryChipText: {
+		flexShrink: 1,
+		color: colors.mutedText2,
+		fontFamily: typography.family.medium,
+		fontSize: 11,
+		lineHeight: 15,
+	},
 	offerValidity: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
 	offerApplies: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
 	offerCaveat: {

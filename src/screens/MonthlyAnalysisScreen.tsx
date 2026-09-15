@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { yyyyMM } from "../utils/format";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,12 +12,6 @@ import { formatCurrencyExact } from "../utils/format";
 
 function formatMonth(date: Date): string {
 	return date.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
-}
-
-function yyyyMM(date: Date): string {
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, "0");
-	return `${y}-${m}`;
 }
 
 type Props = {

@@ -34,9 +34,26 @@ export {
 	getRecurringProducts,
 	offerSavings,
 	sortByOfferRelevance,
+	summarizeOfferPromos,
 } from "./productsApi";
 
-export type { RecurringProduct, BestOffer, AlternativeOffer, CampaignOffer } from "./productsApi";
+export type {
+	RecurringProduct,
+	BestOffer,
+	AlternativeOffer,
+	CampaignOffer,
+	FeaturedPromo,
+	OfferPromoSummary,
+} from "./productsApi";
+
+export {
+	describePromoLabel,
+	pickProductPromo,
+	readPromoLabel,
+	readPromoLabels,
+} from "./promoLabels";
+
+export type { PromoCondition, PromoLabelKind, PromoLabelReading } from "./promoLabels";
 
 export {
 	ALL_CATEGORIES,
@@ -44,7 +61,9 @@ export {
 	getOffers,
 	offerBadge,
 	offerCategories,
+	offerCategoryLabel,
 	offerPromo,
+	resolveOffer,
 } from "./offersApi";
 
 export type { Offer, OfferPage, PromoIcon, PromoMechanic, PromoWording } from "./offersApi";

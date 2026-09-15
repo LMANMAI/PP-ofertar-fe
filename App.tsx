@@ -57,7 +57,7 @@ import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
 import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
-import { getOffers, getTicket, scanTicket } from "./src/services";
+import { getOffers, getTicket, resolveOffer, scanTicket } from "./src/services";
 import type { Offer, NearbyStore, TicketResponse } from "./src/services";
 import { REWARDS, POINTS_PER_REFERRAL } from "./src/data/rewards";
 import { colors, ThemePreferenceProvider } from "./src/theme/designSystem";
@@ -224,8 +224,7 @@ export default function App() {
 		}
 	};
 
-	const findOffer = (id: string | null) =>
-		offers.find((o) => o.id === id) ?? (fallbackOffer?.id === id ? fallbackOffer : null);
+	const findOffer = (id: string | null) => resolveOffer(offers, id, fallbackOffer);
 	const findReward = (id: string | null) => REWARDS.find((r) => r.id === id) ?? REWARDS[0];
 
 	const enterMain = (ss: Session) => {

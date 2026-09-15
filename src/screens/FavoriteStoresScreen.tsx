@@ -7,7 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
-import { BottomNav, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
+import { BottomNav, ChainMarkerPin, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
+import { getChainMarker, markerAccessibilityLabel } from "../theme/chainMarkers";
 import type { Session } from "../auth/session";
 import { getFavoriteStores, getNearbyStores, getStoreChains, updateFavoriteStores } from "../services";
 import type { NearbyStore, StoreChain } from "../services";
@@ -16,19 +17,6 @@ const RADIUS_OPTIONS = [1, 3, 5, 10, 15, 20];
 
 /** Fallback view when location permission is denied — Obelisco, CABA. */
 const DEFAULT_REGION = { latitude: -34.6037, longitude: -58.3816 };
-
-/** Distinct pin colours so chains are tellable apart at a glance. */
-const CHAIN_COLORS: Record<string, string> = {
-	carrefour: "#0E4C96",
-	dia: "#E30613",
-	coto: "#D52B1E",
-	jumbo: "#2E9E43",
-	vea: "#F5A623",
-	disco: "#C8102E",
-	changomas: "#7B2D8B",
-	laanonima: "#00539B",
-	makro: "#003DA5",
-};
 
 type Props = {
 	onBack: () => void;
@@ -170,9 +158,17 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 									coordinate={{ latitude: s.lat, longitude: s.lng }}
 									title={s.name}
 									description={`${s.chainName} · ${s.distanceKm} km`}
-									pinColor={CHAIN_COLORS[s.chainSlug] ?? colors.navy}
+									anchor={{ x: 0.5, y: 1 }}
 									onCalloutPress={() => onSelectStore?.(s)}
-								/>
+									accessibilityLabel={markerAccessibilityLabel(
+										getChainMarker(s.chainSlug, s.chainName),
+										s.chainName,
+										s.name,
+									)}
+								>
+									{/* Forma + iniciales: la cadena se reconoce sin depender del color. */}
+									<ChainMarkerPin chainSlug={s.chainSlug} chainName={s.chainName} withPointer />
+								</Marker>
 							))}
 						</MapView>
 					</View>
@@ -215,7 +211,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 							return (
 								<View key={c.slug}>
 									<Pressable style={styles.chainRow} onPress={() => toggleChain(c.slug)} disabled={saving}>
-										<View style={[styles.dot, { backgroundColor: CHAIN_COLORS[c.slug] ?? colors.navy }]} />
+										<ChainMarkerPin chainSlug={c.slug} chainName={c.name} size={22} />
 										<View style={{ flex: 1 }}>
 											<Text style={styles.chainName}>{c.name}</Text>
 											<Text style={styles.chainMeta}>
@@ -256,11 +252,10 @@ function createStyles(colors: ColorTokens) {
 	radiusTextOn: { color: colors.buttonText },
 	chainList: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, marginHorizontal: space.lg, marginTop: space.smPlus, overflow: "hidden" },
 	chainRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.mdPlus, paddingVertical: space.md },
-	dot: { width: 12, height: 12, borderRadius: 6 },
 	chainName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
 	chainMeta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
 	check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
 	checkOn: { backgroundColor: colors.cyan, borderColor: colors.cyan },
-	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 38 },
+	divider: { height: 1, backgroundColor: colors.divider, marginLeft: 48 },
 	});
 }

@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
-import { BottomNav, ScreenHeader, type TabKey } from "../components";
+import { BottomNav, ChainMarkerPin, ScreenHeader, type TabKey } from "../components";
+import { getChainMarker, markerAccessibilityLabel } from "../theme/chainMarkers";
 import type { NearbyStore } from "../services";
 
 type Props = {
@@ -57,7 +58,20 @@ export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onSca
 							scrollEnabled={false}
 							zoomEnabled={false}
 						>
-							<Marker coordinate={{ latitude: store.lat, longitude: store.lng }} title={store.name} />
+							<Marker
+								coordinate={{ latitude: store.lat, longitude: store.lng }}
+								title={store.name}
+								description={store.chainName}
+								anchor={{ x: 0.5, y: 1 }}
+								accessibilityLabel={markerAccessibilityLabel(
+									getChainMarker(store.chainSlug, store.chainName),
+									store.chainName,
+									store.name,
+								)}
+							>
+								{/* Un pin suelto también tiene que decir de qué cadena es. */}
+								<ChainMarkerPin chainSlug={store.chainSlug} chainName={store.chainName} withPointer />
+							</Marker>
 						</MapView>
 					</View>
 

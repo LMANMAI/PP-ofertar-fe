@@ -39,3 +39,13 @@ export function formatTicketTimestamp(iso: string): string {
 		day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
 	});
 }
+
+/** The "YYYY-MM" key the savings report takes as `from`/`to`. Built from the
+ * device's own calendar, which for this app is Argentina — asking the backend
+ * for a month is the only thing that makes the "AHORRO DEL MES" card actually
+ * about the month. */
+export function yyyyMM(date: Date): string {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	return `${year}-${month}`;
+}

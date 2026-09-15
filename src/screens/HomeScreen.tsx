@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomNav, OfferCarouselCardSkeleton, ProductCardSkeleton, type TabKey, useOnboardingTarget } from "../components";
+import { BottomNav, OfferCarouselCardSkeleton, ProductCardSkeleton, type TabKey, useOnboardingTarget, StoreBadge } from "../components";
 import { space, typography, useIsTablet, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
@@ -19,12 +19,74 @@ import {
 	getOffers,
 	getRecurringProducts,
 	getSavingsReport,
-	offerBadge,
 	offerPromo,
 	sortByOfferRelevance,
 } from "../services";
 import type { Offer, PromoIcon, RecurringProduct, SavingsReportResponse } from "../services";
-import { formatLongDate } from "../utils/format";
+import { formatLongDate, yyyyMM } from "../utils/format";
+import { catalogImageUri } from "../utils/productImage";
+import { PRODUCT_PLACEHOLDER } from "../theme/productPlaceholder";
+
+/**
+ * A catalog photo URL that is actually safe to hand to <Image>.
+ *
+ * It reaches here from a retailer's catalog through two services, so it can be
+ * absent (a backend deployed before the field existed), an empty string, or a
+ * site-relative path the retailer only ever meant to resolve on its own pages.
+ * Anything that is not an absolute http(s) URL is treated as "no photo", which
+ * is the same outcome as a product the catalog never photographed: the card
+ * draws the icon it has always drawn. An <Image> pointed at a relative path
+ * fails silently and leaves a hole, which is the one result worth avoiding.
+ */
+/**
+ * The square tile at the top of a "productos que comprás seguido" card.
+ *
+ * Its own component because the fallback needs state, and state cannot live
+ * inside the .map that renders the row. A dead URL only announces itself
+ * through onError, and when it does exactly one card has to swap back to the
+ * icon — remembering *which* URL failed rather than a bare boolean, so a
+ * refreshed list with a new photo gets a fresh attempt instead of inheriting
+ * the previous card's failure.
+ *
+ * The tile keeps the same size, radius and background in all three states, so
+ * a product with no photo, a photo that 404s, and a backend that sends no
+ * photos at all are indistinguishable from how the carousel looked before.
+ */
+function RecurringProductThumb({
+	uri,
+	styles,
+}: {
+	uri: string | null;
+	styles: ReturnType<typeof createStyles>;
+}) {
+	const [failedUri, setFailedUri] = useState<string | null>(null);
+	const showPhoto = uri !== null && uri !== failedUri;
+
+	return (
+		<View style={styles.productIconWrap}>
+			<Image
+				// Un solo <Image>: el placeholder es un asset local, así que no
+				// puede fallar en carga y no necesita su propio onError. Lo que
+				// cambia es la fuente, no el árbol, así que la tarjeta no salta
+				// de tamaño cuando una foto no llega.
+				source={showPhoto ? { uri } : PRODUCT_PLACEHOLDER}
+				// Mismo estilo para los dos: la ilustración es cuadrada y el tile
+				// también, así que "contain" la deja justo a borde con borde y su
+				// propio fondo blanco pasa a ser el del tile, recortado por las
+				// esquinas redondeadas. Reducirla dejaba ese blanco flotando
+				// sobre otro fondo y se veían dos blancos distintos.
+				style={styles.productImage}
+				// The catalog ships packshots on white at assorted aspect
+				// ratios; "cover" would crop the label off the tall ones.
+				resizeMode="contain"
+				onError={() => setFailedUri(uri)}
+				// The product name is right underneath, so announcing the
+				// picture too would just make the card read twice.
+				accessible={false}
+			/>
+		</View>
+	);
+}
 
 /** One offer in the home carousel. Informational only: there is no activation
  * or points behind these, so the card states what is on offer, where, until
@@ -38,7 +100,6 @@ import { formatLongDate } from "../utils/format";
 function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => void }) {
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
-	const { badge, color } = offerBadge(offer.retailerName);
 	const until = formatLongDate(offer.activeTo);
 	// Campaigns are worded here from the structured mechanic + percentages.
 	// A backend that predates those fields returns null and the card falls
@@ -63,9 +124,7 @@ function OfferCarouselCard({ offer, onPress }: { offer: Offer; onPress: () => vo
 		>
 			<View style={styles.offerTop}>
 				<View style={styles.offerStoreRow}>
-					<View style={[styles.storeBadge, { backgroundColor: color }]}>
-						<Text style={styles.storeBadgeText}>{badge}</Text>
-					</View>
+					<StoreBadge retailerSlug={offer.retailerSlug} retailerName={offer.retailerName} />
 					<Text style={styles.storeName} numberOfLines={1}>
 						{offer.retailerName}
 					</Text>
@@ -159,7 +218,9 @@ type Props = {
 	onOpenAnalysis: () => void;
 	onOpenRecurring: () => void;
 	onOpenSmartList: () => void;
-	onOpenOffer: (offerId: string) => void;
+	/** La oferta entera, por el mismo motivo que en OffersScreen: el carrusel
+	 * sale de su propio fetch y no del que resuelve el detalle. */
+	onOpenOffer: (offerId: string, fallback?: Offer | null) => void;
 };
 
 export function HomeScreen({
@@ -197,7 +258,11 @@ export function HomeScreen({
 	const loadSavings = () => {
 		setLoadingSavings(true);
 		setSavingsError(false);
-		getSavingsReport(session.token)
+		// The card is titled AHORRO DEL MES; without these bounds the backend
+		// applies no filter at all and answers with the user's whole history,
+		// so tickets from previous months were being counted as this month's.
+		const month = yyyyMM(new Date());
+		getSavingsReport(session.token, month, month)
 			.then((r) => setSavings(r.summary))
 			.catch(() => setSavingsError(true))
 			.finally(() => setLoadingSavings(false));
@@ -393,7 +458,7 @@ export function HomeScreen({
 						contentContainerStyle={styles.offersRow}
 					>
 						{offers.map((o) => (
-							<OfferCarouselCard key={o.id} offer={o} onPress={() => onOpenOffer(o.id)} />
+							<OfferCarouselCard key={o.id} offer={o} onPress={() => onOpenOffer(o.id, o)} />
 						))}
 					</ScrollView>
 				)}
@@ -468,11 +533,13 @@ export function HomeScreen({
 							{recurringProducts.map((p) => {
 								const id = p.barcode || p.description;
 								const delta = p.bestOffer?.discountPct != null ? `-${Math.round(p.bestOffer.discountPct)}%` : null;
+								// The photo belongs to the catalog SKU the offer resolved to —
+								// by barcode for most lines, so it really is the article on the
+								// receipt. No offer means no photo, and the icon stands.
+								const photo = catalogImageUri(p.bestOffer?.imageUrl);
 								return (
 									<Pressable key={id} style={styles.productCard} onPress={onOpenRecurring}>
-										<View style={styles.productIconWrap}>
-											<Ionicons name="cart-outline" size={28} color={colors.subtleText} />
-										</View>
+										<RecurringProductThumb uri={photo} styles={styles} />
 										<Text style={styles.productName}>{p.description}</Text>
 										{/* The price belongs to a same-brand, same-type catalog product that
 										    may be a different size, so name it here too — the card is the
@@ -508,6 +575,14 @@ export function HomeScreen({
 												<Text style={styles.productPrice}>Sin oferta activa</Text>
 											)}
 										</View>
+										{/* Same rule as the full list: a shelf price and a campaign
+										    are different offers, so the price must not swallow the
+										    promotion the ordering promoted this card for. */}
+										{p.bestOffer && p.campaignOffers.length > 0 && (
+											<Text style={styles.productPromo} numberOfLines={1}>
+												{describeCampaignDiscount(p.campaignOffers[0]) ?? "Promoción vigente"}
+											</Text>
+										)}
 									</Pressable>
 								);
 							})}
@@ -763,18 +838,6 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 	},
 	offerStoreRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-	storeBadge: {
-		width: 28,
-		height: 28,
-		borderRadius: 14,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	storeBadgeText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.bold,
-		fontSize: 10,
-	},
 	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
 	offerValidity: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
 	offerBody: { flexDirection: "row", alignItems: "stretch", gap: space.md },
@@ -912,6 +975,16 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		justifyContent: "center",
 		marginBottom: space.xsPlus,
+		// The photo is clipped to the tile rather than sized to it, so a
+		// packshot can never bleed past the rounded corner while it loads.
+		overflow: "hidden",
+	},
+	/** Fills the tile above, which is what keeps the card the exact size it
+	 * was when this was an icon. The tile's own background shows through
+	 * around a photo that does not fill it. */
+	productImage: {
+		width: "100%",
+		height: "100%",
 	},
 	productName: {
 		color: colors.defaultText,
