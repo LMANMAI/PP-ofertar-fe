@@ -35,6 +35,7 @@ export function SmartShoppingListScreen({ onBack, session, activeTab, onSelectTa
 	const [checked, setChecked] = useState<Set<string>>(new Set());
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the session token changes
 		setLoading(true);
 		getRecurringProducts(session.token)
 			.then((all) => {

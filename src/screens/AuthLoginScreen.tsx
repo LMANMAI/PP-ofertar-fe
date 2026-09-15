@@ -68,7 +68,7 @@ export function AuthLoginScreen({
 		return (
 			<View style={styles.safeArea}>
 				<View style={[styles.statusBarBg, { height: insets.top }]} />
-				<StatusBar style="light" translucent />
+				<StatusBar style="light" />
 				<View style={[styles.loader, { paddingBottom: insets.bottom }]}>
 					<ActivityIndicator size="small" color={colors.cyan} />
 				</View>
@@ -79,7 +79,7 @@ export function AuthLoginScreen({
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<View style={styles.topSection}>
-				<StatusBar style="light" translucent />
+				<StatusBar style="light" />
 				<View style={styles.header}>
 					<Pressable onPress={onBackPress} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 						<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
