@@ -19,7 +19,7 @@ export function GoogleVerifyingScreen({ onDone }: Props) {
 
 	return (
 		<View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-			<StatusBar style={isDark ? "light" : "dark"} translucent />
+			<StatusBar style={isDark ? "light" : "dark"} />
 			<View style={styles.content}>
 				<Ionicons name="logo-google" size={56} color="#4285F4" />
 				<ActivityIndicator size="large" color={colors.cyan} style={{ marginTop: space.xxl }} />

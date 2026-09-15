@@ -50,6 +50,7 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 	const [filterSection, setFilterSection] = useState<OffersFilterSection>("retailers");
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the session token changes
 		setLoading(true);
 		getOffers(session.token, 1, 50)
 			.then((data) => {

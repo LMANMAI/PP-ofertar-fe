@@ -128,7 +128,7 @@ export function ProfileScreen({
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 
 			<View style={styles.header}>
 				<Image

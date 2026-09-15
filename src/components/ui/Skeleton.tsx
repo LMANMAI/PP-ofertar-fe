@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
 	AccessibilityInfo,
 	Animated,
@@ -23,7 +23,7 @@ type SkeletonProps = {
  * mirroring `ScreenTransition`'s handling.
  */
 export function Skeleton({ style, children }: SkeletonProps) {
-	const opacity = useRef(new Animated.Value(1)).current;
+	const [opacity] = useState(() => new Animated.Value(1));
 	const [reduceMotion, setReduceMotion] = useState(false);
 
 	useEffect(() => {

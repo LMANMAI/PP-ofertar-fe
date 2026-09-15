@@ -23,7 +23,7 @@ export function ConfirmRedeemScreen({ reward, pointsBalance, onCancel, onConfirm
 
 	return (
 		<View style={[styles.backdrop, { paddingTop: insets.top }]}>
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 			<ConfirmSheet
 				icon={reward.icon}
 				iconTone="info"

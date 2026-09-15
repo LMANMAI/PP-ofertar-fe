@@ -28,7 +28,7 @@ export function LoaderScreen({ onDone, durationMs = 1500 }: Props) {
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style={isDark ? "light" : "dark"} translucent />
+			<StatusBar style={isDark ? "light" : "dark"} />
 			<View style={[styles.center, { paddingBottom: insets.bottom }]}>
 				<Image
 					source={require("../../assets/logo_ofertar.png")}

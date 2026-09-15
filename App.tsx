@@ -160,6 +160,7 @@ export default function App() {
 	// screens rather than inside each one.
 	useEffect(() => {
 		if (!session) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect -- resets state in response to a prop change, not a fetch-on-mount pattern
 			setOffers([]);
 			return;
 		}
@@ -726,6 +727,7 @@ export default function App() {
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
+					onSessionUpdate={setSession}
 				/>
 			)}
 

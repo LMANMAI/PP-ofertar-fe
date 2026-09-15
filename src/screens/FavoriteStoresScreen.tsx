@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import MapView, { Circle, Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import MapView, { Circle, Marker, PROVIDER_DEFAULT } from "../components/ui/AppMapView";
 import * as Location from "expo-location";
 import { ensureLocationPermission } from "../location/permission";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -98,6 +98,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 	}, [session.token, coords.latitude, coords.longitude, radiusKm]);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches nearby stores once the initial data has loaded
 		if (!loading) loadStores();
 	}, [loading, loadStores]);
 

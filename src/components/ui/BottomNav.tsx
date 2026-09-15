@@ -47,8 +47,8 @@ export function BottomNav({ active, onSelect, onScanPress }: Props) {
 	const scanTarget = useOnboardingTarget("scan-ticket");
 	return (
 		<View
-			ref={navigationTarget.ref}
-			onLayout={navigationTarget.onLayout}
+			// eslint-disable-next-line react-hooks/refs -- attachRef/onLayout are a stable useCallback from useOnboardingTarget, not a render-time ref read
+			ref={navigationTarget.attachRef} onLayout={navigationTarget.onLayout}
 			style={[
 				styles.wrap,
 				{ backgroundColor: colors.card, borderTopColor: colors.border },
@@ -74,8 +74,8 @@ export function BottomNav({ active, onSelect, onScanPress }: Props) {
 					hitSlop={4}
 				>
 					<View
-						ref={scanTarget.ref}
-						onLayout={scanTarget.onLayout}
+						// eslint-disable-next-line react-hooks/refs -- attachRef/onLayout are a stable useCallback from useOnboardingTarget, not a render-time ref read
+						ref={scanTarget.attachRef} onLayout={scanTarget.onLayout}
 						style={[
 							styles.scanButton,
 							{ backgroundColor: colors.navy, shadowColor: colors.navy },

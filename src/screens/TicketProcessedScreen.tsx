@@ -71,6 +71,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 
 	useEffect(() => {
 		if (ticket) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect -- (re)initializes the editable product list whenever a new ticket arrives
 			setProducts(buildProductsFromTicket(ticket));
 			setEdited(false);
 		}
@@ -78,6 +79,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 
 	useEffect(() => {
 		if (!ticket || ticket.status !== "PROCESSED") return;
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- resets the dismissed flag for the new ticket before fetching
 		setForgottenDismissed(false);
 		getRecurringProducts(session.token, ticket.id)
 			.then((all) => {
@@ -184,7 +186,7 @@ export function TicketProcessedScreen({ ticket, session, onBack, onFinish, onSel
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 
 			<View style={styles.header}>
 				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
@@ -420,6 +422,7 @@ function EditProductSheet({
 
 	useEffect(() => {
 		if (product) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect -- seeds the edit form fields when a new product is opened
 			setName(product.name);
 			setQuantity(String(product.quantity));
 			setUnitPrice(String(product.unitPrice));
