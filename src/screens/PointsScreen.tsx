@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { BottomNav, ScreenHeader, type TabKey } from "../components";
 import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { REWARDS, POINTS_PER_REFERRAL } from "../data/rewards";
+import { REWARDS, POINTS_REFERRED_SIGNUP, POINTS_REFERRER_ACTIVATION } from "../data/rewards";
 import type { Session } from "../auth/session";
 import { getReferralCode } from "../auth/session";
 
@@ -51,10 +51,13 @@ export function PointsScreen({
 		: 100;
 	const remainingToNext = nextReward ? nextReward.points - pointsBalance : 0;
 
-	// Solo promete lo que pasa de verdad: quien se registra con el código gana
-	// puntos. No hay forma de avisarle a quien comparte que alguien lo usó, así
-	// que no afirmamos "ganamos los dos" acá (ver PRODUCT.md / HelpCenterScreen).
-	const shareMessage = `Te invito a probar OfertAR, la app para ahorrar en el súper. Usá mi código ${referralCode} cuando te registres y arrancás con ${POINTS_PER_REFERRAL} puntos.`;
+	// Ahora que el backend persiste el referido (columna referral_code + tabla
+	// de puntos), sí podemos avisarle a quien comparte que alguien usó su
+	// código. Las dos puntas ganan distinto a propósito: quien se registra
+	// gana un puntaje fijo de bienvenida, y quien invita gana más pero recién
+	// cuando ese amigo activa la cuenta de verdad (primer ticket escaneado) —
+	// así "referí y ganá" deja de depender de altas fantasma. Ver /points/history.
+	const shareMessage = `Te invito a probar OfertAR, la app para ahorrar en el súper. Usá mi código ${referralCode} cuando te registres y arrancás con ${POINTS_REFERRED_SIGNUP} puntos.`;
 
 	const handleShare = () => {
 		Share.share({ message: shareMessage }).catch(() => {});
@@ -120,8 +123,9 @@ export function PointsScreen({
 						<Text style={styles.referralTitle}>Referí y ganá</Text>
 					</View>
 					<Text style={styles.referralBody}>
-						Vos y tu amigo ganan {POINTS_PER_REFERRAL} puntos cada uno cuando se
-						registra con tu código.
+						Tu amigo arranca con {POINTS_REFERRED_SIGNUP} puntos apenas se
+						registra con tu código. Vos ganás {POINTS_REFERRER_ACTIVATION} cuando
+						escanea su primer ticket, y más todavía si sigue usando la app.
 					</Text>
 					<Pressable
 						style={styles.codeBox}
