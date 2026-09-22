@@ -259,6 +259,137 @@ check('la billetera "MODO" no se come "cómodo"', () => {
 	assert.equal(r.mechanic, "3x2");
 });
 
+console.log('\nCarrefour: "Max N unidades" es un TOPE, no una condición');
+
+// El bug de producción: "descuento en la 8va unidad". `Max 8 unidades` es el
+// techo de cuántas te llevás con el beneficio, y se leía como la condición para
+// conseguirlo. Las etiquetas son textuales del catálogo en vivo.
+//
+// [etiqueta, kind, mechanic, requiredQuantity, amount, maxUnits]
+const carrefourReales: [string, string, string | null, number, string | null, number | null][] = [
+	// Un 25% liso que se consigue con UNA unidad. Decíamos "comprá 8".
+	["PROMO-25% Off Max 8 unidades -Reg-1-25-AS9.9 AL 15.9", "percentage", "percentage_off", 1, "25%", 8],
+	["PROMO-35% Off Max 8 unidades -Reg-1-35-AS9.9 AL 15.9", "percentage", "percentage_off", 1, "35%", 8],
+	// Un 6x4 real, medido en vivo. Desmiente que una promo de super no pueda
+	// pedir mas de 3 unidades: `Reg-6-200` son dos unidades gratis sobre seis.
+	["PROMO-Exclusivo online 6x4 Iguales-Reg-6-200-Cocacola14/9 al 20/9", "quantity", null, 6, "6x4", null],
+	// Segunda unidad de verdad: la condición es 2, no el tope.
+	["PROMO-2do al 50% Max 8 unidades Combinable BIMBO-Reg-2-50-AS9.9 AL 15.9", "quantity", "second_unit", 2, "50%", 8],
+	["PROMO-2do al 80% Max 8 unidades Combinable TRENET-Reg-2-80-AS9.9 AL 15.9", "quantity", "second_unit", 2, "80%", 8],
+	["PROMO-2do al 50% Max 8 unidades Combinable NOSOTRAS-Reg-2-50-AS9.9 AL 15.9", "quantity", "second_unit", 2, "50%", 8],
+	// El tope de 48 era el que producía "En la 48ª unidad".
+	["PROMO-2do al 50% Max 48 unidades Combinable PASO DE LOS TOROS-Reg-2-50-AS9.9 AL 15.9", "quantity", "second_unit", 2, "50%", 48],
+	["PROMO-2do al 50% Max 8 unidades Iguales-Reg-2-50-AS9.9 AL 15.9", "quantity", "second_unit", 2, "50%", 8],
+	["PROMO-2do al 50% Combinable-Reg-2-50-AsCrfEssencialLimpieza", "quantity", "second_unit", 2, "50%", null],
+	// 3x2 con tope: perdía la mecánica y quedaba sin monto.
+	["PROMO-3x2 Max 12 unidades Combinable DR LEMON-Reg-3-100-AS9.9 AL 15.9", "quantity", "3x2", 3, "3x2", 12],
+	["PROMO-3x2 Max 48 unidades Combinable PASO DE LOS TOROS-Reg-3-100-AS9.9 AL 15.9", "quantity", "3x2", 3, "3x2", 48],
+	["PROMO-Exclusivo online 3x2 Iguales-Reg-3-100-Mdlz15/9 al 21/9", "quantity", "3x2", 3, "3x2", null],
+	// Porcentajes directos, sin tope.
+	["PROMO-Exclusivo online 40% Off -Reg-1-40-Quilmes9/9 al 15/9", "percentage", "percentage_off", 1, "40%", null],
+	["PROMO-Exclusivo online 40% Off -Reg-1-40-Nestle9/9 al 15/9", "percentage", "percentage_off", 1, "40%", null],
+	["PROMO-Exclusivo online 30% Off -Reg-1-30-Nestle9/9 al 15/9", "percentage", "percentage_off", 1, "30%", null],
+	["PROMO-20%DTO -Reg-1-20-AS9.9 AL 15.9", "percentage", "percentage_off", 1, "20%", null],
+	["PROMO-25% Off -Reg-1-25-AS9.9 AL 15.9", "percentage", "percentage_off", 1, "25%", null],
+	// Fidelidad: el % es real pero sólo con el programa. Gana el balde de pago.
+	["PROMO-45% Off Mi Crf -Reg-1-45-AS9.9 AL 15.9", "payment", null, 1, null, null],
+	["PROMO-20% Off Mi Crf -Reg-1-20-AS9.9 AL 15.9", "payment", null, 1, null, null],
+	["PROMO-Mi CRF -mfl-1-6-Dto de 6% Doble Precio", "payment", null, 1, null, null],
+	["PROMO-Mi CRF -mfl-1-13-Dto de 13% Doble Precio", "payment", null, 1, null, null],
+	["PROMO-Mi CRF -mfl-1-26-Dto de 26% Doble Precio", "payment", null, 1, null, null],
+	["Cuenta Digital Carrefour 15% Off Viernes", "payment", null, 1, null, null],
+];
+
+for (const [label, kind, mechanic, qty, amount, maxUnits] of carrefourReales) {
+	const corto = label.length > 58 ? `${label.slice(0, 55)}...` : label;
+	check(`"${corto}"`, () => {
+		const r = read(label);
+		assert.equal(r.kind, kind);
+		assert.equal(r.mechanic, mechanic);
+		assert.equal(r.requiredQuantity, qty, "se tomó el tope como condición");
+		assert.equal(r.maxUnits, maxUnits, "el tope no se leyó como tope");
+		if (kind !== "payment") assert.equal(r.wording.amount, amount);
+	});
+}
+
+check("la cantidad sale del -Reg- que publica la cadena, no de otro numero", () => {
+	// El barrido. Antes afirmaba "ninguna pide llevar mas de 3", que es falso:
+	// existe hoy un 6x4 real. Ese tope inventado habria fallado al sumar la
+	// etiqueta, y peor, no cubria nada que este check no cubra mejor.
+	//
+	// El invariante de verdad es que la cantidad que mostramos coincida con la
+	// que Carrefour codifica en `-Reg-<cantidad>-<porcentaje>-`. Es un numero
+	// suyo, no una lectura nuestra, y es exactamente lo que el bug rompia: con
+	// "Max 8 unidades" saliamos 8 donde el Reg decia 1 o 2.
+	let comparadas = 0;
+	for (const [label] of carrefourReales) {
+		const reg = label.toUpperCase().match(/-(?:REG|MFL)-(\d+)-(\d+)(?:-|$)/);
+		if (!reg) continue;
+		comparadas++;
+		const r = read(label);
+		assert.equal(
+			r.requiredQuantity,
+			Number(reg[1]),
+			`${label}: mostramos ${r.requiredQuantity} y la cadena dice ${reg[1]}`,
+		);
+	}
+	assert.ok(comparadas >= 20, `sólo ${comparadas} etiquetas traen -Reg-; el barrido perdió cobertura`);
+});
+
+check('el "Max N" nunca se cuela como condición aunque no haya sufijo Reg', () => {
+	// La guarda del tope tiene que valer sola, sin depender de que la cadena
+	// mande el sufijo estructurado.
+	const r = read("PROMO-25% Off Max 8 unidades");
+	assert.notEqual(r.condition, "nth_unit");
+	assert.equal(r.requiredQuantity, 1);
+	assert.equal(r.maxUnits, 8);
+});
+
+check("el sufijo Reg manda por encima de la prosa", () => {
+	// Es un número que publica la cadena, no una interpretación nuestra.
+	const r = read("PROMO-2do al 50% Max 8 unidades -Reg-2-50-X");
+	assert.equal(r.requiredQuantity, 2);
+	assert.equal(r.percentage, 50);
+	assert.equal(r.capped, false, "con sufijo estructurado no hay nada que hedgear");
+});
+
+check("cuando el Reg y la prosa se contradicen, gana el Reg", () => {
+	// FIXTURE SINTÉTICO: en las 45 etiquetas medidas el Reg y la prosa siempre
+	// coinciden, así que no hay forma de probar la precedencia con datos
+	// reales. Se fuerza la contradicción a mano porque es lo único que
+	// distingue "el Reg es autoridad" de "el Reg es redundante": sin este
+	// check, apagar la rama entera del Reg no rompe nada.
+	const r = read("PROMO-2do al 50% Max 8 unidades -Reg-3-100-X");
+	assert.equal(r.condition, "nxm", "se impuso la prosa");
+	assert.equal(r.mechanic, "3x2");
+	assert.equal(r.requiredQuantity, 3);
+	assert.equal(r.paidUnits, 2);
+});
+
+check("la cola técnica del sufijo no alimenta a los parsers de texto", () => {
+	// FIXTURE SINTÉTICO, por el mismo motivo: ninguna de las colas reales
+	// medidas ("AS9.9 AL 15.9", "Mdlz15/9 al 21/9") llega a confundir a nadie.
+	// La limpieza es defensa en profundidad —la cola son códigos de campaña y
+	// fechas, no prosa de promo— y esto fija el comportamiento para que no se
+	// caiga por parecer código muerto.
+	const r = read("PROMO-30% Off -Reg-1-30-PACK 6X1 SETIEMBRE");
+	assert.equal(r.requiredQuantity, 1, "se leyó un NxM del código de campaña");
+	assert.equal(r.mechanic, "percentage_off");
+	assert.equal(r.wording.amount, "30%");
+});
+
+check("una cantidad imposible se descarta en vez de recortarse", () => {
+	// Techo de cordura: no existe la promo que pida 48 unidades. Descartar la
+	// lectura deja "Consultá cómo se aplica", que es verdad; recortarla a 24
+	// inventaría una condición que la cadena no publicó.
+	const r = read("Llevando 48 (Hasta 30% DTO!!)");
+	assert.notEqual(r.condition, "bulk");
+	assert.equal(r.requiredQuantity, 1);
+	assert.notEqual(r.wording.applies, "Llevando 48");
+	// Y el límite no se come una promo real de pack grande.
+	assert.equal(read("Llevando 12 (Hasta 30% DTO!!)").requiredQuantity, 12);
+});
+
 console.log("\nUn nombre de producto no puede tapar una mecánica real");
 
 // El modo de falla inverso: la etiqueta trae un 3x2 de verdad y una palabra que

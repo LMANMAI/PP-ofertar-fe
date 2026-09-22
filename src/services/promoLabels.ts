@@ -71,6 +71,14 @@ export interface PromoLabelReading {
 	 * Carrefour"). Ahí gana la mecánica, porque es lo que el usuario preguntó,
 	 * pero la condición de pago se sigue sabiendo y se dice en el `detail`. */
 	paymentHint: boolean;
+	/** El tope de unidades que admite la promo ("Max 8 unidades"), o null.
+	 *
+	 * NO es `requiredQuantity` y deliberadamente no se muestra: el usuario
+	 * preguntó qué promoción aplica, y ponerle un segundo número de unidades al
+	 * lado de la mecánica es justo la confusión que hay que evitar — más
+	 * todavía cuando la condición es 1 y el tope es lo único numerado de la
+	 * etiqueta. Se guarda porque hace verificable que lo leímos como tope. */
+	maxUnits: number | null;
 	/** La mecánica en el vocabulario de campañas, cuando la etiqueta cae justo
 	 * en uno de sus cuatro casos. Null no significa "no hay mecánica": significa
 	 * que `describePromo` no sabe redactarla y la redacta este módulo. */
@@ -149,6 +157,7 @@ const PAYMENT_HINTS = new RegExp(
 		// góndola no baja para quien no está adentro del programa.
 		"MI CRF",
 		"MI CARREFOUR",
+		"CUENTA DIGITAL",
 		"DOBLE PRECIO",
 		"COMUNIDAD",
 		"CLARIN 365",
@@ -219,6 +228,71 @@ function hasOnlyDiscountWords(upper: string): boolean {
 	return words.every((w) => DISCOUNT_WORDS.has(w));
 }
 
+/**
+ * El tope de unidades de la promo: "Max 8 unidades", "Máximo 12 unidades".
+ *
+ * Es un TECHO de cuántas te podés llevar con el beneficio, no una condición
+ * para conseguirlo, y confundir las dos cosas es el peor error posible acá:
+ * `"PROMO-25% Off Max 8 unidades"` es un 25% que se consigue en la PRIMERA
+ * unidad, y leyendo el tope como condición le decíamos al usuario que comprara
+ * ocho. El texto se saca antes de buscar cualquier mecánica.
+ */
+const MAX_UNITS = /\bMAX(?:IMO)?\.?\s+(\d+)\s*UNID\w*/;
+
+/**
+ * El sufijo estructurado con el que Carrefour codifica la promo de verdad:
+ * `-Reg-<cantidad>-<porcentaje>-`, y `-mfl-<cantidad>-<porcentaje>-` para las
+ * de fidelidad. Verificado contra las 45 etiquetas distintas del catálogo.
+ *
+ *   PROMO-25% Off Max 8 unidades -Reg-1-25-...    -> 1 unidad,  25%
+ *   PROMO-2do al 50% Max 8 ... -Reg-2-50-...      -> 2 unidades, 50%
+ *   PROMO-3x2 Max 12 ... -Reg-3-100-...           -> 3 unidades, 100% (la 3ra gratis)
+ *   PROMO-Mi CRF -mfl-1-9-Dto de 9% Doble Precio  -> 1 unidad,   9%
+ *
+ * La cantidad del `Reg` es siempre la de la condición real, nunca la del tope,
+ * y el porcentaje coincide con el de la prosa. Es un número que publica la
+ * cadena, así que manda por encima de cualquier cosa que leamos del texto.
+ */
+const STRUCTURED_PROMO = /-(?:REG|MFL)-(\d+)-(\d+)(?:-|$)/;
+
+/** Desde el sufijo estructurado hasta el final: nombres de campaña, fechas y
+ * códigos internos ("AS9.9 AL 15.9") que no son prosa de promo y que sólo
+ * aportan dígitos sueltos para que los parsers de texto se confundan. */
+const STRUCTURED_TAIL = /-(?:REG|MFL)-\d+-\d+.*$/;
+
+interface StructuredPromo {
+	requiredQuantity: number;
+	percentage: number;
+}
+
+function readStructuredPromo(upper: string): StructuredPromo | null {
+	const m = upper.match(STRUCTURED_PROMO);
+	if (!m) return null;
+	const requiredQuantity = Number(m[1]);
+	const percentage = Number(m[2]);
+	if (requiredQuantity < 1 || percentage <= 0 || percentage > 100) return null;
+	return { requiredQuantity, percentage };
+}
+
+/**
+ * Techo de cordura para una condición de cantidad.
+ *
+ * No existe la promo de supermercado que pida llevar 48 unidades: un número así
+ * salió de donde no era —un tope, un código de campaña, un gramaje—. La guarda
+ * **descarta la lectura** en vez de recortar el número, porque recortarlo sería
+ * inventar una condición que la cadena no publicó; descartándola, la etiqueta
+ * sigue de largo y termina como "Consultá cómo se aplica", que es verdad.
+ *
+ * 24 es holgado a propósito: el máximo real observado es "Llevando 6" de COTO,
+ * y un pack de 12 de cerveza o agua es plausible. Esto es la red que va abajo
+ * del arreglo de verdad (sacar el tope del texto), no el arreglo.
+ */
+const MAX_SANE_QUANTITY = 24;
+
+function isSaneQuantity(qty: number): boolean {
+	return Number.isFinite(qty) && qty > 1 && qty <= MAX_SANE_QUANTITY;
+}
+
 /** Todos los porcentajes que nombra la etiqueta, deduplicados y en rango. */
 function percentagesIn(upper: string): number[] {
 	const found = [...upper.matchAll(/(\d{1,3})\s*%/g)].map((m) => Number(m[1]));
@@ -239,8 +313,8 @@ function nxmIn(upper: string): { taken: number; paid: number }[] {
 /**
  * Clasifica UNA etiqueta.
  *
- * El orden de los intentos: **mecánica de cantidad -> medio de pago ->
- * porcentaje**. Adentro de la mecánica se copia el orden de
+ * El orden de los intentos: **sufijo estructurado -> mecánica de cantidad en
+ * prosa -> medio de pago -> porcentaje**. Adentro de la mecánica se copia el orden de
  * `parseRequiredQuantity` en el scraper (llevando -> unidad -> NxM) para que
  * las dos puntas lean el mismo texto de la misma manera; lo único que se agrega
  * es la forma de Dia ("2do al 70%"), que no escribe la palabra "unidad".
@@ -273,15 +347,28 @@ function nxmIn(upper: string): { taken: number; paid: number }[] {
  */
 export function readPromoLabel(label: string): PromoLabelReading {
 	const upper = normalize(label);
-	const pcts = percentagesIn(upper);
-	const top = pcts.length > 0 ? Math.max(...pcts) : null;
-	// La etiqueta hedgea sola ("Hasta 30% DTO!!") o nombra varios porcentajes.
-	const hedged = /\bHASTA\b/.test(upper) || pcts.length > 1;
 
 	// Se calcula acá arriba aunque se consulte abajo: una etiqueta puede tener
 	// mecánica Y condición de medio de pago a la vez, y en ese caso gana la
-	// mecánica pero la condición no se tira a la basura.
+	// mecánica pero la condición no se tira a la basura. Va sobre `upper` y no
+	// sobre `prose` para no perder las pistas que viven en la cola técnica.
 	const paymentHint = PAYMENT_HINTS.test(upper);
+
+	const structured = readStructuredPromo(upper);
+	const maxUnits = Number(upper.match(MAX_UNITS)?.[1]) || null;
+
+	// La prosa de la promo, sin el tope y sin la cola técnica. Todo lo que se
+	// lee del texto se lee de acá: las dos cosas que se sacan aportan sólo
+	// dígitos que no son ni cantidad ni porcentaje de la promo.
+	const prose = upper.replace(STRUCTURED_TAIL, " ").replace(MAX_UNITS, " ");
+
+	const pcts = percentagesIn(prose);
+	// El porcentaje del sufijo manda: lo publica la cadena. El de la prosa es el
+	// mismo en las 45 etiquetas medidas, pero es el que se lee, no el que viene.
+	const top = structured?.percentage ?? (pcts.length > 0 ? Math.max(...pcts) : null);
+	// La etiqueta hedgea sola ("Hasta 30% DTO!!") o nombra varios porcentajes.
+	// Con sufijo estructurado no hay nada que hedgear: el número es exacto.
+	const hedged = structured ? false : /\bHASTA\b/.test(prose) || pcts.length > 1;
 
 	const base = {
 		label,
@@ -289,17 +376,45 @@ export function readPromoLabel(label: string): PromoLabelReading {
 		capped: hedged,
 		paidUnits: null as number | null,
 		paymentHint,
+		maxUnits,
 	};
+
+	// La mecánica que publica la cadena, por encima de cualquier lectura del
+	// texto. Sólo con cantidad >= 2 corta acá: con cantidad 1 no hay condición
+	// de unidades, y la etiqueta tiene que seguir pasando por el filtro de
+	// medio de pago más abajo ("PROMO-45% Off Mi Crf -Reg-1-45-" es del
+	// programa de fidelidad, no una rebaja de góndola para cualquiera).
+	if (structured && isSaneQuantity(structured.requiredQuantity)) {
+		const qty = structured.requiredQuantity;
+		// 100% sobre la unidad número N es un NxM: llevás N, pagás N-1.
+		if (structured.percentage === 100) {
+			return {
+				...base,
+				kind: "quantity",
+				condition: "nxm",
+				requiredQuantity: qty,
+				paidUnits: qty - 1,
+				mechanic: qty === 2 ? "2x1" : qty === 3 ? "3x2" : null,
+			};
+		}
+		return {
+			...base,
+			kind: "quantity",
+			condition: "nth_unit",
+			requiredQuantity: qty,
+			mechanic: qty === 2 ? "second_unit" : null,
+		};
+	}
 
 	// "Llevando 2 (Hasta 30% DTO!!)", "Llevando 6 (Hasta 30% DTO!!)".
 	// Deliberadamente NO se mapea a `second_unit` aunque N sea 2: un 30% sobre
 	// el total llevando dos no es lo mismo que un 30% en la segunda unidad, y
 	// redactarlo como lo segundo le regalaría al usuario la mitad del descuento
 	// que no tiene.
-	const llevando = upper.match(/LLEVANDO\s+(\d+)/);
+	const llevando = prose.match(/LLEVANDO\s+(\d+)/);
 	if (llevando) {
 		const qty = Number(llevando[1]);
-		if (qty > 1) {
+		if (isSaneQuantity(qty)) {
 			return { ...base, kind: "quantity", condition: "bulk", requiredQuantity: qty, mechanic: null };
 		}
 	}
@@ -307,11 +422,11 @@ export function readPromoLabel(label: string): PromoLabelReading {
 	// "2da Unid 70% DTO!!" (COTO) y "2do al 70%" (Dia): la unidad con descuento
 	// es la enésima, o sea que hay que llevar n.
 	const nth =
-		upper.match(/(\d+)\s*(?:DA|DO|ER|RA|TA|VA|°|º)?\s*UNID/) ??
-		upper.match(/(\d+)\s*(?:DA|DO|ER|RA|TA|VA|°|º)\s*AL\b/);
+		prose.match(/(\d+)\s*(?:DA|DO|ER|RA|TA|VA|°|º)?\s*UNID/) ??
+		prose.match(/(\d+)\s*(?:DA|DO|ER|RA|TA|VA|°|º)\s*AL\b/);
 	if (nth) {
 		const qty = Number(nth[1]);
-		if (qty > 1) {
+		if (isSaneQuantity(qty)) {
 			return {
 				...base,
 				kind: "quantity",
@@ -326,7 +441,7 @@ export function readPromoLabel(label: string): PromoLabelReading {
 	// "3X2", "2X1", "4X3 / 4X2". Con varios en la misma etiqueta se muestra el
 	// que más conviene y se marca como techo, igual que hace `describePromo`
 	// cuando un aviso trae varios porcentajes.
-	const deals = nxmIn(upper);
+	const deals = nxmIn(prose);
 	if (deals.length > 0) {
 		const best = deals.reduce((a, b) =>
 			(b.taken - b.paid) / b.taken > (a.taken - a.paid) / a.taken ? b : a,
@@ -359,7 +474,11 @@ export function readPromoLabel(label: string): PromoLabelReading {
 	// (COTO). Es el único caso en que se puede decir que la unidad sale más
 	// barata, así que se exige que la etiqueta no traiga nada más pegado: un
 	// "Cuenta DNI 20%" que se escape de PAYMENT_HINTS cae acá abajo, no acá.
-	if (top != null && hasOnlyDiscountWords(upper)) {
+	// Con sufijo estructurado, el porcentaje lo publica la cadena y la cantidad
+	// es 1: es una rebaja de la primera unidad y no hace falta el piso de
+	// `hasOnlyDiscountWords`, que existe para cuando el número lo leemos
+	// nosotros de un texto que además nombra vaya a saber qué.
+	if (structured || (top != null && hasOnlyDiscountWords(prose))) {
 		return {
 			...base,
 			kind: "percentage",
