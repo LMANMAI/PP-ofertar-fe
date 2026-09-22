@@ -267,6 +267,10 @@ export default function App() {
 				setScreen("scanMethod");
 				return;
 			}
+			if (data.screen === "offers") {
+				goMain("offers");
+				return;
+			}
 			goMain("home");
 		});
 		return () => sub.remove();
