@@ -269,6 +269,7 @@ export function HomeScreen({
 	};
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the session token changes
 		loadSavings();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session.token]);
@@ -288,6 +289,7 @@ export function HomeScreen({
 	};
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the session token changes
 		loadRecurring();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session.token]);
@@ -304,6 +306,7 @@ export function HomeScreen({
 	};
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the session token changes
 		loadOffers();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [session.token]);
@@ -315,7 +318,7 @@ export function HomeScreen({
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 
 			<View style={styles.header}>
 				<Image
@@ -363,7 +366,8 @@ export function HomeScreen({
 				showsVerticalScrollIndicator={false}
 			>
 				{/* Savings card */}
-				<View ref={historyTarget.ref} onLayout={historyTarget.onLayout} style={styles.savingsCard}>
+				{/* eslint-disable-next-line react-hooks/refs -- attachRef/onLayout are a stable useCallback from useOnboardingTarget, not a render-time ref read */}
+				<View ref={historyTarget.attachRef} onLayout={historyTarget.onLayout} style={styles.savingsCard}>
 					<Text style={styles.savingsOverline}>AHORRO DEL MES</Text>
 					{savingsError ? (
 						<View style={styles.savingsErrorRow}>
@@ -412,7 +416,8 @@ export function HomeScreen({
 				{/* Ofertas vigentes en los súper que sigue el usuario. El backend ya
 				    restringe el match a sus cadenas favoritas, así que todo lo que
 				    llega acá es de un súper que eligió. */}
-				<View ref={offersTarget.ref} onLayout={offersTarget.onLayout} style={styles.sectionHeader}>
+				{/* eslint-disable-next-line react-hooks/refs -- attachRef/onLayout are a stable useCallback from useOnboardingTarget, not a render-time ref read */}
+				<View ref={offersTarget.attachRef} onLayout={offersTarget.onLayout} style={styles.sectionHeader}>
 					<Text style={styles.sectionTitle}>OFERTAS EN TUS SÚPER</Text>
 					<Pressable onPress={() => onSelectTab("offers")}>
 						<Text style={styles.sectionLink}>Ver todas</Text>

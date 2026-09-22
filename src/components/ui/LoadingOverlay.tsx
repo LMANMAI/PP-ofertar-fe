@@ -26,9 +26,9 @@ export function LoadingOverlay({ fileType }: Props) {
 	const isPdf = fileType === "pdf";
 	const messages = isPdf ? PDF_MESSAGES : IMAGE_MESSAGES;
 
-	const pulseAnim = useRef(new Animated.Value(1)).current;
-	const sweepAnim = useRef(new Animated.Value(0)).current;
-	const fadeAnim = useRef(new Animated.Value(1)).current;
+	const [pulseAnim] = useState(() => new Animated.Value(1));
+	const [sweepAnim] = useState(() => new Animated.Value(0));
+	const [fadeAnim] = useState(() => new Animated.Value(1));
 
 	const [messageIndex, setMessageIndex] = useState(0);
 	const mountedRef = useRef(true);
@@ -157,7 +157,11 @@ export function LoadingOverlay({ fileType }: Props) {
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	overlay: {
-		...StyleSheet.absoluteFillObject,
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
 		backgroundColor: "rgba(10,31,68,0.92)",
 		alignItems: "center",
 		justifyContent: "center",

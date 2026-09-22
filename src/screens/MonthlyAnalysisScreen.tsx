@@ -35,10 +35,6 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 	const [error, setError] = useState<string | null>(null);
 	const [selectedMonth, setSelectedMonth] = useState(new Date());
 
-	useEffect(() => {
-		loadReport();
-	}, [selectedMonth]);
-
 	const loadReport = async () => {
 		setLoading(true);
 		setError(null);
@@ -52,6 +48,12 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 			setLoading(false);
 		}
 	};
+
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the selected month changes
+		loadReport();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedMonth]);
 
 	const prevMonth = () => {
 		setSelectedMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));

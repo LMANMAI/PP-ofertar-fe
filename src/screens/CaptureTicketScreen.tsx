@@ -68,7 +68,7 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 					{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
 				]}
 			>
-				<StatusBar style="light" translucent />
+				<StatusBar style="light" />
 				<Ionicons name="camera-outline" size={48} color={colors.cyan} />
 				<Text style={styles.permissionTitle}>Necesitamos tu cámara</Text>
 				<Text style={styles.permissionBody}>
@@ -121,7 +121,7 @@ export function CaptureTicketScreen({ onBack, onSend }: Props) {
 
 	return (
 		<View style={styles.safeArea}>
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 
 			<CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
 

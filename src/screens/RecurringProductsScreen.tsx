@@ -95,6 +95,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 	}, []);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the session token changes
 		setLoading(true);
 		getRecurringProducts(session.token)
 			.then((data) => {

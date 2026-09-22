@@ -25,7 +25,7 @@
         "backgroundColor": "#F8FAFC"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": true,
+      "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -57,7 +57,8 @@
       ],
       "expo-secure-store",
       "expo-local-authentication",
-      "expo-font"
+      "expo-font",
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {

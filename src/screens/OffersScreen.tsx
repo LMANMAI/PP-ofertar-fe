@@ -81,7 +81,7 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 	const [totalPages, setTotalPages] = useState(1);
 	const [loadingMore, setLoadingMore] = useState(false);
 
-	// Stable keys, so re-selecting the same values does not refetch.
+// Stable keys, so re-selecting the same values does not refetch.
 	const chainKey = [...filter.retailerSlugs].sort().join(",");
 	const categoryKey = [...filter.categories].sort().join(",");
 

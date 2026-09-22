@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, Easing, Pressable, StyleSheet, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,9 +16,17 @@ export function Toast({ message, onDismiss }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
-	const translateY = useRef(new Animated.Value(60)).current;
-	const opacity = useRef(new Animated.Value(0)).current;
+	const [translateY] = useState(() => new Animated.Value(60));
+	const [opacity] = useState(() => new Animated.Value(0));
 	const autoDismiss = useRef<ReturnType<typeof setTimeout>>(null);
+
+	const dismiss = () => {
+		if (autoDismiss.current) clearTimeout(autoDismiss.current);
+		Animated.parallel([
+			Animated.timing(translateY, { toValue: 60, duration: 200, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+			Animated.timing(opacity, { toValue: 0, duration: 200, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+		]).start(() => onDismiss());
+	};
 
 	useEffect(() => {
 		Animated.parallel([
@@ -33,14 +41,6 @@ export function Toast({ message, onDismiss }: Props) {
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
-
-	const dismiss = () => {
-		if (autoDismiss.current) clearTimeout(autoDismiss.current);
-		Animated.parallel([
-			Animated.timing(translateY, { toValue: 60, duration: 200, easing: Easing.in(Easing.ease), useNativeDriver: true }),
-			Animated.timing(opacity, { toValue: 0, duration: 200, easing: Easing.in(Easing.ease), useNativeDriver: true }),
-		]).start(() => onDismiss());
-	};
 
 	return (
 		<Pressable onPress={dismiss} style={styles.wrap}>
@@ -59,7 +59,7 @@ export function Toast({ message, onDismiss }: Props) {
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
-	wrap: { ...StyleSheet.absoluteFillObject, zIndex: 9999 },
+	wrap: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 },
 	toast: {
 		position: "absolute",
 		alignSelf: "center",

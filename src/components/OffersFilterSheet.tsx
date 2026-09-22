@@ -57,6 +57,7 @@ export function OffersFilterSheet({
 	// list underneath until "Aplicar" — and closing without applying discards
 	// the draft instead of leaving the list half-filtered.
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- resyncs the draft to the applied filters whenever the sheet reopens
 		if (visible) setDraft(value);
 	}, [visible, value]);
 

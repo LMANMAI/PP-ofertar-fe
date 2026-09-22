@@ -82,6 +82,7 @@ export function BiometricLockScreen({ onSuccess, onFallback }: Props) {
 	};
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- triggers biometric auth on mount, which sets loading/error state
 		handleAuthenticate();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
@@ -93,7 +94,7 @@ export function BiometricLockScreen({ onSuccess, onFallback }: Props) {
 
 	return (
 		<View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 			<View style={styles.content}>
 				<Pressable
 					onPress={loading ? undefined : handleAuthenticate}

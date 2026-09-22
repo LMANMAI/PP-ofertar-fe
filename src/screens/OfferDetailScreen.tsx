@@ -44,6 +44,7 @@ export function OfferDetailScreen({ offer, onBack, activeTab, onSelectTab, onSca
 
 	const { badge, color } = offerBadge(offer.retailerName);
 	const until = formatLongDate(offer.activeTo, { year: true });
+	// eslint-disable-next-line react-hooks/purity -- comparing against wall-clock time is inherent to an "already expired?" check
 	const expired = offer.activeTo != null && new Date(offer.activeTo).getTime() < Date.now();
 
 	// Same anatomy as the offer cards this screen is opened from (OffersScreen,

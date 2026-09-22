@@ -19,7 +19,7 @@ export function PdfConfirmScreen({ pdfName, onSend, onCancel }: Props) {
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 
 			<View style={styles.header}>
 				<Pressable onPress={onCancel} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
