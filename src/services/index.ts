@@ -76,3 +76,5 @@ export type {
 	PointsTransactionResponse,
 	PointsBalanceResponse,
 } from "./pointsApi";
+
+export { registerPushToken } from "./pushApi";

@@ -21,6 +21,7 @@ import { space, typography,
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { isBiometricAvailable } from "../auth/biometricAuth";
+import { registerForPushNotifications } from "../notifications/pushRegistration";
 import { updateProfile } from "../services";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
@@ -89,7 +90,7 @@ export function ProfileScreen({
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	const { preference: themePreference, setPreference: setThemePreference } = useThemePreference();
-	const [alertsEnabled, setAlertsEnabled] = useState(true);
+	const [offersPushEnabled, setOffersPushEnabled] = useState(session.user.offersPushEnabled ?? true);
 	const [shareData, setShareData] = useState(false);
 	const [biometricAvailable, setBiometricAvailable] = useState(false);
 	const [alternativeBrands, setAlternativeBrands] = useState(
@@ -112,6 +113,23 @@ export function ProfileScreen({
 			onSessionUpdate?.({ token: updated.token || session.token, user: updated.user });
 		} catch {
 			setAlternativeBrands(!value);
+		} finally {
+			setSavingPreference(false);
+		}
+	};
+
+	const handleToggleOffersAlerts = async (value: boolean) => {
+		setOffersPushEnabled(value);
+		setSavingPreference(true);
+		try {
+			// Prenderlo es el pedido explícito de permiso: si el usuario nunca
+			// lo concedió, el sistema le muestra el prompt recién acá, no al
+			// abrir la app.
+			if (value) await registerForPushNotifications(session.token, { requestPermission: true });
+			const updated = await updateProfile(session.token, { offersPushEnabled: value });
+			onSessionUpdate?.({ token: updated.token || session.token, user: updated.user });
+		} catch {
+			setOffersPushEnabled(!value);
 		} finally {
 			setSavingPreference(false);
 		}
@@ -233,10 +251,11 @@ export function ProfileScreen({
 							<Text style={styles.listHint}>Notificaciones push</Text>
 						</View>
 						<Switch
-							value={alertsEnabled}
-							onValueChange={setAlertsEnabled}
+							value={offersPushEnabled}
+							onValueChange={handleToggleOffersAlerts}
 							trackColor={{ true: colors.cyan, false: colors.border }}
 							thumbColor={colors.buttonText}
+							disabled={savingPreference}
 						/>
 					</View>
 					<View style={styles.listDivider} />

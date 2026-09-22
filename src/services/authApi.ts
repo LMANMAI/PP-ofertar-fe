@@ -14,6 +14,9 @@ export type UserProfile = {
 	referralCode: string;
 	/** Saldo de puntos actual (fuente de verdad: backend, ver src/services/pointsApi.ts). */
 	points: number;
+	/** Alertas de ofertas/reactivación por push. Los pushes de tickets y
+	 * referidos son transaccionales y no dependen de este flag. */
+	offersPushEnabled: boolean;
 };
 
 export type AuthResponse = {
@@ -27,6 +30,7 @@ export type UpdateProfileData = {
 	address?: string;
 	phone?: string;
 	alternativeBrandsEnabled?: boolean;
+	offersPushEnabled?: boolean;
 };
 
 async function parseApiError(res: Response): Promise<string> {
