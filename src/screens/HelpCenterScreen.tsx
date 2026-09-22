@@ -4,13 +4,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { BottomNav, ScreenHeader, type TabKey } from "../components";
-import { POINTS_PER_REFERRAL } from "../data/rewards";
+import { POINTS_REFERRED_SIGNUP, POINTS_REFERRER_ACTIVATION, POINTS_REFERRER_RETENTION } from "../data/rewards";
 
 type Faq = { id: string; q: string; a: string };
 
 const FAQS: Faq[] = [
 	{ id: "1", q: "¿Cómo escaneo un ticket?", a: "Tocá el botón con el ícono de ticket en el centro de la barra inferior. Apuntá la cámara al ticket completo y esperá la confirmación." },
-	{ id: "2", q: "¿Cómo gano puntos?", a: `Si te registrás usando el código de invitación de un amigo, ganás ${POINTS_PER_REFERRAL} puntos. Encontrá tu propio código para compartir en la pestaña Puntos.` },
+	{ id: "2", q: "¿Cómo gano puntos?", a: `Si te registrás usando el código de invitación de un amigo, arrancás con ${POINTS_REFERRED_SIGNUP} puntos. Si sos vos quien invita, ganás ${POINTS_REFERRER_ACTIVATION} cuando esa persona escanea su primer ticket, y ${POINTS_REFERRER_RETENTION} más si sigue activa 30 días después (así evitamos acreditar altas que después no usan la app). Encontrá tu propio código para compartir en la pestaña Puntos.` },
 	{ id: "3", q: "¿Mis datos están seguros?", a: "Guardamos lo mínimo necesario para que funcione tu cuenta y nunca compartimos tu información personal con terceros." },
 	{ id: "4", q: "¿Cómo veo el detalle de una oferta?", a: "Desde la pestaña Ofertas, tocá cualquier oferta para ver en qué sucursales aplica, hasta cuándo dura y las condiciones." },
 	{ id: "5", q: "¿Para qué sirven los puntos por referidos?", a: "OfertAR todavía no tiene suscripción paga, así que por ahora es una vista previa: podés guardar tu interés en descuentos o un mes gratis para el día que esa función exista. Mirá los canjes disponibles en la pestaña Puntos." },

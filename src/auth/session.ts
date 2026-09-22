@@ -27,11 +27,14 @@ export function getAvatarUri(profilePicture: string | null): string | undefined 
 }
 
 /**
- * Código de referido determinístico a partir del usuario. Mock del lado del
- * cliente: es estable para una misma cuenta, pero no está validado contra un
- * backend (todavía no existe ese soporte — ver notas de /impeccable audit).
+ * Código de referido del usuario. El backend ahora lo genera y lo persiste
+ * (columna `referral_code` en `User`) y lo devuelve en `UserProfile.referralCode`
+ * — es la fuente de verdad. La fórmula de acá abajo queda solo como fallback
+ * para una sesión vieja en caché que todavía no tenga el campo (por ejemplo,
+ * justo después de actualizar la app antes de refrescar el perfil).
  */
-export function getReferralCode(user: { id: number; name: string }): string {
+export function getReferralCode(user: { id: number; name: string; referralCode?: string }): string {
+	if (user.referralCode) return user.referralCode;
 	const initials = getInitials(user.name).toUpperCase() || "OF";
 	const suffix = String(user.id).padStart(4, "0").slice(-4);
 	return `OFERTAR-${initials}${suffix}`;

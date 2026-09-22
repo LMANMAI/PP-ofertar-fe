@@ -57,9 +57,9 @@ import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
 import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
-import { getOffers, getTicket, scanTicket } from "./src/services";
-import type { Offer, NearbyStore, TicketResponse } from "./src/services";
-import { REWARDS, POINTS_PER_REFERRAL } from "./src/data/rewards";
+import { getOffers, getTicket, scanTicket, getPointsBalance, getPointsHistory, redeemReward } from "./src/services";
+import type { Offer, NearbyStore, TicketResponse, PointsTransactionResponse } from "./src/services";
+import { REWARDS } from "./src/data/rewards";
 import { colors, ThemePreferenceProvider } from "./src/theme/designSystem";
 
 type Screen =
@@ -96,8 +96,14 @@ export default function App() {
 	const [offers, setOffers] = useState<Offer[]>([]);
 	const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
 	const [redeemRemaining, setRedeemRemaining] = useState<number>(0);
+	// Saldo e historial de puntos: antes vivían solo en memoria (se sumaban a
+	// mano cuando alguien completaba el paso 2 con un código, y se restaban al
+	// canjear). Ahora el backend es la fuente de verdad — ver src/services/pointsApi.ts
+	// — así que estos dos estados son un espejo de lo que devuelve /points/me y
+	// /points/history, no un contador que la app lleva por su cuenta.
 	const [referralPoints, setReferralPoints] = useState<number>(0);
 	const [referralHistory, setReferralHistory] = useState<PointsHistoryEntry[]>([]);
+	const [redeemingReward, setRedeemingReward] = useState(false);
 
 	const [selectedPdf, setSelectedPdf] = useState<{ name: string; uri: string; base64: string } | null>(null);
 	const [scannedTicket, setScannedTicket] = useState<TicketResponse | null>(null);
@@ -167,6 +173,53 @@ export default function App() {
 		getOffers(session.token, 1, 50)
 			.then((p) => setOffers(p.items))
 			.catch(() => setOffers([]));
+	}, [session]);
+
+	const historyEntryFromTx = (tx: PointsTransactionResponse): PointsHistoryEntry => ({
+		id: String(tx.id),
+		icon:
+			tx.reason === "REDEEM"
+				? "gift-outline"
+				: tx.reason === "REFERRAL_ACTIVATED"
+					? "people"
+					: tx.reason === "REFERRAL_RETAINED"
+						? "heart-outline"
+						: "people-outline",
+		title: tx.description,
+		date: new Date(tx.createdAt).toLocaleDateString("es-AR", {
+			day: "numeric",
+			month: "short",
+			hour: "2-digit",
+			minute: "2-digit",
+		}),
+		pts: tx.points,
+	});
+
+	// Saldo e historial de puntos viven en el backend (ver PRODUCT.md: antes
+	// era frontend-only y se perdía al cerrar la app). Se traen apenas hay
+	// sesión y se vuelven a pedir después de cada canje.
+	const refreshPoints = async (token: string) => {
+		try {
+			const [balanceRes, historyRes] = await Promise.all([
+				getPointsBalance(token),
+				getPointsHistory(token),
+			]);
+			setReferralPoints(balanceRes.balance);
+			setReferralHistory(historyRes.map(historyEntryFromTx));
+		} catch {
+			// Si el backend de puntos no responde, no rompemos el resto de la app:
+			// el usuario simplemente ve 0 puntos y un historial vacío hasta que
+			// se pueda reintentar (por ejemplo, al volver a la pestaña Puntos).
+		}
+	};
+
+	useEffect(() => {
+		if (!session) {
+			setReferralPoints(0);
+			setReferralHistory([]);
+			return;
+		}
+		refreshPoints(session.token);
 	}, [session]);
 
 	const goMain = (t: TabKey = "home") => { setTab(t); setScreen("main"); };
@@ -390,27 +443,15 @@ export default function App() {
 					lastName={registerData.lastName}
 					email={registerData.email}
 					phone={registerData.phone}
+					referralCode={registerData.referralCode}
 					onBack={() => setScreen("register1")}
 					onNext={(s) => {
+						// El código viaja en el propio POST /auth/register (ver
+						// src/services/authApi.ts). El backend acredita ahí los puntos
+						// de bienvenida del referido; el efecto de arriba que sigue a
+						// `session` los trae apenas se setea acá — no hace falta
+						// sumarlos a mano como antes.
 						setSession(s);
-						if (registerData.referralCode) {
-							setReferralPoints((prev) => prev + POINTS_PER_REFERRAL);
-							setReferralHistory((prev) => [
-								{
-									id: `referral-${Date.now()}`,
-									icon: "people-outline",
-									title: "Te registraste con un código de invitación",
-									date: new Date().toLocaleDateString("es-AR", {
-										day: "numeric",
-										month: "short",
-										hour: "2-digit",
-										minute: "2-digit",
-									}),
-									pts: POINTS_PER_REFERRAL,
-								},
-								...prev,
-							]);
-						}
 						setScreen("locationPermission");
 					}}
 				/>
@@ -456,6 +497,8 @@ export default function App() {
 								address: null,
 								phone: null,
 								alternativeBrandsEnabled: true,
+								referralCode: "",
+								points: 0,
 								createdAt: "",
 							},
 						});
@@ -668,32 +711,32 @@ export default function App() {
 				/>
 			)}
 
-			{screen === "confirmRedeem" && selectedRewardId && (
+			{screen === "confirmRedeem" && selectedRewardId && session && (
 				<ConfirmRedeemScreen
 					reward={findReward(selectedRewardId)}
 					pointsBalance={referralPoints}
 					onCancel={() => setScreen("rewardDetail")}
-					onConfirm={() => {
+					onConfirm={async () => {
+						// El saldo posta vive en el backend: /points/redeem valida ahí
+						// mismo que alcancen los puntos (409 si no) y devuelve el saldo
+						// actualizado, en vez de restar optimista del lado del cliente
+						// como antes (que podía desincronizarse si había otro canje en
+						// paralelo, p. ej. en dos dispositivos con la misma cuenta).
+						if (redeemingReward) return;
 						const reward = findReward(selectedRewardId);
-						const remaining = referralPoints - reward.points;
-						setReferralPoints(remaining);
-						setReferralHistory((prev) => [
-							{
-								id: `redeem-${Date.now()}`,
-								icon: reward.icon,
-								title: `Canje: ${reward.title}`,
-								date: new Date().toLocaleDateString("es-AR", {
-									day: "numeric",
-									month: "short",
-									hour: "2-digit",
-									minute: "2-digit",
-								}),
-								pts: -reward.points,
-							},
-							...prev,
-						]);
-						setRedeemRemaining(remaining);
-						setScreen("redeemSuccess");
+						setRedeemingReward(true);
+						try {
+							const result = await redeemReward(session.token, reward.id, reward.points);
+							setReferralPoints(result.balance);
+							setRedeemRemaining(result.balance);
+							refreshPoints(session.token);
+							setScreen("redeemSuccess");
+						} catch (err) {
+							setToastMessage(err instanceof Error ? err.message : "No se pudo canjear. Probá de nuevo.");
+							setScreen("rewardDetail");
+						} finally {
+							setRedeemingReward(false);
+						}
 					}}
 				/>
 			)}

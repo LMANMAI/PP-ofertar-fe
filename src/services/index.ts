@@ -64,3 +64,15 @@ export type {
 	ProductoDetalleResponse,
 	ComercioPrecioResponse,
 } from "./sepaApi";
+
+export {
+	getPointsBalance,
+	getPointsHistory,
+	redeemReward,
+} from "./pointsApi";
+
+export type {
+	PointsReason,
+	PointsTransactionResponse,
+	PointsBalanceResponse,
+} from "./pointsApi";

@@ -12,11 +12,12 @@ type Props = {
 	lastName: string;
 	email: string;
 	phone: string;
+	referralCode: string;
 	onNext: (session: Session) => void;
 	onBack: () => void;
 };
 
-export default function RegisterStep2({ firstName, lastName, email, phone: _phone, onNext, onBack }: Props) {
+export default function RegisterStep2({ firstName, lastName, email, phone: _phone, referralCode, onNext, onBack }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -49,7 +50,14 @@ export default function RegisterStep2({ firstName, lastName, email, phone: _phon
 		setLoading(true);
 		try {
 			const name = `${firstName} ${lastName}`.trim();
-			const authResponse = await register(name, email.trim(), password);
+			// Antes este código se pedía en el paso 1 y se descartaba acá: nunca
+			// llegaba al backend, así que ningún referido se acreditaba de verdad.
+			const authResponse = await register(
+				name,
+				email.trim(),
+				password,
+				referralCode || undefined,
+			);
 			onNext({ token: authResponse.token, user: authResponse.user });
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Error al crear la cuenta");

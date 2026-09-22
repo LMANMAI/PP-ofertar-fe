@@ -10,6 +10,10 @@ export type UserProfile = {
 	/** Show offers on the same product from other brands. */
 	alternativeBrandsEnabled: boolean;
 	createdAt: string;
+	/** Código propio para invitar. Lo genera el backend al crear la cuenta. */
+	referralCode: string;
+	/** Saldo de puntos actual (fuente de verdad: backend, ver src/services/pointsApi.ts). */
+	points: number;
 };
 
 export type AuthResponse = {
@@ -41,11 +45,21 @@ export async function register(
 	name: string,
 	email: string,
 	password: string,
+	/** Código de quien invitó, si se completó en RegisterStep1. Opcional. */
+	referralCode?: string,
 ): Promise<AuthResponse> {
 	const res = await fetch(`${BASE_URL}/auth/register`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ name, email, password }),
+		body: JSON.stringify({
+			name,
+			email,
+			password,
+			// El backend valida el código (existe, no es el propio) y acredita
+			// los puntos de bienvenida. Un código mal tipeado o inválido nunca
+			// debe bloquear el alta — el backend lo ignora en ese caso.
+			...(referralCode ? { referralCode } : {}),
+		}),
 	});
 
 	if (!res.ok) {
