@@ -257,6 +257,11 @@ export default function App() {
 				setScreen("pointsHistory");
 				return;
 			}
+			if (data.screen === "ticketHistory") {
+				setTab("history");
+				setScreen("ticketHistory");
+				return;
+			}
 			goMain("home");
 		});
 		return () => sub.remove();
