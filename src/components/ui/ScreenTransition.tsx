@@ -23,8 +23,8 @@ type Props = {
  * worse than losing the movement.
  */
 export function ScreenTransition({ activeKey, children }: Props) {
-	const opacity = useRef(new Animated.Value(1)).current;
-	const translateY = useRef(new Animated.Value(0)).current;
+	const [opacity] = useState(() => new Animated.Value(1));
+	const [translateY] = useState(() => new Animated.Value(0));
 	const [reduceMotion, setReduceMotion] = useState(false);
 	const isFirstRender = useRef(true);
 

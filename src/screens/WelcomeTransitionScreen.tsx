@@ -18,7 +18,7 @@ export function WelcomeTransitionScreen({ onDone, name = "Martina" }: Props) {
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 			<View style={styles.center}>
 				<View style={styles.checkCircle}>
 					<Ionicons name="checkmark" size={48} color={colors.cyan} />

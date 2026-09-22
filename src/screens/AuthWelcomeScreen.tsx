@@ -46,7 +46,7 @@ export function AuthWelcomeScreen({
 		return (
 			<View style={styles.safeArea}>
 				<View style={[styles.statusBarBg, { height: insets.top }]} />
-				<StatusBar style="light" translucent />
+				<StatusBar style="light" />
 				<View style={[styles.loader, { paddingBottom: insets.bottom }]}>
 					<ActivityIndicator size="small" color={colors.cyan} />
 				</View>
@@ -57,7 +57,7 @@ export function AuthWelcomeScreen({
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 
 			<View style={[styles.background, { paddingBottom: insets.bottom }]}>
 				<View style={styles.zoneTop} />

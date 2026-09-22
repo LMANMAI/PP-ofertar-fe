@@ -57,7 +57,8 @@
       ],
       "expo-secure-store",
       "expo-local-authentication",
-      "expo-font"
+      "expo-font",
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {

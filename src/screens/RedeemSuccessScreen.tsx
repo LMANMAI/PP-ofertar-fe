@@ -25,7 +25,7 @@ export function RedeemSuccessScreen({ reward, remainingPoints, onSeeMy, onKeepRe
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>Interés guardado</Text>
 			</View>

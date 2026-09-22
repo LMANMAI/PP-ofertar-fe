@@ -14,7 +14,7 @@ export function PasswordSuccessScreen({ onGoToLogin }: Props) {
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	return (
 		<View style={[styles.safeArea, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
-			<StatusBar style={isDark ? "light" : "dark"} translucent />
+			<StatusBar style={isDark ? "light" : "dark"} />
 			<View style={styles.content}>
 				<View style={styles.checkCircle}>
 					<Ionicons name="checkmark" size={48} color={colors.success} />

@@ -27,7 +27,7 @@ export function LocationPermissionScreen({ onAllow, onSkip }: Props) {
 	};
 	return (
 		<View style={[styles.safeArea, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
-			<StatusBar style={isDark ? "light" : "dark"} translucent />
+			<StatusBar style={isDark ? "light" : "dark"} />
 			<View style={styles.content}>
 				<View style={styles.iconWrap}>
 					<Ionicons name="location" size={56} color={colors.cyan} />

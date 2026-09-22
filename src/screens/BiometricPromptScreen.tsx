@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Animated, Dimensions, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,10 +22,10 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [activating, setActivating] = useState(false);
 
-	const overlayOpacity = useRef(new Animated.Value(0)).current;
-	const cardScale = useRef(new Animated.Value(0.92)).current;
-	const cardOpacity = useRef(new Animated.Value(0)).current;
-	const circleScale = useRef(new Animated.Value(0.8)).current;
+	const [overlayOpacity] = useState(() => new Animated.Value(0));
+	const [cardScale] = useState(() => new Animated.Value(0.92));
+	const [cardOpacity] = useState(() => new Animated.Value(0));
+	const [circleScale] = useState(() => new Animated.Value(0.8));
 
 	useEffect(() => {
 		Animated.parallel([
@@ -67,7 +67,7 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 
 			<Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
 				<View style={styles.overlayFill} />
@@ -123,9 +123,9 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
-	overlay: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+	overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
 	overlayFill: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)" },
-	center: { ...StyleSheet.absoluteFillObject, zIndex: 2, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xxl },
+	center: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xxl },
 	card: {
 		backgroundColor: colors.card,
 		borderRadius: 20,

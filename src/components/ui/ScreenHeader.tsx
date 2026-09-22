@@ -37,7 +37,7 @@ export function ScreenHeader({ title, onBack, logo, right }: Props) {
 	return (
 		<>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" translucent />
+			<StatusBar style="light" />
 			<View style={[styles.header, logo && styles.headerLogoVariant]}>
 				{logo ? (
 					<Image source={require("../../../assets/logo_ofertar.png")} style={styles.headerLogo} />
