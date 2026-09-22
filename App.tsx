@@ -262,6 +262,11 @@ export default function App() {
 				setScreen("ticketHistory");
 				return;
 			}
+			if (data.screen === "scanMethod") {
+				setTab("scan");
+				setScreen("scanMethod");
+				return;
+			}
 			goMain("home");
 		});
 		return () => sub.remove();
