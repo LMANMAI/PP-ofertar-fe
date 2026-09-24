@@ -1,3 +1,4 @@
+import { File as ExpoFile } from "expo-file-system";
 import { displayProductName } from "../utils/productName";
 
 const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
@@ -92,11 +93,9 @@ export async function scanTicket(
 
 	photos.forEach((photo, index) => {
 		const extension = contentType === "application/pdf" ? "pdf" : "jpg";
-		formData.append("file", {
-			uri: photo.uri,
-			type: contentType || "image/jpeg",
-			name: `ticket-${index}.${extension}`,
-		} as any);
+		// expo/fetch (the global fetch since SDK 53) rejects React Native's
+		// {uri, type, name} parts; a File is read through its bytes instead.
+		formData.append("file", new ExpoFile(photo.uri) as any, `ticket-${index}.${extension}`);
 	});
 
 	const response = await fetch(`${BACKEND_URL}/tickets/scan`, {
