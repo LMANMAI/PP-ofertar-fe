@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { ScreenHeader } from "../components";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 
 type Props = {
 	errorMessage?: string;
@@ -24,16 +24,7 @@ export function ScanErrorScreen({
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" />
-
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Ticket procesado</Text>
-				<View style={{ width: 32 }} />
-			</View>
+			<ScreenHeader title="Ticket de compra" onBack={onBack} />
 
 			<ScrollView
 				style={styles.scroll}
@@ -99,28 +90,11 @@ function Tip({ text, colors, styles }: { text: string; colors: ColorTokens; styl
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: {
-		backgroundColor: colors.navy,
-		paddingHorizontal: space.md,
-		paddingTop: space.sm,
-		paddingBottom: space.lg,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: space.sm,
-	},
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: {
-		flex: 1,
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 16,
-	},
 	scroll: { flex: 1 },
 	scrollContent: { paddingHorizontal: space.xl, paddingTop: 22, gap: 18 },
 	errorCard: {
 		backgroundColor: colors.card,
-		borderRadius: 16,
+		borderRadius: radii.lg,
 		paddingVertical: 28,
 		paddingHorizontal: 22,
 		alignItems: "center",
@@ -131,14 +105,14 @@ function createStyles(colors: ColorTokens) {
 	errorTitle: {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
-		fontSize: 17,
+		fontSize: typography.sizes.bodyL,
 		textAlign: "center",
 		marginTop: space.xsPlus,
 	},
 	errorBody: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 		lineHeight: 18,
 		textAlign: "center",
 	},
@@ -153,7 +127,7 @@ function createStyles(colors: ColorTokens) {
 	tipsTitle: {
 		color: colors.warningSoftText,
 		fontFamily: typography.family.bold,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 		marginBottom: space.xs,
 	},
 	tipRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
@@ -161,7 +135,7 @@ function createStyles(colors: ColorTokens) {
 		flex: 1,
 		color: colors.warningSoftText,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 		lineHeight: 18,
 	},
 	primaryButton: {
@@ -176,7 +150,7 @@ function createStyles(colors: ColorTokens) {
 	primaryButtonText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 15,
+		fontSize: typography.sizes.body,
 	},
 	secondaryButton: {
 		borderWidth: 1,
@@ -190,13 +164,13 @@ function createStyles(colors: ColorTokens) {
 	secondaryButtonText: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
-		fontSize: 14,
+		fontSize: typography.sizes.label,
 	},
 	supportButton: { alignItems: "center", paddingVertical: space.sm },
 	supportText: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 	},
 	});
 }
