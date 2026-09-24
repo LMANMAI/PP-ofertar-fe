@@ -1,12 +1,18 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import {
+	AccessibilityInfo,
 	ActivityIndicator,
+	Animated,
+	Easing,
 	Image,
+	Linking,
 	Pressable,
+	ScrollView,
 	StyleSheet,
 	Text,
+	useWindowDimensions,
 	View,
 } from "react-native";
 
@@ -17,8 +23,10 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, radii, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import { Ionicons } from "@expo/vector-icons";
+import { useBiometricInfo } from "../auth/biometricAuth";
+import { TERMS_URL } from "../constants/legal";
 
 type AuthWelcomeScreenProps = {
 	onAlreadyHaveAccount?: () => void;
@@ -27,6 +35,21 @@ type AuthWelcomeScreenProps = {
 	onBiometricLogin?: () => void;
 };
 
+// Illustrative only — the card is labeled "Ejemplo" on screen so none of
+// these prices reads as a real quote.
+const EXAMPLE_ITEMS = [
+	{ name: "Yerba mate 1 kg", price: "$4.850" },
+	{ name: "Leche entera 1 L", price: "$1.320" },
+	{ name: "Fideos 500 g", price: "$980" },
+];
+const EXAMPLE_TIP = "Te conviene: leche entera 1 L a $1.140 en otra cadena";
+// Below this height the card would push the buttons off the first screen.
+const MIN_HEIGHT_FOR_EXAMPLE = 700;
+const EXAMPLE_LABEL = `Ejemplo ilustrativo de un ticket: ${EXAMPLE_ITEMS.map((i) => `${i.name} ${i.price}`).join(", ")}. ${EXAMPLE_TIP}`;
+
+// Keyboard focus ring (web); native ignores `focused`.
+const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
+
 export function AuthWelcomeScreen({
 	onAlreadyHaveAccount,
 	onCreateAccount,
@@ -34,76 +57,146 @@ export function AuthWelcomeScreen({
 	onBiometricLogin,
 }: AuthWelcomeScreenProps) {
 	const insets = useSafeAreaInsets();
+	const { height } = useWindowDimensions();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
+	const biometric = useBiometricInfo();
 	const [fontsLoaded] = useFonts({
 		PlusJakartaSans_400Regular,
 		PlusJakartaSans_500Medium,
 		PlusJakartaSans_700Bold,
 	});
 
+	// One authored moment: the example ticket "prints" line by line. Everything
+	// else on the screen is already there at first paint.
+	const [lineProgress] = useState(() => [...EXAMPLE_ITEMS, EXAMPLE_TIP].map(() => new Animated.Value(0)));
+
+	useEffect(() => {
+		let cancelled = false;
+		const showAll = () => lineProgress.forEach((v) => v.setValue(1));
+		AccessibilityInfo.isReduceMotionEnabled()
+			.then((reduceMotion) => {
+				if (cancelled) return;
+				if (reduceMotion) {
+					showAll();
+					return;
+				}
+				Animated.stagger(
+					140,
+					lineProgress.map((v) =>
+						Animated.timing(v, {
+							toValue: 1,
+							duration: 260,
+							easing: Easing.out(Easing.cubic),
+							useNativeDriver: true,
+						}),
+					),
+				).start();
+			})
+			.catch(showAll);
+		return () => {
+			cancelled = true;
+		};
+	}, [lineProgress]);
+
 	if (!fontsLoaded) {
 		return (
 			<View style={styles.safeArea}>
 				<View style={[styles.statusBarBg, { height: insets.top }]} />
 				<StatusBar style="light" />
-				<View style={[styles.loader, { paddingBottom: insets.bottom }]}>
+				<View style={[styles.loader, { paddingBottom: insets.bottom }]} accessible accessibilityRole="progressbar" accessibilityLabel="Cargando">
 					<ActivityIndicator size="small" color={colors.cyan} />
 				</View>
 			</View>
 		);
 	}
 
+	const lineStyle = (index: number) => ({
+		opacity: lineProgress[index],
+		transform: [
+			{
+				translateY: lineProgress[index].interpolate({ inputRange: [0, 1], outputRange: [6, 0] }),
+			},
+		],
+	});
+
 	return (
 		<View style={styles.safeArea}>
 			<View style={[styles.statusBarBg, { height: insets.top }]} />
 			<StatusBar style="light" />
 
-			<View style={[styles.background, { paddingBottom: insets.bottom }]}>
+			<ScrollView
+				style={styles.background}
+				contentContainerStyle={[styles.content, { paddingBottom: space.smPlus + insets.bottom }]}
+				bounces={false}
+				showsVerticalScrollIndicator={false}
+			>
 				<View style={styles.zoneTop} />
 
 				<View style={styles.zoneHero}>
 					<View style={styles.hero}>
 						<Image
-							source={require("../../assets/logo_ofertar.png")}
+							source={require("../../assets/logo_ofertar_sm.png")}
 							style={styles.badgeIcon}
 							resizeMode="cover"
+							accessible={false}
 						/>
-						<Text style={styles.brandTitle}>
+						<Text style={styles.brandTitle} accessibilityLabel="OfertAR">
 							Ofert<Text style={styles.brandAccent}>AR</Text>
 						</Text>
-						<Text style={styles.overline}>Tecnología en tus ahorros</Text>
+						
 
-						<Text style={styles.headline}>
+						<Text style={styles.headline} accessibilityRole="header">
 							Pagá menos en cada{" "}
 							<Text style={styles.headlineAccent}>compra.</Text>
 						</Text>
 						<Text style={styles.body}>
-							Escaneá tus tickets o productos y descubrí dónde encontrar tus productos de
-							mejor precio.
+							Sacale una foto a tu ticket y te avisamos qué te conviene comprar la próxima
+							vez. Empezá gratis.
 						</Text>
 					</View>
 				</View>
 
-				<View style={styles.zoneMid} />
+				<View style={styles.zoneMid}>
+					{height >= MIN_HEIGHT_FOR_EXAMPLE && (
+						<View
+							style={styles.example}
+							accessible
+							accessibilityLabel={EXAMPLE_LABEL}
+						>
+							<Text style={styles.exampleTitle}>Ejemplo de ticket</Text>
+							{EXAMPLE_ITEMS.map((item, index) => (
+								<Animated.View key={item.name} style={[styles.exampleRow, lineStyle(index)]}>
+									<Text style={styles.exampleItem}>{item.name}</Text>
+									<Text style={styles.examplePrice}>{item.price}</Text>
+								</Animated.View>
+							))}
+							<View style={styles.exampleDivider} />
+							<Animated.View style={[styles.exampleTip, lineStyle(EXAMPLE_ITEMS.length)]}>
+								<Ionicons name="trending-down" size={16} color={colors.cyan} />
+								<Text style={styles.exampleTipText}>{EXAMPLE_TIP}</Text>
+							</Animated.View>
+						</View>
+					)}
+				</View>
 
 				<View style={styles.zoneCta}>
 					<Pressable
-						style={({ pressed }) => [
-							styles.primaryButton,
-							pressed && styles.pressed,
+						style={(state) => [ styles.primaryButton, state.pressed && styles.pressed, isFocused(state) && styles.focusRing,
 						]}
 						onPress={onCreateAccount}
+						accessibilityRole="button"
+						accessibilityLabel="Crear cuenta"
 					>
 						<Text style={styles.primaryButtonText}>Crear cuenta</Text>
 					</Pressable>
 
 					<Pressable
 						onPress={onAlreadyHaveAccount}
-						style={({ pressed }) => [
-							styles.secondaryButton,
-							pressed && styles.pressed,
+						style={(state) => [ styles.secondaryButton, state.pressed && styles.pressed, isFocused(state) && styles.focusRing,
 						]}
+						accessibilityRole="button"
+						accessibilityLabel="Ya tengo cuenta"
 					>
 						<Text style={styles.secondaryButtonText}>Ya tengo cuenta</Text>
 					</Pressable>
@@ -111,21 +204,34 @@ export function AuthWelcomeScreen({
 					{showBiometricButton && (
 						<Pressable
 							onPress={onBiometricLogin}
-							style={({ pressed }) => [
-								styles.biometricButton,
-								pressed && { opacity: 0.6 },
+							style={(state) => [ styles.biometricButton, state.pressed && { opacity: 0.6 }, isFocused(state) && styles.focusRing,
 							]}
+							accessibilityRole="button"
+							accessibilityLabel={`Iniciar sesión con ${biometric.hint}`}
 						>
-							<Ionicons name="finger-print-outline" size={16} color="rgba(255,255,255,0.45)" />
-							<Text style={styles.biometricButtonText}>Iniciar con huella</Text>
+							<Ionicons name={biometric.icon} size={16} color={colors.navyMutedText} />
+							<Text style={styles.biometricButtonText}>Iniciar con {biometric.hint}</Text>
 						</Pressable>
 					)}
 
-					<Text style={[styles.legalText, !showBiometricButton && styles.legalTextBreak]}>
-						Al continuar aceptás los términos y la política de privacidad.
-					</Text>
+					<Pressable
+							onPress={() => {
+								Linking.openURL(TERMS_URL).catch(() => {});
+							}}
+							style={(state) => [
+								styles.legalButton,
+								!showBiometricButton && styles.legalTextBreak,
+								isFocused(state) && styles.focusRing,
+							]}
+							accessibilityRole="link"
+							accessibilityLabel="Al continuar aceptás los términos y la política de privacidad"
+						>
+							<Text style={styles.legalText}>
+								Al continuar aceptás los <Text style={styles.legalUnderline}>términos y la política de privacidad</Text>.
+							</Text>
+						</Pressable>
 				</View>
-			</View>
+			</ScrollView>
 		</View>
 	);
 }
@@ -142,20 +248,26 @@ function createStyles(colors: ColorTokens) {
 	background: {
 		flex: 1,
 		backgroundColor: colors.navy,
+	},
+	// flexGrow (not flex) on the zones: with flex the zones collapse to their
+	// share of the height and clip on a short phone or a large text size;
+	// with flexGrow they keep their content height and the screen scrolls.
+	content: {
+		flexGrow: 1,
 		paddingHorizontal: space.xxl,
 		paddingTop: space.smPlus,
-		paddingBottom: space.smPlus,
-		overflow: "hidden",
 	},
 	zoneTop: {
-		flex: 0.1,
+		flexGrow: 0.1,
 	},
 	zoneHero: {
-		flex: 2,
+		flexGrow: 2,
 		justifyContent: "center",
 	},
 	zoneMid: {
-		flex: 1.1,
+		flexGrow: 1.1,
+		justifyContent: "flex-end",
+		paddingVertical: space.lg,
 	},
 	zoneCta: {
 		paddingBottom: space.xsPlus,
@@ -179,23 +291,15 @@ function createStyles(colors: ColorTokens) {
 	badgeIcon: {
 		width: 84,
 		height: 84,
-		borderRadius: 7,
+		borderRadius: radii.sm,
 		marginBottom: space.md,
 	},
-	overline: {
-		color: colors.cyan,
-		fontFamily: typography.family.medium,
-		fontSize: 11,
-		lineHeight: 14,
-		letterSpacing: 2.2,
-		textTransform: "uppercase",
-		marginTop: space.xs,
-	},
+	
 	brandTitle: {
 		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 28,
-		lineHeight: 36,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.h1,
+		lineHeight: typography.lineHeights.h1,
 	},
 	brandAccent: {
 		color: colors.cyan,
@@ -203,9 +307,9 @@ function createStyles(colors: ColorTokens) {
 	headline: {
 		marginTop: space.xl,
 		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 36,
-		lineHeight: 44,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.display,
+		lineHeight: typography.lineHeights.display,
 		letterSpacing: -0.6,
 	},
 	headlineAccent: {
@@ -213,44 +317,106 @@ function createStyles(colors: ColorTokens) {
 	},
 	body: {
 		marginTop: space.sm,
-		color: "rgba(255, 255, 255, 0.58)",
+		color: colors.navyMutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 17,
-		lineHeight: 26,
+		fontSize: typography.sizes.bodyL,
+		lineHeight: typography.lineHeights.bodyL,
 	},
+	// Flat, hairline-bordered card: this app separates surfaces with a border,
+	// not a shadow. The border is navyMutedText at low alpha because the
+	// surface underneath is always the fixed navy.
+	example: {
+		width: "100%",
+		maxWidth: 420,
+		borderWidth: 1,
+		borderColor: colors.navyHairline,
+		borderRadius: radii.md,
+		padding: space.mdPlus,
+		gap: space.sm,
+	},
+	exampleTitle: {
+		color: colors.cyan,
+		fontFamily: typography.family.medium,
+		fontSize: typography.sizes.overline,
+		lineHeight: typography.lineHeights.overline,
+		letterSpacing: 1.2,
+		textTransform: "uppercase",
+	},
+	exampleRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		gap: space.md,
+	},
+	exampleItem: {
+		flex: 1,
+		color: colors.buttonText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.label,
+		lineHeight: typography.lineHeights.label,
+	},
+	examplePrice: {
+		color: colors.buttonText,
+		fontFamily: typography.family.medium,
+		fontSize: typography.sizes.label,
+		lineHeight: typography.lineHeights.label,
+		fontVariant: ["tabular-nums"],
+	},
+	exampleDivider: {
+		height: 1,
+		backgroundColor: colors.navyHairline,
+	},
+	exampleTip: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.sm,
+	},
+	exampleTipText: {
+		flex: 1,
+		color: colors.cyan,
+		fontFamily: typography.family.medium,
+		fontSize: typography.sizes.micro,
+		lineHeight: typography.lineHeights.micro,
+	},
+	// White on the coral fill is 3.09:1; navy on coral is ~5.3:1.
 	primaryButton: {
 		height: 52,
-		borderRadius: 14,
+		borderRadius: radii.sm + 2,
 		backgroundColor: colors.orange,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	primaryButtonText: {
-		color: colors.buttonText,
+		color: colors.navy,
 		fontFamily: typography.family.medium,
-		fontSize: 13,
-		lineHeight: 16,
+		fontSize: typography.sizes.body,
+		lineHeight: typography.lineHeights.body,
 	},
+	// Same 52px hit area as the primary, but no fill or border: only "Crear
+	// cuenta" carries the coral, so the two read as a choice, not a pair.
 	secondaryButton: {
 		height: 52,
-		borderRadius: 14,
-		borderWidth: 1,
-		borderColor: colors.orange,
+		borderRadius: radii.sm + 2,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "transparent",
 	},
 	secondaryButtonText: {
-		color: colors.orange,
+		color: colors.navyMutedText,
 		fontFamily: typography.family.medium,
-		fontSize: 13,
-		lineHeight: 16,
+		fontSize: typography.sizes.body,
+		lineHeight: typography.lineHeights.body,
+	},
+	legalButton: {
+		minHeight: 44,
+		justifyContent: "center",
+	},
+	legalUnderline: {
+		textDecorationLine: "underline",
 	},
 	legalText: {
-		color: "rgba(255, 255, 255, 0.35)",
+		color: colors.navyMutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 10,
-		lineHeight: 14,
+		fontSize: typography.sizes.micro,
+		lineHeight: typography.lineHeights.micro,
 		textAlign: "left",
 	},
 	// Only needed when the biometric row is absent: legalText then sits
@@ -267,14 +433,20 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		justifyContent: "center",
 		gap: space.sm,
-		paddingVertical: space.sm,
+		minHeight: 44,
 		marginTop: space.md,
 	},
 	biometricButtonText: {
-		color: "rgba(255,255,255,0.45)",
+		color: colors.navyMutedText,
 		fontFamily: typography.family.medium,
-		fontSize: 13,
-		lineHeight: 16,
+		fontSize: typography.sizes.label,
+		lineHeight: typography.lineHeights.label,
+	},
+	focusRing: {
+		outlineWidth: 2,
+		outlineColor: colors.cyan,
+		outlineOffset: 2,
+		outlineStyle: "solid",
 	},
 	pressed: {
 		opacity: 0.88,

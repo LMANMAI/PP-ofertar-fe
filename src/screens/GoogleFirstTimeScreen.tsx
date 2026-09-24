@@ -12,7 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { InputField } from "../components";
+import { InputField, LegalLink } from "../components";
 
 type Props = { onComplete: () => void; onBack: () => void };
 
@@ -79,7 +79,7 @@ export function GoogleFirstTimeScreen({ onComplete, onBack }: Props) {
 							{accepted && <Ionicons name="checkmark" size={14} color={colors.buttonText} />}
 						</View>
 						<Text style={styles.checkText}>
-							Acepto los Términos y la Política de privacidad de OfertAR.
+							Acepto los <LegalLink>Términos y la Política de privacidad</LegalLink> de OfertAR.
 						</Text>
 					</Pressable>
 

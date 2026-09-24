@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useFonts } from "expo-font";
+import { PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_700Bold } from "@expo-google-fonts/plus-jakarta-sans";
 import { ActivityIndicator, BackHandler, Platform, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
@@ -78,10 +80,15 @@ type Screen =
 	| "ticketHistory" | "ticketDetail" | "monthlyAnalysis" | "recurringProducts" | "smartList";
 
 export default function App() {
+	// Preload once so each screen's own useFonts resolves from cache (no per-screen spinner).
+	useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_700Bold });
 	const [screen, setScreen] = useState<Screen>("welcome");
 	const [tab, setTab] = useState<TabKey>("home");
 	const [session, setSession] = useState<Session | null>(null);
-	const [registerData, setRegisterData] = useState<{ firstName: string; lastName: string; email: string; phone: string; referralCode: string } | null>(null);
+	// Password recovery: the email the code went to, and the code once verified.
+	const [recoveryEmail, setRecoveryEmail] = useState("");
+	const [recoveryCode, setRecoveryCode] = useState("");
+	const [registerData, setRegisterData] = useState<{ firstName: string; lastName: string; email: string; referralCode: string } | null>(null);
 	const [compareProduct, setCompareProduct] = useState<string>("Aceite Natura girasol 1.5L");
 	const [compareBarcode, setCompareBarcode] = useState<string | null>(null);
 	const [selectedStore, setSelectedStore] = useState<NearbyStore | null>(null);
@@ -425,11 +432,14 @@ export default function App() {
 						}
 					}}
 					onForgotPassword={() => setScreen("passwordRecovery")}
+					showBiometricButton={showBiometricOnWelcome}
+					onBiometricLogin={() => setScreen("biometricLock")}
 				/>
 			)}
 
 			{screen === "register1" && (
 				<RegisterStep1
+					initialData={registerData}
 					onBack={() => setScreen("welcome")}
 					onNext={(data) => { setRegisterData(data); setScreen("register2"); }}
 					onGoToLogin={() => setScreen("login")}
@@ -441,9 +451,9 @@ export default function App() {
 					firstName={registerData.firstName}
 					lastName={registerData.lastName}
 					email={registerData.email}
-					phone={registerData.phone}
 					referralCode={registerData.referralCode}
 					onBack={() => setScreen("register1")}
+					onGoToLogin={() => setScreen("login")}
 					onNext={(s) => {
 						// El código viaja en el propio POST /auth/register (ver
 						// src/services/authApi.ts). El backend acredita ahí los puntos
@@ -509,21 +519,33 @@ export default function App() {
 			{screen === "passwordRecovery" && (
 				<PasswordRecoveryScreen
 					onBack={() => setScreen("login")}
-					onSubmit={() => setScreen("checkEmail")}
+					onSent={(email) => {
+						setRecoveryEmail(email);
+						setScreen("checkEmail");
+					}}
 				/>
 			)}
 
 			{screen === "checkEmail" && (
 				<CheckEmailScreen
+					email={recoveryEmail}
 					onBack={() => setScreen("passwordRecovery")}
-					onOpenChange={() => setScreen("changePassword")}
+					onVerified={(code) => {
+						setRecoveryCode(code);
+						setScreen("changePassword");
+					}}
 				/>
 			)}
 
 			{screen === "changePassword" && (
 				<ChangePasswordScreen
+					email={recoveryEmail}
+					code={recoveryCode}
 					onBack={() => setScreen("checkEmail")}
-					onSuccess={() => setScreen("passwordSuccess")}
+					onSuccess={() => {
+						setRecoveryCode("");
+						setScreen("passwordSuccess");
+					}}
 				/>
 			)}
 
