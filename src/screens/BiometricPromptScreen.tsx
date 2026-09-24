@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 import type { Session } from "../auth/session";
-import { storeToken, setBiometricPreference } from "../auth/biometricAuth";
+import { storeToken, setBiometricPreference, useBiometricInfo } from "../auth/biometricAuth";
 
 type Props = {
 	session: Session;
@@ -21,6 +21,7 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [activating, setActivating] = useState(false);
+	const biometric = useBiometricInfo();
 
 	const [overlayOpacity] = useState(() => new Animated.Value(0));
 	const [cardScale] = useState(() => new Animated.Value(0.92));
@@ -81,13 +82,13 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 					]}
 				>
 					<Animated.View style={[styles.fingerprintCircle, { transform: [{ scale: circleScale }] }]}>
-						<Ionicons name="finger-print-outline" size={44} color={colors.navy} />
+						<Ionicons name={biometric.icon} size={44} color={colors.navy} />
 					</Animated.View>
 
-					<Text style={styles.title}>¿Querés usar tu huella para ingresar más rápido?</Text>
+					<Text style={styles.title}>¿Querés usar {biometric.hint} para ingresar más rápido?</Text>
 
 					<Text style={styles.body}>
-						La próxima vez que abras la app podrás ingresar con tu huella en vez de escribir la contraseña.
+						La próxima vez que abras la app podrás ingresar con {biometric.hint} en vez de escribir la contraseña.
 					</Text>
 
 					<Pressable
@@ -99,8 +100,8 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 						]}
 						disabled={activating}
 					>
-						<Ionicons name="finger-print-outline" size={20} color={colors.buttonText} />
-						<Text style={styles.enableBtnText}>Activar inicio con huella</Text>
+						<Ionicons name={biometric.icon} size={20} color={colors.buttonText} />
+						<Text style={styles.enableBtnText}>Activar inicio con {biometric.hint}</Text>
 					</Pressable>
 
 					<Pressable
