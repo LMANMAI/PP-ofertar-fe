@@ -563,7 +563,7 @@ check("la mecánica usa el mismo tile + chip que las cards de oferta", () => {
 check("la mecánica se muestra siempre, no sólo con la tarjeta desplegada", () => {
 	// El renglón viejo vivía adentro del detalle desplegado. Si el bloque nuevo
 	// cae ahí también, el usuario sigue sin ver qué promoción aplica de entrada.
-	const featuredAt = screen.indexOf("{featured && (");
+	const featuredAt = screen.indexOf("{offer && featured && showPromo && !loose &&");
 	const expandedAt = screen.indexOf("{isExpanded && hasAnything && (");
 	assert.ok(featuredAt > 0, "no está el bloque de la mecánica destacada");
 	assert.ok(expandedAt > 0, "no está el bloque del detalle desplegado");

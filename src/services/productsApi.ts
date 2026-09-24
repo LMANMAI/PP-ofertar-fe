@@ -1,6 +1,6 @@
 import { describePromo, type Offer, type PromoMechanic, type PromoWording } from "./offersApi";
 import { describePromoLabel, pickProductPromo, readPromoLabels } from "./promoLabels";
-import { displayProductName } from "../utils/productName";
+import { displayProductName, isPromoLine } from "../utils/productName";
 
 const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
@@ -206,7 +206,7 @@ function offerTier(product: RecurringProduct): OfferTier {
  * percentages come from OCR over a promo image and can be absent, in which
  * case the promotion still counts as an offer but ranks below anything with a
  * number attached. */
-function bestKnownDiscount(product: RecurringProduct): number {
+export function bestKnownDiscount(product: RecurringProduct): number {
 	const fromCatalog = product.bestOffer?.discountPct ?? 0;
 	const fromCampaigns = product.campaignOffers.reduce(
 		(max, c) => Math.max(max, effectiveCampaignDiscount(c)),
@@ -329,19 +329,23 @@ export async function getRecurringProducts(
 	// The app ships independently of the backend, and these list fields are
 	// read with `.length` all over the screens. Against a backend that predates
 	// them, an undefined here takes the whole screen down instead of degrading.
-	return products.map((p) => ({
-		...p,
-		description: displayProductName(p.description),
-		bestOffer: p.bestOffer && {
-			...p.bestOffer,
-			productName: p.bestOffer.productName && displayProductName(p.bestOffer.productName),
-		},
-		campaignOffers: p.campaignOffers ?? [],
-		alternativeOffers: (p.alternativeOffers ?? []).map((alt) => ({
-			...alt,
-			productName: displayProductName(alt.productName),
-		})),
-	}));
+	// A promotion the register printed ("2 POR 97.00 (21.00%)") is not a product
+	// the user buys; the OCR reads it as one.
+	return products
+		.filter((p) => !isPromoLine(p.description))
+		.map((p) => ({
+			...p,
+			description: displayProductName(p.description),
+			bestOffer: p.bestOffer && {
+				...p.bestOffer,
+				productName: p.bestOffer.productName && displayProductName(p.bestOffer.productName),
+			},
+			campaignOffers: p.campaignOffers ?? [],
+			alternativeOffers: (p.alternativeOffers ?? []).map((alt) => ({
+				...alt,
+				productName: displayProductName(alt.productName),
+			})),
+		}));
 }
 
 /**

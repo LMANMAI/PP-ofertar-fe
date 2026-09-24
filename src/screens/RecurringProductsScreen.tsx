@@ -1,10 +1,11 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	AccessibilityInfo,
+	FlatList,
 	LayoutAnimation,
 	Platform,
 	Pressable,
-	ScrollView,
+	RefreshControl,
 	StyleSheet,
 	Text,
 	UIManager,
@@ -12,17 +13,28 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { campaignOfferToOffer, describeCampaignDiscount, getRecurringProducts, offerSavings, sortByOfferRelevance, summarizeOfferPromos } from "../services";
-import type { CampaignOffer, Offer, RecurringProduct } from "../services";
+import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
+import {
+	bestKnownDiscount,
+	campaignOfferToOffer,
+	describeCampaignDiscount,
+	getRecurringProducts,
+	offerSavings,
+	sortByOfferRelevance,
+	summarizeOfferPromos,
+} from "../services";
+import type { CampaignOffer, FeaturedPromo, Offer, RecurringProduct } from "../services";
+import { friendlyAuthError } from "../services/authApi";
 import type { Session } from "../auth/session";
-import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, type TabKey } from "../components";
+import { BottomNav, EmptyState, ErrorBanner, ScreenHeader, Skeleton, type TabKey } from "../components";
+import { OffersSortSheet } from "../components/OffersSortSheet";
+import { ProductOfferLine, offerSummary } from "../components/ProductOfferLine";
 import { formatCurrency, formatLongDate } from "../utils/format";
+import { isLooseMatch } from "../utils/productMatch";
 
 function formatFrequency(purchaseCount: number, ticketCount: number): string {
-	const times = purchaseCount === 1 ? "1 vez" : `${purchaseCount} veces`;
-	const trips = ticketCount === 1 ? "1 compra" : `${ticketCount} compras`;
-	return `Comprado ${times} en ${trips}`;
+	const tickets = ticketCount === 1 ? "1 ticket" : `${ticketCount} tickets`;
+	return purchaseCount > ticketCount ? `En ${tickets} · ${purchaseCount} veces` : `En ${tickets}`;
 }
 
 function daysUntil(iso: string | null): number | null {
@@ -47,6 +59,64 @@ function hasGuessedPercentages(offers: CampaignOffer[]): boolean {
 	return offers.some((c) => c.percentagesUnverified && c.discountPercentages.length > 0);
 }
 
+type SortKey = "relevance" | "discount" | "purchases" | "expiry";
+
+const SORT_LABELS: Record<SortKey, string> = {
+	relevance: "Recomendado",
+	discount: "Mayor descuento",
+	purchases: "Más comprados",
+	expiry: "Vence pronto",
+};
+
+/** A product plus what the screen derives from it once, so sorting and grouping
+ * do not recompute the match on every render. */
+type Item = {
+	/** Stable across sorts and refreshes of the same list; a barcode alone can
+	 * repeat and a description can collide, so the position disambiguates. */
+	id: string;
+	product: RecurringProduct;
+	/** The price on the card is probably for a different product. */
+	loose: boolean;
+	hasOffer: boolean;
+	/** Percentage used to rank "Mayor descuento". A catalog price for a loosely
+	 * matched product does not count: it is not this product's discount. */
+	discount: number;
+	/** Earliest campaign end still ahead, as a timestamp. */
+	expiresAt: number | null;
+};
+
+function toItem(product: RecurringProduct, index: number): Item {
+	const loose = product.bestOffer != null && isLooseMatch(product.description, product.bestOffer.productName);
+	const now = Date.now();
+	const ends = product.campaignOffers
+		.map((c) => (c.activeTo ? new Date(c.activeTo).getTime() : NaN))
+		.filter((t) => Number.isFinite(t) && t >= now);
+	return {
+		id: `${product.barcode || product.description}#${index}`,
+		product,
+		loose,
+		hasOffer: product.bestOffer != null || product.campaignOffers.length > 0 || product.alternativeOffers.length > 0,
+		discount: bestKnownDiscount(loose ? { ...product, bestOffer: null } : product),
+		expiresAt: ends.length > 0 ? Math.min(...ends) : null,
+	};
+}
+
+function sortItems(items: Item[], key: SortKey): Item[] {
+	if (key === "relevance") return items;
+	const sorted = [...items];
+	if (key === "discount") sorted.sort((a, b) => b.discount - a.discount);
+	if (key === "purchases") {
+		sorted.sort(
+			(a, b) =>
+				b.product.ticketCount - a.product.ticketCount || b.product.purchaseCount - a.product.purchaseCount,
+		);
+	}
+	if (key === "expiry") {
+		sorted.sort((a, b) => (a.expiresAt ?? Infinity) - (b.expiresAt ?? Infinity));
+	}
+	return sorted;
+}
+
 type Props = {
 	onBack: () => void;
 	session: Session;
@@ -65,8 +135,12 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [products, setProducts] = useState<RecurringProduct[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [expandedId, setExpandedId] = useState<string | null>(null);
+	const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
+	const [showNoOffer, setShowNoOffer] = useState(false);
+	const [sort, setSort] = useState<SortKey>("relevance");
+	const [sortVisible, setSortVisible] = useState(false);
 	const reduceMotion = useRef(false);
 
 	useEffect(() => {
@@ -79,52 +153,175 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 		return () => sub.remove();
 	}, []);
 
-	// Stable across renders so ProductCard's React.memo isn't defeated by a
-	// fresh closure every time any card toggles — otherwise every card in the
-	// list re-renders (including their off-screen detail sections) on every
-	// single tap, not just the one that changed.
-	const handleToggle = useCallback((id: string) => {
+	const animateNext = useCallback(() => {
 		// The detail block used to just pop in/out with the rest of the card
 		// jumping to make room. Animating the layout pass this triggers makes
 		// it read as the card growing to reveal its detail, not the list
 		// reflowing under the user's thumb.
-		if (!reduceMotion.current) {
-			LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-		}
-		setExpandedId((current) => (current === id ? null : id));
+		if (!reduceMotion.current) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 	}, []);
+
+	// Stable across renders so ProductCard's React.memo isn't defeated by a
+	// fresh closure every time any card toggles. Several cards can stay open at
+	// once: comparing two products meant closing one to read the other.
+	const handleToggle = useCallback(
+		(id: string) => {
+			animateNext();
+			setExpanded((current) => {
+				const next = new Set(current);
+				if (!next.delete(id)) next.add(id);
+				return next;
+			});
+		},
+		[animateNext],
+	);
+
+	const load = useCallback(
+		(mode: "initial" | "refresh") => {
+			if (mode === "refresh") setRefreshing(true);
+			else setLoading(true);
+			getRecurringProducts(session.token)
+				.then((data) => {
+					// Same ordering as the home carousel, so a product featured there
+					// is also at the top when the user opens this section.
+					setProducts(sortByOfferRelevance(data));
+					setError(null);
+				})
+				// A failed refresh keeps the list it already had: wiping it would turn
+				// a dropped connection into an empty screen.
+				.catch((err) => setError(friendlyAuthError(err)))
+				.finally(() => {
+					setLoading(false);
+					setRefreshing(false);
+				});
+		},
+		[session.token],
+	);
 
 	useEffect(() => {
 		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the session token changes
-		setLoading(true);
-		getRecurringProducts(session.token)
-			.then((data) => {
-				// Same ordering as the home carousel, so a product featured there
-				// is also at the top when the user opens this section.
-				setProducts(sortByOfferRelevance(data));
-				setError(null);
-			})
-			.catch((err) => {
-				setError(err instanceof Error ? err.message : "Error al cargar tus productos recurrentes");
-			})
-			.finally(() => setLoading(false));
-	}, [session.token]);
+		load("initial");
+	}, [load]);
 
-	// Counts alternative-brand offers too, matching what the ordering treats as
-	// "has something to act on".
-	const offerCount = products.filter(
-		(p) => p.bestOffer != null || p.campaignOffers.length > 0 || p.alternativeOffers.length > 0,
-	).length;
+	const items = useMemo(() => products.map(toItem), [products]);
+
+	const sortKeys = useMemo<SortKey[]>(
+		() => ["relevance", "discount", "purchases", ...(items.some((i) => i.expiresAt != null) ? (["expiry"] as const) : [])],
+		[items],
+	);
+	const activeSort: SortKey = sortKeys.includes(sort) ? sort : "relevance";
+
+	const { withOffer, withoutOffer } = useMemo(() => {
+		const sorted = sortItems(items, activeSort);
+		return {
+			withOffer: sorted.filter((i) => i.hasOffer),
+			// Nothing to act on, so no order to choose: they keep the frequency order.
+			withoutOffer: items.filter((i) => !i.hasOffer),
+		};
+	}, [items, activeSort]);
+
+	// What the offers on shelves save against each chain's own list price, for
+	// the products where that price is plausibly the one the user pays. The
+	// loosely matched ones are left out: their saving belongs to another product.
+	const listSavings = useMemo(() => {
+		let amount = 0;
+		let count = 0;
+		for (const i of items) {
+			if (i.loose || !i.product.bestOffer) continue;
+			const s = offerSavings(i.product.bestOffer);
+			if (s) {
+				amount += s.amount;
+				count += 1;
+			}
+		}
+		return { amount, count };
+	}, [items]);
+
+	const listHeader = (
+		<View style={styles.listHeader}>
+			{error && <ErrorBanner message={error} onRetry={() => load("refresh")} />}
+			{withOffer.length > 0 ? (
+				<View style={{ gap: space.xs }}>
+					<Text style={styles.intro}>
+						{withOffer.length} de tus {items.length} productos habituales tienen oferta ahora. Tocá uno para ver el detalle.
+					</Text>
+					{listSavings.count > 0 && (
+						<Text style={styles.introStrong}>
+							{listSavings.count === 1
+								? "En el que coincide con lo que comprás, el ahorro sobre el precio de lista es de "
+								: `En los ${listSavings.count} que coinciden con lo que comprás, el ahorro sobre el precio de lista suma `}
+							{formatCurrency(listSavings.amount)}.
+						</Text>
+					)}
+				</View>
+			) : (
+				<Text style={styles.intro}>
+					Detectamos {items.length} productos que comprás seguido. Cuando alguno tenga oferta, la vas a ver acá.
+				</Text>
+			)}
+			{withOffer.length > 1 && (
+				<View style={styles.resultsRow}>
+					<Text style={styles.resultsText}>Con oferta</Text>
+					<Pressable
+						onPress={() => setSortVisible(true)}
+						style={(state) => [styles.sortChip, isFocused(state) && styles.focusRing]}
+						accessibilityRole="button"
+						accessibilityLabel={`Orden: ${SORT_LABELS[activeSort]}. Tocá para elegir otro`}
+					>
+						<Ionicons name="swap-vertical" size={14} color={colors.defaultText} />
+						<Text style={styles.sortChipText}>{SORT_LABELS[activeSort]}</Text>
+					</Pressable>
+				</View>
+			)}
+		</View>
+	);
+
+	const listFooter =
+		withoutOffer.length > 0 ? (
+			<View style={styles.noOfferGroup}>
+				<Pressable
+					style={(state) => [styles.noOfferHeader, isFocused(state) && styles.focusRing]}
+					onPress={() => {
+						animateNext();
+						setShowNoOffer((v) => !v);
+					}}
+					accessibilityRole="button"
+					accessibilityLabel={`Sin ofertas por ahora, ${withoutOffer.length} ${withoutOffer.length === 1 ? "producto" : "productos"}`}
+					accessibilityState={{ expanded: showNoOffer }}
+					aria-expanded={showNoOffer}
+				>
+					<Text style={styles.noOfferTitle}>Sin ofertas por ahora ({withoutOffer.length})</Text>
+					<Ionicons name={showNoOffer ? "chevron-up" : "chevron-down"} size={20} color={colors.mutedText2} />
+				</Pressable>
+				{showNoOffer &&
+					withoutOffer.map(({ id, product: p }) => (
+						<View key={id} style={styles.noOfferRow}>
+							<Text style={styles.name}>{p.description}</Text>
+							<Text style={styles.freq}>{formatFrequency(p.purchaseCount, p.ticketCount)}</Text>
+						</View>
+					))}
+			</View>
+		) : null;
 
 	return (
 		<View style={styles.safeArea}>
 			<ScreenHeader title="Productos recurrentes" onBack={onBack} />
 
-			{loading && <LoadingState />}
+			{loading && items.length === 0 && (
+				<View style={styles.skeletonList} accessibilityLabel="Cargando tus productos recurrentes" accessibilityLiveRegion="polite">
+					{[0, 1, 2, 3].map((i) => (
+						<Skeleton key={i} style={styles.card}>
+							<View style={[styles.skeletonLine, { width: "65%" }]} />
+							<View style={[styles.skeletonLine, { width: "35%", height: 12 }]} />
+							<View style={[styles.skeletonLine, { width: "90%", height: 28 }]} />
+						</Skeleton>
+					))}
+				</View>
+			)}
 
-			{error && !loading && <ErrorBanner message={error} />}
+			{error && !loading && items.length === 0 && <ErrorBanner message={error} onRetry={() => load("initial")} />}
 
-			{!loading && !error && products.length === 0 && (
+			{!loading && !error && items.length === 0 && (
 				<EmptyState
 					icon="repeat-outline"
 					title="Todavía no detectamos productos recurrentes"
@@ -132,34 +329,105 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 				/>
 			)}
 
-			{!loading && !error && products.length > 0 && (
-				<ScrollView contentContainerStyle={{ padding: space.lg, gap: space.smPlus, paddingBottom: insets.bottom + space.xxl }}>
-					<Text style={styles.intro}>
-						{offerCount > 0
-							? `${offerCount} de tus ${products.length} productos habituales tienen oferta ahora. Tocá cualquiera para ver el detalle.`
-							: `Detectamos ${products.length} productos que comprás seguido. Te avisamos cuando haya mejor precio.`}
-					</Text>
-
-					{products.map((p) => {
-						const id = p.barcode || p.description;
-						return (
-							<ProductCard
-								key={id}
-								id={id}
-								product={p}
-								isExpanded={expandedId === id}
-								onToggle={handleToggle}
-								onOpenOffer={onOpenOffer}
-								colors={colors}
-								styles={styles}
-							/>
-						);
-					})}
-				</ScrollView>
+			{items.length > 0 && (
+				<FlatList
+					data={withOffer}
+					extraData={expanded}
+					keyExtractor={(i) => i.id}
+					contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + space.xxl }}
+					refreshControl={
+						<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} tintColor={colors.cyan} />
+					}
+					ListHeaderComponent={listHeader}
+					ListFooterComponent={listFooter}
+					ItemSeparatorComponent={ItemSeparator}
+					renderItem={({ item }) => (
+						<ProductCard
+							item={item}
+							isExpanded={expanded.has(item.id)}
+							onToggle={handleToggle}
+							onOpenOffer={onOpenOffer}
+							colors={colors}
+							styles={styles}
+						/>
+					)}
+					initialNumToRender={8}
+					maxToRenderPerBatch={8}
+					windowSize={7}
+				/>
 			)}
 
 			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
+			</View>
+
+			<OffersSortSheet
+				visible={sortVisible}
+				onClose={() => setSortVisible(false)}
+				options={sortKeys.map((k) => ({ key: k, label: SORT_LABELS[k] }))}
+				value={activeSort}
+				onSelect={(key) => {
+					setSort(key);
+					setSortVisible(false);
+				}}
+			/>
+		</View>
+	);
+}
+
+function ItemSeparator() {
+	return <View style={{ height: space.smPlus }} />;
+}
+
+/** The promotion's mechanic in its own block: the number, what it applies to,
+ * and the condition. Same anatomy as the offer cards on Inicio and Ofertas. */
+function PromoBody({
+	featured,
+	price,
+	colors,
+	styles,
+}: {
+	featured: FeaturedPromo;
+	price: number;
+	colors: ColorTokens;
+	styles: ReturnType<typeof createStyles>;
+}) {
+	return (
+		<View style={styles.promoBody}>
+			{featured.wording.amount ? (
+				<View style={styles.amountTile}>
+					<View style={styles.amountKickerRow}>
+						<Ionicons name={featured.wording.icon} size={11} color={colors.cyan} />
+						{featured.wording.capped && <Text style={styles.amountKicker}>HASTA</Text>}
+					</View>
+					<Text style={styles.amountValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+						{featured.wording.amount}
+					</Text>
+				</View>
+			) : (
+				<View style={[styles.amountTile, styles.amountTileFlat]}>
+					<Ionicons name={featured.wording.icon} size={24} color={colors.cyan} />
+				</View>
+			)}
+			<View style={styles.promoBodyRight}>
+				<View style={[styles.appliesChip, featured.wording.conditional && styles.appliesChipWarm]}>
+					<Text style={[styles.appliesText, featured.wording.conditional && styles.appliesTextWarm]}>
+						{featured.wording.applies}
+					</Text>
+				</View>
+				<Text style={styles.promoDetail}>{featured.wording.detail}</Text>
+				{/* El punto de toda la tarea: con una sola unidad el precio no
+				    baja. Se dice con el número al lado para que no quede como
+				    una advertencia genérica que nadie lee. */}
+				{featured.requiredQuantity > 1 && (
+					<Text style={styles.promoCondition}>
+						Llevando 1 sola unidad pagás {formatCurrency(price)}
+						{featured.unitPrice != null
+							? `; llevando ${featured.requiredQuantity}, ${formatCurrency(featured.unitPrice)} por unidad`
+							: ""}
+						.
+					</Text>
+				)}
 			</View>
 		</View>
 	);
@@ -170,31 +438,33 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
  * alternative-offer sub-lists this screen can carry, re-running that JSX for
  * every product on every single tap was the actual jank source. */
 const ProductCard = memo(function ProductCard({
-	id,
-	product: p,
+	item,
 	isExpanded,
 	onToggle,
 	onOpenOffer,
 	colors,
 	styles,
 }: {
-	id: string;
-	product: RecurringProduct;
+	item: Item;
 	isExpanded: boolean;
 	onToggle: (id: string) => void;
 	onOpenOffer?: (id: string, fallback?: Offer | null) => void;
 	colors: ColorTokens;
 	styles: ReturnType<typeof createStyles>;
 }) {
+	const { id, product: p, loose } = item;
 	const offer = p.bestOffer;
 	const savings = offer ? offerSavings(offer) : null;
-	const discountPct = offer?.discountPct ?? savings?.pct ?? null;
 	// Qué promoción aplica, no sólo cuánto baja la unidad en el catálogo: la
 	// mecánica (3x2, 2da unidad, llevando N) va arriba y las bancarias aparte.
 	const promos = offer ? summarizeOfferPromos(offer) : null;
 	const featured = promos?.featured ?? null;
+	// A flat "X% de descuento" is what the badge beside the price already says;
+	// the block earns its space only for a mechanic that is not obvious.
+	const showPromo = featured != null && (featured.wording.conditional || featured.requiredQuantity > 1);
 	const campaigns = p.campaignOffers.slice(0, 3);
 	const hasAnything = offer != null || campaigns.length > 0;
+	const summary = offerSummary(p, loose);
 
 	return (
 		<View style={styles.card}>
@@ -202,147 +472,43 @@ const ProductCard = memo(function ProductCard({
 			    trying to read a truncated line further down collapsed the
 			    card instead. */}
 			<Pressable
-				style={styles.cardHeader}
+				style={(state) => [styles.cardHeader, isFocused(state) && styles.focusRing]}
 				onPress={() => hasAnything && onToggle(id)}
 				disabled={!hasAnything}
 				accessibilityRole={hasAnything ? "button" : undefined}
-				accessibilityLabel={`${p.description}. ${formatFrequency(p.purchaseCount, p.ticketCount)}`}
+				accessibilityLabel={`${p.description}. ${formatFrequency(p.purchaseCount, p.ticketCount)}. ${summary}`}
 				accessibilityHint={hasAnything ? (isExpanded ? "Toca para contraer el detalle" : "Toca para ver el detalle") : undefined}
 				accessibilityState={hasAnything ? { expanded: isExpanded } : undefined}
+				aria-expanded={hasAnything ? isExpanded : undefined}
 			>
-				<Ionicons name="repeat-outline" size={18} color={colors.cyan} />
 				<View style={{ flex: 1 }}>
 					<Text style={styles.name}>{p.description}</Text>
 					<Text style={styles.freq}>{formatFrequency(p.purchaseCount, p.ticketCount)}</Text>
 				</View>
 				{hasAnything && (
-					<Ionicons
-						name={isExpanded ? "chevron-up" : "chevron-down"}
-						size={18}
-						color={colors.subtleText}
-					/>
+					<Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={20} color={colors.mutedText2} />
 				)}
 			</Pressable>
 
-			{offer ? (
-				<View style={{ gap: space.xs }}>
-					<View style={styles.bestRow}>
-						<View style={styles.bestChip}>
-							<Ionicons name="trophy" size={11} color={colors.buttonText} />
-							<Text style={styles.bestText}>Mejor en {offer.retailerName}</Text>
-						</View>
-						<View style={styles.priceGroup}>
-							{discountPct != null && discountPct >= 1 && (
-								<View style={styles.discountBadge}>
-									<Text style={styles.discountText}>-{Math.round(discountPct)}%</Text>
-								</View>
-							)}
-							<Text style={styles.price}>{formatCurrency(offer.price)}</Text>
-						</View>
-					</View>
-					{/* Always visible, never only in the expanded detail: the match is
-					    by brand and kind of product, so the price can belong to another
-					    size or variety. Hiding which product it is turned a bag of
-					    flour into "the best price" for a bottle of oil. */}
-					{offer.productName && (
-						<Text style={styles.offerProduct} numberOfLines={2}>
-							Precio de: {offer.productName}
-						</Text>
-					)}
+			{/* La queja que esto arregla: "Mejor en X supermercado" no dice QUÉ
+			    promoción aplica. La mecánica va acá, con el mismo tile + chip que usan
+			    las cards de oferta, y no escondida en el detalle desplegado. Si el
+			    precio es de otro producto, la promoción también: queda en el detalle,
+			    no en el titular. */}
+			<ProductOfferLine product={p} loose={loose}>
+				{offer && featured && showPromo && !loose && (
+					<PromoBody featured={featured} price={offer.price} colors={colors} styles={styles} />
+				)}
+			</ProductOfferLine>
 
-					{/* La queja que esto arregla: "Mejor en X supermercado" no dice QUÉ
-					    promoción aplica. La mecánica va acá, con el mismo tile + chip
-					    que usan las cards de oferta, y no escondida en un renglón del
-					    detalle desplegado. */}
-					{featured && (
-						<View style={styles.promoBody}>
-							{featured.wording.amount ? (
-								<View style={styles.amountTile}>
-									<View style={styles.amountKickerRow}>
-										<Ionicons name={featured.wording.icon} size={11} color={colors.cyan} />
-										{featured.wording.capped && <Text style={styles.amountKicker}>HASTA</Text>}
-									</View>
-									<Text
-										style={styles.amountValue}
-										numberOfLines={1}
-										adjustsFontSizeToFit
-										minimumFontScale={0.6}
-									>
-										{featured.wording.amount}
-									</Text>
-								</View>
-							) : (
-								<View style={[styles.amountTile, styles.amountTileFlat]}>
-									<Ionicons name={featured.wording.icon} size={24} color={colors.cyan} />
-								</View>
-							)}
-							<View style={styles.promoBodyRight}>
-								<View
-									style={[styles.appliesChip, featured.wording.conditional && styles.appliesChipWarm]}
-								>
-									<Text
-										style={[
-											styles.appliesText,
-											featured.wording.conditional && styles.appliesTextWarm,
-										]}
-									>
-										{featured.wording.applies}
-									</Text>
-								</View>
-								<Text style={styles.promoDetail}>{featured.wording.detail}</Text>
-								{/* El punto de toda la tarea: con una sola unidad el precio no
-								    baja. Se dice con el número al lado para que no quede como
-								    una advertencia genérica que nadie lee. */}
-								{featured.requiredQuantity > 1 && (
-									<Text style={styles.promoCondition}>
-										Llevando 1 sola unidad pagás {formatCurrency(offer.price)}
-										{featured.unitPrice != null
-											? `; llevando ${featured.requiredQuantity}, ${formatCurrency(featured.unitPrice)} por unidad`
-											: ""}
-										.
-									</Text>
-								)}
-							</View>
-						</View>
-					)}
-				</View>
-			) : campaigns.length > 0 ? (
-				// A campaign promotion with no catalog price is still an offer;
-				// calling it "sin ofertas activas" was hiding a real one.
-				<View style={styles.bestRow}>
-					<View style={styles.campaignChip}>
-						<Ionicons name="megaphone" size={11} color={colors.buttonText} />
-						<Text style={styles.bestText}>
-							{describeCampaignDiscount(campaigns[0]) ?? "Promoción vigente"} en{" "}
-							{campaigns[0].retailerName}
-						</Text>
-					</View>
-				</View>
-			) : p.alternativeOffers.length > 0 ? (
-				// Saying "sin ofertas" while listing one right below it was a
-				// straight contradiction.
-				<Text style={styles.noOffer}>
-					Sin oferta de esta marca, pero hay otra marca en oferta
-				</Text>
-			) : (
-				<Text style={styles.noOffer}>Sin ofertas activas por ahora</Text>
-			)}
-
-			{/* A catalog price and a campaign are different kinds of offer and both
-			    matter: the chain above only ever showed one, so a product with a
-			    shelf price silently swallowed its "70% en la 2da unidad". Shown
-			    together, never instead of each other. */}
-			{offer && campaigns.length > 0 && (
-				<View style={styles.bestRow}>
-					<View style={styles.campaignChip}>
-						<Ionicons name="megaphone" size={11} color={colors.buttonText} />
-						<Text style={styles.bestText}>
-							{describeCampaignDiscount(campaigns[0]) ?? "Promoción vigente"} en{" "}
-							{campaigns[0].retailerName}
-						</Text>
-					</View>
-				</View>
-			)}
+			{!offer && campaigns.length === 0 &&
+				(p.alternativeOffers.length > 0 ? (
+					// Saying "sin ofertas" while listing one right below it was a
+					// straight contradiction.
+					<Text style={styles.noOffer}>Sin oferta de esta marca, pero hay otra marca en oferta</Text>
+				) : (
+					<Text style={styles.noOffer}>Sin ofertas activas por ahora</Text>
+				))}
 
 			{isExpanded && hasAnything && (
 				<View style={styles.detailBlock}>
@@ -354,6 +520,15 @@ const ProductCard = memo(function ProductCard({
 					{offer && (
 						<View style={styles.detailGroup}>
 							<Text style={styles.detailGroupTitle}>ESTE PRECIO</Text>
+							{loose && (
+								<Text style={styles.detailNote}>
+									Es el precio de otro producto de la misma marca o tipo, no del que comprás vos. Puede
+									cambiar la presentación, el tamaño o incluso qué es.
+								</Text>
+							)}
+							{featured && showPromo && loose && (
+								<PromoBody featured={featured} price={offer.price} colors={colors} styles={styles} />
+							)}
 							{savings ? (
 								<>
 									<View style={styles.detailRow}>
@@ -367,14 +542,10 @@ const ProductCard = memo(function ProductCard({
 									<View style={styles.savingsRow}>
 										<Ionicons name="pricetag" size={13} color={colors.successSoftText} />
 										<Text style={styles.savingsText}>
-											Ahorrás {formatCurrency(savings.amount)} ({Math.round(savings.pct)}%) sobre el
-											precio de lista
+											{loose ? "Ese producto tiene" : "Ahorrás"} {formatCurrency(savings.amount)} ({Math.round(savings.pct)}%){" "}
+											{loose ? "de descuento sobre" : "sobre"} el precio de lista
 										</Text>
 									</View>
-									<Text style={styles.detailNote}>
-										El mejor precio registrado para un producto de la misma marca y tipo — puede
-										ser otra presentación o tamaño del que comprás vos.
-									</Text>
 								</>
 							) : (
 								<Text style={styles.detailNote}>
@@ -398,8 +569,7 @@ const ProductCard = memo(function ProductCard({
 								<View style={styles.promoRow}>
 									<Ionicons name="card-outline" size={13} color={colors.infoSoftText} />
 									<Text style={styles.promoText}>
-										Con tarjeta o programa de {offer.retailerName}:{" "}
-										{promos.payment.join(" · ")}
+										Con tarjeta o programa de {offer.retailerName}: {promos.payment.join(" · ")}
 									</Text>
 								</View>
 							)}
@@ -428,7 +598,9 @@ const ProductCard = memo(function ProductCard({
 										</Text>
 										<Text style={styles.detailValue}>{formatCurrency(p.lastPaidPrice)}</Text>
 									</View>
-									{p.lastPaidPrice > offer.price ? (
+									{/* Comparing what you paid with the price of a different
+									    product proves nothing, so a loose match gets no verdict. */}
+									{loose ? null : p.lastPaidPrice > offer.price ? (
 										<Text style={styles.paidBetter}>
 											La oferta está {formatCurrency(p.lastPaidPrice - offer.price)} por debajo de lo
 											que pagaste
@@ -444,8 +616,8 @@ const ProductCard = memo(function ProductCard({
 					)}
 
 					{campaigns.length > 0 && (
-						<View style={styles.campaignBlock}>
-							<Text style={styles.campaignTitle}>OTRAS PROMOCIONES VIGENTES</Text>
+						<View style={offer ? styles.campaignBlock : styles.detailGroup}>
+							<Text style={styles.detailGroupTitle}>{offer ? "OTRAS PROMOCIONES VIGENTES" : "PROMOCIONES VIGENTES"}</Text>
 							{campaigns.map((c, i) => {
 								const until = formatLongDate(c.activeTo);
 								const days = daysUntil(c.activeTo);
@@ -455,14 +627,14 @@ const ProductCard = memo(function ProductCard({
 								return (
 									<Pressable
 										key={`${c.retailerName}-${i}`}
-										style={styles.campaignRow}
+										style={(state) => [styles.campaignRow, isFocused(state) && styles.focusRing]}
 										disabled={!openable}
 										onPress={() => full && onOpenOffer?.(full.id, full)}
 										accessibilityRole={openable ? "button" : undefined}
 										accessibilityLabel={`${discount ? `${discount} en ` : ""}${c.retailerName}${c.province ? `, ${c.province}` : ""}${until ? `. Vigente hasta el ${until}` : ""}`}
 										accessibilityHint={openable ? "Ver la promoción completa" : undefined}
 									>
-										<Ionicons name="time-outline" size={13} color={colors.defaultText} />
+										<Ionicons name="time-outline" size={14} color={colors.defaultText} />
 										<View style={{ flex: 1 }}>
 											<Text style={styles.campaignHeadline}>
 												{discount ? `${discount} · ` : ""}
@@ -479,13 +651,9 @@ const ProductCard = memo(function ProductCard({
 													)}
 												</Text>
 											)}
-											{openable && (
-												<Text style={styles.campaignLink}>Ver la promoción completa</Text>
-											)}
+											{openable && <Text style={styles.campaignLink}>Ver la promoción completa</Text>}
 										</View>
-										{openable && (
-											<Ionicons name="chevron-forward" size={14} color={colors.defaultText} />
-										)}
+										{openable && <Ionicons name="chevron-forward" size={16} color={colors.defaultText} />}
 									</Pressable>
 								);
 							})}
@@ -497,16 +665,15 @@ const ProductCard = memo(function ProductCard({
 							)}
 						</View>
 					)}
-
 				</View>
 			)}
 
 			{p.alternativeOffers.length > 0 && (
 				<View style={styles.altBlock}>
-					<Text style={styles.altTitle}>TAMBIÉN EN OFERTA (OTRAS MARCAS)</Text>
+					<Text style={styles.detailGroupTitle}>TAMBIÉN EN OFERTA (OTRAS MARCAS)</Text>
 					{p.alternativeOffers.map((alt, i) => (
 						<View key={`${alt.productName}-${i}`} style={styles.altRow}>
-							<Ionicons name="swap-horizontal-outline" size={13} color={colors.subtleText} />
+							<Ionicons name="swap-horizontal-outline" size={14} color={colors.subtleText} />
 							{/* Two lines and the retailer named: on one line the product
 							    got cut mid-word, and the price was shown without saying
 							    which supermarket it was from. */}
@@ -514,13 +681,9 @@ const ProductCard = memo(function ProductCard({
 								<Text style={styles.altName} numberOfLines={2}>
 									{alt.productName}
 								</Text>
-								{alt.retailerName && (
-									<Text style={styles.altRetailer}>en {alt.retailerName}</Text>
-								)}
+								{alt.retailerName && <Text style={styles.altRetailer}>en {alt.retailerName}</Text>}
 							</View>
-							{alt.discountPct != null && (
-								<Text style={styles.altDiscount}>-{Math.round(alt.discountPct)}%</Text>
-							)}
+							{alt.discountPct != null && <Text style={styles.altDiscount}>-{Math.round(alt.discountPct)}%</Text>}
 							<Text style={styles.altPrice}>{formatCurrency(alt.price)}</Text>
 						</View>
 					))}
@@ -531,80 +694,97 @@ const ProductCard = memo(function ProductCard({
 });
 
 function createStyles(colors: ColorTokens) {
+	const { sizes, lineHeights } = typography;
 	return StyleSheet.create({
-	safeArea: { flex: 1, backgroundColor: colors.background },
-	intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
-	card: { backgroundColor: colors.card, borderRadius: 12, padding: space.mdPlus, gap: space.md, borderWidth: 1, borderColor: colors.divider },
-	cardHeader: { flexDirection: "row", alignItems: "center", gap: space.smPlus },
-	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
-	freq: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, marginTop: 2 },
-	bestRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	bestChip: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.success, paddingHorizontal: space.smPlus, paddingVertical: space.xs, borderRadius: 10 },
-	campaignChip: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.navy, paddingHorizontal: space.smPlus, paddingVertical: space.xs, borderRadius: 10 },
-	bestText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 11 },
-	priceGroup: { flexDirection: "row", alignItems: "center", gap: space.xsPlus },
-	discountBadge: { backgroundColor: colors.successSoft, paddingHorizontal: space.xsPlus, paddingVertical: 2, borderRadius: 6 },
-	discountText: { color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 11 },
-	price: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15 },
-	noOffer: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
-	detailBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: space.smPlus, gap: space.sm },
-	detailGroup: { gap: space.sm },
-	detailGroupTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
-	detailRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	detailLabel: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
-	detailValue: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
-	strikePrice: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 13, textDecorationLine: "line-through" },
-	savingsRow: { flexDirection: "row", alignItems: "center", gap: space.xsPlus, backgroundColor: colors.successSoft, borderRadius: 8, paddingHorizontal: space.smPlus, paddingVertical: space.sm },
-	savingsText: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 13 },
-	detailNote: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 17 },
-	promoRow: { flexDirection: "row", alignItems: "center", gap: space.xsPlus },
-	promoText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
-	// Misma anatomía que las cards de oferta (OffersScreen/HomeScreen): el número
-	// en su propio bloque y el "a qué se aplica" en un chip, para que la promo se
-	// lea igual en las dos pantallas. Más angosto porque acá el tile convive con
-	// el precio y el nombre del producto de catálogo.
-	promoBody: { flexDirection: "row", alignItems: "stretch", gap: space.smPlus },
-	amountTile: {
-		width: 68,
-		borderRadius: 12,
-		paddingVertical: space.sm,
-		paddingHorizontal: space.xs,
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 2,
-		backgroundColor: colors.navy,
-	},
-	amountTileFlat: { paddingVertical: space.smPlus },
-	amountKickerRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
-	amountKicker: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 0.8 },
-	amountValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 21 },
-	promoBodyRight: { flex: 1, justifyContent: "center", gap: space.xs },
-	appliesChip: { alignSelf: "flex-start", maxWidth: "100%", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, backgroundColor: colors.softNavy },
-	// Cálido para todo lo que no sea una rebaja lisa sobre el precio, así un
-	// "70% en la 2da unidad" nunca parece un 70% a secas.
-	appliesChipWarm: { backgroundColor: colors.warmChip },
-	appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 12, lineHeight: 16 },
-	appliesTextWarm: { color: colors.warmChipText },
-	promoDetail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
-	promoCondition: { color: colors.warmChipText, fontFamily: typography.family.medium, fontSize: 11, lineHeight: 15 },
-	paidBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.sm, gap: space.xs },
-	offerProduct: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 15 },
-	paidBetter: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
-	paidWorse: { color: colors.warningSoftText, fontFamily: typography.family.medium, fontSize: 12, lineHeight: 17 },
-	campaignBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.smPlus, gap: space.sm },
-	campaignTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
-	campaignRow: { flexDirection: "row", alignItems: "flex-start", gap: space.xsPlus },
-	campaignHeadline: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
-	campaignUntil: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	campaignUrgent: { color: colors.warningSoftText, fontFamily: typography.family.medium },
-	campaignLink: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 11, marginTop: space.xs, textDecorationLine: "underline" },
-	campaignDisclaimer: { color: colors.warningSoftText, fontFamily: typography.family.regular, fontSize: 10, lineHeight: 14, fontStyle: "italic" },
-	altBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: space.smPlus, gap: space.xsPlus },
-	altTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 9, letterSpacing: 1 },
-	altRow: { flexDirection: "row", alignItems: "flex-start", gap: space.xsPlus },
-	altName: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
-	altRetailer: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 11, marginTop: 1 },
-	altDiscount: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11 },
-	altPrice: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 12 },
+		safeArea: { flex: 1, backgroundColor: colors.background },
+		listHeader: { gap: space.md, marginBottom: space.md },
+		intro: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.caption, lineHeight: lineHeights.caption },
+		introStrong: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.caption, lineHeight: lineHeights.caption },
+		resultsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+		resultsText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: sizes.caption },
+		sortChip: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: space.xsPlus,
+			minHeight: 44,
+			paddingHorizontal: space.md,
+			borderRadius: radii.full,
+			backgroundColor: colors.card,
+			borderWidth: 1,
+			borderColor: colors.inputBorder,
+		},
+		sortChipText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.caption },
+		focusRing: focusRing(colors),
+		skeletonList: { padding: space.lg, gap: space.smPlus },
+		skeletonLine: { height: 14, borderRadius: radii.sm, backgroundColor: colors.softWarm },
+		card: { backgroundColor: colors.card, borderRadius: radii.md, padding: space.mdPlus, gap: space.md, borderWidth: 1, borderColor: colors.divider },
+		cardHeader: { flexDirection: "row", alignItems: "center", gap: space.smPlus, minHeight: 44 },
+		name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.label, lineHeight: lineHeights.label },
+		freq: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro, marginTop: space.xs / 2 },
+		noOffer: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro },
+		noOfferGroup: { marginTop: space.lg, gap: space.xs },
+		noOfferHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
+		noOfferTitle: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: sizes.caption },
+		noOfferRow: { paddingVertical: space.smPlus, borderTopWidth: 1, borderTopColor: colors.divider },
+		detailBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: space.smPlus, gap: space.sm },
+		detailGroup: { gap: space.sm },
+		// Section label: the one place the design system spends letter-spacing.
+		detailGroupTitle: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: sizes.overline, lineHeight: lineHeights.overline, letterSpacing: 1.2 },
+		detailRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+		detailLabel: { flex: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro },
+		detailValue: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.caption },
+		strikePrice: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: sizes.caption, textDecorationLine: "line-through" },
+		savingsRow: { flexDirection: "row", alignItems: "center", gap: space.xsPlus, backgroundColor: colors.successSoft, borderRadius: radii.sm, paddingHorizontal: space.smPlus, paddingVertical: space.sm },
+		savingsText: { flex: 1, color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: sizes.caption },
+		detailNote: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: 17 },
+		promoRow: { flexDirection: "row", alignItems: "center", gap: space.xsPlus },
+		promoText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.micro },
+		// Misma anatomía que las cards de oferta (OffersScreen/HomeScreen): el número
+		// en su propio bloque y el "a qué se aplica" en un chip, para que la promo se
+		// lea igual en las dos pantallas. Más angosto porque acá el tile convive con
+		// el precio y el nombre del producto de catálogo.
+		promoBody: { flexDirection: "row", alignItems: "stretch", gap: space.smPlus },
+		amountTile: {
+			width: 68,
+			borderRadius: radii.md,
+			paddingVertical: space.sm,
+			paddingHorizontal: space.xs,
+			alignItems: "center",
+			justifyContent: "center",
+			gap: space.xs / 2,
+			backgroundColor: colors.navy,
+			// The tile is a fixed navy: on a dark card it needs an edge to be seen.
+			borderWidth: 1,
+			borderColor: colors.navyHairline,
+		},
+		amountTileFlat: { paddingVertical: space.smPlus },
+		amountKickerRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
+		amountKicker: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: sizes.overline },
+		amountValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: sizes.h3 },
+		promoBodyRight: { flex: 1, justifyContent: "center", gap: space.xs },
+		appliesChip: { alignSelf: "flex-start", maxWidth: "100%", paddingHorizontal: space.smPlus, paddingVertical: space.xs, borderRadius: radii.sm, backgroundColor: colors.softNavy },
+		// Cálido para todo lo que no sea una rebaja lisa sobre el precio, así un
+		// "70% en la 2da unidad" nunca parece un 70% a secas.
+		appliesChipWarm: { backgroundColor: colors.warmChip },
+		appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: sizes.micro, lineHeight: lineHeights.micro },
+		appliesTextWarm: { color: colors.warmChipText },
+		promoDetail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro },
+		promoCondition: { color: colors.warmChipText, fontFamily: typography.family.medium, fontSize: sizes.micro, lineHeight: lineHeights.micro },
+		paidBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.sm, gap: space.xs },
+		paidBetter: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: sizes.micro, lineHeight: 17 },
+		paidWorse: { color: colors.warningSoftText, fontFamily: typography.family.medium, fontSize: sizes.micro, lineHeight: 17 },
+		campaignBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.smPlus, gap: space.sm },
+		campaignRow: { flexDirection: "row", alignItems: "flex-start", gap: space.xsPlus, minHeight: 44 },
+		campaignHeadline: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.micro },
+		campaignUntil: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, marginTop: space.xs / 2 },
+		campaignUrgent: { color: colors.warningSoftText, fontFamily: typography.family.medium },
+		campaignLink: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.micro, marginTop: space.xs, textDecorationLine: "underline" },
+		campaignDisclaimer: { color: colors.warningSoftText, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro },
+		altBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: space.smPlus, gap: space.xsPlus },
+		altRow: { flexDirection: "row", alignItems: "flex-start", gap: space.xsPlus },
+		altName: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro },
+		altRetailer: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: sizes.micro, marginTop: 1 },
+		altDiscount: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: sizes.micro },
+		altPrice: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.micro },
 	});
 }
