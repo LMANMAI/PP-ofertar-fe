@@ -8,7 +8,7 @@ export function LoadingState({ fill = true }: { fill?: boolean }) {
 	const colors = useThemeColors();
 	return (
 		<View style={[styles.wrap, fill && styles.fill]}>
-			<ActivityIndicator size="small" color={colors.cyan} />
+			<ActivityIndicator size="small" color={colors.actionFill} />
 		</View>
 	);
 }

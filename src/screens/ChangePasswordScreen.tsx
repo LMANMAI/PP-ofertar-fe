@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
 import {
-	ActivityIndicator,
 	KeyboardAvoidingView,
 	Platform,
 	Pressable,
@@ -11,9 +10,8 @@ import {
 	type TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { radii, space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { InputField, PasswordStrengthBar, ScreenHeader } from "../components";
+import { space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
+import { InputField, PasswordStrengthBar, ScreenHeader, InlineNotice, PrimaryButton } from "../components";
 import { friendlyAuthError, resetPassword } from "../services/authApi";
 
 type Props = {
@@ -36,9 +34,6 @@ function joinWithY(items: string[]): string {
 	if (items.length <= 1) return items.join("");
 	return `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`;
 }
-
-// Keyboard focus ring (web); native ignores `focused`.
-const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
 
 export function ChangePasswordScreen({ email, code, onBack, onSuccess }: Props) {
 	const insets = useSafeAreaInsets();
@@ -162,13 +157,9 @@ export function ChangePasswordScreen({ email, code, onBack, onSuccess }: Props) 
 					/>
 
 					{error && (
-						<View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
-							<View style={styles.errorLine}>
-								<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
-								<Text style={styles.errorText}>{error}</Text>
-							</View>
-							{/* The code is the only thing that can be wrong here, and only a new one fixes it. */}
-							{/código/i.test(error) && (
+						<InlineNotice message={error}>
+						{/* The code is the only thing that can be wrong here, and only a new one fixes it. */}
+						{/código/i.test(error) && (
 								<Pressable
 									onPress={onBack}
 									style={(state) => [styles.errorAction, isFocused(state) && styles.focusRing]}
@@ -178,28 +169,10 @@ export function ChangePasswordScreen({ email, code, onBack, onSuccess }: Props) 
 									<Text style={styles.errorActionText}>Volver a ingresar el código</Text>
 								</Pressable>
 							)}
-						</View>
+					</InlineNotice>
 					)}
 
-					<Pressable
-						onPress={handleSubmit}
-						style={(state) => [
-							styles.cta,
-							loading && styles.ctaLoading,
-							state.pressed && !loading && styles.pressed,
-							isFocused(state) && styles.focusRing,
-						]}
-						disabled={loading}
-						accessibilityRole="button"
-						accessibilityLabel="Cambiar contraseña"
-						accessibilityState={{ busy: loading, disabled: loading }}
-					>
-						{loading ? (
-							<ActivityIndicator size="small" color={colors.actionText} />
-						) : (
-							<Text style={styles.ctaText}>Cambiar contraseña</Text>
-						)}
-					</Pressable>
+					<PrimaryButton label="Cambiar contraseña" onPress={handleSubmit} loading={loading} />
 				</ScrollView>
 			</KeyboardAvoidingView>
 		</View>
@@ -222,21 +195,6 @@ function createStyles(colors: ColorTokens) {
 			fontSize: typography.sizes.bodyL,
 			lineHeight: typography.lineHeights.bodyL,
 		},
-		errorBox: {
-			paddingVertical: space.smPlus,
-			paddingHorizontal: space.md,
-			borderRadius: radii.sm + 2,
-			backgroundColor: colors.dangerSoft,
-			gap: space.xs,
-		},
-		errorLine: { flexDirection: "row", alignItems: "center", gap: space.sm },
-		errorText: {
-			flex: 1,
-			color: colors.dangerSoftText,
-			fontFamily: typography.family.medium,
-			fontSize: typography.sizes.caption,
-			lineHeight: typography.lineHeights.caption,
-		},
 		errorAction: { minHeight: 44, justifyContent: "center" },
 		errorActionText: {
 			color: colors.dangerSoftText,
@@ -244,21 +202,7 @@ function createStyles(colors: ColorTokens) {
 			fontSize: typography.sizes.caption,
 			textDecorationLine: "underline",
 		},
-		cta: {
-			backgroundColor: colors.actionFill,
-			height: 52,
-			borderRadius: radii.sm + 2,
-			alignItems: "center",
-			justifyContent: "center",
-		},
-		ctaLoading: { opacity: 0.7 },
-		ctaText: {
-			color: colors.actionText,
-			fontFamily: typography.family.medium,
-			fontSize: typography.sizes.body,
-			lineHeight: typography.lineHeights.body,
-		},
 		pressed: { opacity: 0.88 },
-		focusRing: { outlineWidth: 2, outlineColor: colors.actionFill, outlineOffset: 2, outlineStyle: "solid" },
+		focusRing: focusRing(colors),
 	});
 }

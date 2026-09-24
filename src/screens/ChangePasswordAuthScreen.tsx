@@ -1,10 +1,9 @@
 import { useMemo, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type TextInput } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, type TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
-import { radii, space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { InputField, PasswordStrengthBar, BottomNav, ScreenHeader, type TabKey } from "../components";
+import { space, typography, useThemeColors, type ColorTokens, focusRing } from "../theme/designSystem";
+import { InputField, PasswordStrengthBar, BottomNav, ScreenHeader, type TabKey, InlineNotice, PrimaryButton } from "../components";
 import type { Session } from "../auth/session";
 import { useBiometricInfo } from "../auth/biometricAuth";
 import { changePassword } from "../services/authApi";
@@ -24,9 +23,6 @@ function joinWithY(items: string[]): string {
 // The backend does not return a field code, so a message about the current
 // password is matched by wording to put it under that field.
 const CURRENT_PASSWORD_ERROR = /actual|incorrect|inválid|invalid/i;
-
-// Keyboard focus ring (web); native ignores `focused`.
-const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
 
 type Props = {
 	session: Session;
@@ -212,35 +208,15 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 					/>
 
 				{error && (
-					<View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
-						<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
-						<Text style={styles.errorText}>{error}</Text>
-					</View>
+					<InlineNotice message={error} />
 				)}
 
-				<Pressable
-						onPress={handleSubmit}
-						style={(state) => [
-							styles.submitBtn,
-							loading && styles.submitBtnLoading,
-							state.pressed && !loading && { opacity: 0.85 },
-							isFocused(state) && styles.focusRing,
-						]}
-						disabled={loading}
-						accessibilityRole="button"
-						accessibilityLabel={submitLabel}
-						accessibilityState={{ busy: loading, disabled: loading }}
-					>
-						{loading ? (
-							<ActivityIndicator size="small" color={colors.actionText} />
-						) : biometricEnabled ? (
-							<>
-								<Ionicons name={biometric.icon} size={18} color={colors.actionText} /> <Text style={styles.submitText}>{submitLabel}</Text>
-							</>
-						) : (
-							<Text style={styles.submitText}>{submitLabel}</Text>
-						)}
-					</Pressable>
+				<PrimaryButton
+					label={submitLabel}
+					onPress={handleSubmit}
+					loading={loading}
+					icon={biometricEnabled ? biometric.icon : undefined}
+				/>
 			</ScrollView>
 			</KeyboardAvoidingView>
 
@@ -255,20 +231,6 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	description: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: typography.sizes.label, lineHeight: typography.lineHeights.label, marginBottom: space.xs },
-	submitBtn: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: space.sm,
-		backgroundColor: colors.actionFill,
-		height: 52,
-		borderRadius: radii.sm + 2,
-		marginTop: space.xs,
-	},
-	submitBtnLoading: { opacity: 0.7 },
-		focusRing: { outlineWidth: 2, outlineColor: colors.actionFill, outlineOffset: 2, outlineStyle: "solid" },
-	submitText: { color: colors.actionText, fontFamily: typography.family.medium, fontSize: typography.sizes.body, lineHeight: typography.lineHeights.body },
-	errorBox: { paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: radii.sm + 2, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption, lineHeight: typography.lineHeights.caption },
+		focusRing: focusRing(colors),
 		});
 }

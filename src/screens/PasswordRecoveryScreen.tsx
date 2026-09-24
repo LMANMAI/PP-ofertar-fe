@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-	ActivityIndicator,
 	KeyboardAvoidingView,
 	Platform,
 	Pressable,
@@ -12,8 +11,8 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { radii, space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { InputField } from "../components";
+import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
+import { InputField, InlineNotice, PrimaryButton } from "../components";
 import { PASSWORD_RECOVERY_ENABLED } from "../constants/features";
 import { friendlyAuthError, requestPasswordReset } from "../services/authApi";
 
@@ -21,9 +20,6 @@ type Props = { onBack: () => void; onSent: (email: string) => void };
 
 // Only catches typos before the round trip; the backend is the authority.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-// Keyboard focus ring (web); native ignores `focused`.
-const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
 
 export function PasswordRecoveryScreen({ onBack, onSent }: Props) {
 	const insets = useSafeAreaInsets();
@@ -73,7 +69,7 @@ export function PasswordRecoveryScreen({ onBack, onSent }: Props) {
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				keyboardVerticalOffset={insets.top}
+				keyboardVerticalOffset={0}
 			>
 				<ScrollView
 					contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxl }]}
@@ -92,14 +88,7 @@ export function PasswordRecoveryScreen({ onBack, onSent }: Props) {
 									</Text>
 								</View>
 							</View>
-							<Pressable
-								style={(state) => [styles.cta, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
-								onPress={onBack}
-								accessibilityRole="button"
-								accessibilityLabel="Volver a iniciar sesión"
-							>
-								<Text style={styles.ctaText}>Volver a iniciar sesión</Text>
-							</Pressable>
+							<PrimaryButton label="Volver a iniciar sesión" onPress={onBack} style={styles.cta} />
 						</>
 					) : (
 					<>
@@ -128,31 +117,10 @@ export function PasswordRecoveryScreen({ onBack, onSent }: Props) {
 					</View>
 
 					{error && (
-						<View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
-							<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
-							<Text style={styles.errorText}>{error}</Text>
-						</View>
+						<InlineNotice message={error} style={styles.errorBox} />
 					)}
 
-					<Pressable
-						style={(state) => [
-							styles.cta,
-							loading && styles.ctaLoading,
-							state.pressed && !loading && styles.pressed,
-							isFocused(state) && styles.focusRing,
-						]}
-						onPress={handleSubmit}
-						disabled={loading}
-						accessibilityRole="button"
-						accessibilityLabel="Enviar código"
-						accessibilityState={{ busy: loading, disabled: loading }}
-					>
-						{loading ? (
-							<ActivityIndicator size="small" color={colors.actionText} />
-						) : (
-							<Text style={styles.ctaText}>Enviar código</Text>
-						)}
-					</Pressable>
+					<PrimaryButton label="Enviar código" onPress={handleSubmit} loading={loading} style={styles.cta} />
 					</>
 					)}
 				</ScrollView>
@@ -182,42 +150,12 @@ function createStyles(colors: ColorTokens) {
 			lineHeight: typography.lineHeights.bodyL,
 		},
 		form: { marginTop: space.xxl },
-		errorBox: {
-			marginTop: space.md,
-			paddingVertical: space.smPlus,
-			paddingHorizontal: space.md,
-			borderRadius: radii.sm + 2,
-			backgroundColor: colors.dangerSoft,
-			flexDirection: "row",
-			alignItems: "center",
-			gap: space.sm,
-		},
-		errorText: {
-			flex: 1,
-			color: colors.dangerSoftText,
-			fontFamily: typography.family.medium,
-			fontSize: typography.sizes.caption,
-			lineHeight: typography.lineHeights.caption,
-		},
-		cta: {
-			marginTop: space.lg,
-			backgroundColor: colors.actionFill,
-			height: 52,
-			borderRadius: radii.sm + 2,
-			alignItems: "center",
-			justifyContent: "center",
-		},
-		ctaLoading: { opacity: 0.7 },
-		ctaText: {
-			color: colors.actionText,
-			fontFamily: typography.family.medium,
-			fontSize: typography.sizes.body,
-			lineHeight: typography.lineHeights.body,
-		},
+		errorBox: { marginTop: space.md },
+		cta: { marginTop: space.lg },
 		soonBox: {
 			marginTop: space.xl,
 			padding: space.md,
-			borderRadius: radii.sm + 2,
+			borderRadius: radii.button,
 			backgroundColor: colors.infoSoft,
 			flexDirection: "row",
 			alignItems: "flex-start",
@@ -237,6 +175,6 @@ function createStyles(colors: ColorTokens) {
 			lineHeight: typography.lineHeights.caption,
 		},
 		pressed: { opacity: 0.88 },
-		focusRing: { outlineWidth: 2, outlineColor: colors.actionFill, outlineOffset: 2, outlineStyle: "solid" },
+		focusRing: focusRing(colors),
 	});
 }

@@ -160,7 +160,7 @@ function createStyles(colors: ColorTokens) {
 			paddingHorizontal: space.xsPlus,
 			alignItems: "center",
 			justifyContent: "center",
-			gap: 4,
+			gap: space.xs,
 			backgroundColor: colors.softWarm,
 		},
 		amountKicker: {

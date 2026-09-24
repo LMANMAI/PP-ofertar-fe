@@ -218,10 +218,17 @@ Buttons are pill-adjacent but not fully rounded — a 10px radius on a ~48-52px-
 
 ### Buttons
 - **Shape:** 10px radius (`rounded.button`), 48-52px height.
-- **Primary:** Navy fill (`{colors.ledger-navy}`), white text, medium-weight 14-15px label. Used for the single most important action on a screen.
+- **Primary:** the `PrimaryButton` component (`src/components/ui/PrimaryButton.tsx`) — `actionFill` fill with `actionText` label (navy on white in light mode, cyan on navy in dark, so it never vanishes into the page), medium-weight 15px. Used for the single most important action on a screen. Sizes: `large` 52px (main action), `medium` 48px (inside a card), `compact` 44px (inline, sizes to its label). `loading` swaps the label for a spinner but keeps it as the accessible name; `disabled` and `loading` announce their state. Screens no longer build this button by hand.
 - **Destructive:** Same shape and weight as primary, `{colors.alert-red}` fill — reserved for irreversible actions confirmed through a confirm-sheet, never a lighter-weight everyday action.
 - **Secondary/Cancel:** No fill, muted text color, same height footprint as the primary button in the same group so a button pair stays visually aligned.
 - **Icon-only:** 32×32px hit target regardless of the icon's own visual size, always paired with `accessibilityLabel`.
+
+### Notices
+- **`InlineNotice`** (`src/components/ui/InlineNotice.tsx`): a rounded box (`radii.button`) with an icon and one message, in the soft background and text pair of its meaning (`error`, `success`, `info`, `warning`). Errors are announced to screen readers when they appear; a recovery link goes in as `children`. The full-width banner with a retry stays `ErrorBanner`.
+- **`SectionLabel`** (`src/components/ui/SectionLabel.tsx`): the small uppercase caption above a group of rows, announced as a heading. The screen passes only margins.
+
+### Focus
+Every pressable shows a 2px ring in the action color on keyboard focus (web): `isFocused(state) && styles.focusRing`, with `focusRing(colors)` (or `focusRing(colors, true)` inside a card that clips its overflow) from the theme. The helpers live in `src/theme/designSystem.tsx`; do not redefine them per screen.
 
 ### Chips
 - **Style:** Soft-fill background + matching text color drawn from a semantic pair, 8-20px radius depending on size.

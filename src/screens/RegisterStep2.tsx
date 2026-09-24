@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { useKeyboardVisible } from "../utils/useKeyboardVisible";
 import {
 	KeyboardAvoidingView,
 	Platform,
@@ -7,18 +8,14 @@ import {
 	StyleSheet,
 	Pressable,
 	ScrollView,
-	ActivityIndicator,
 	type TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { radii, space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { InputField, PasswordStrengthBar } from "../components";
+import { space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
+import { InputField, PasswordStrengthBar, InlineNotice, PrimaryButton } from "../components";
 import { register } from "../services/authApi";
 import type { Session } from "../auth/session";
-
-// Keyboard focus ring (web); native ignores `focused`.
-const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
 
 type Props = {
 	firstName: string;
@@ -64,6 +61,9 @@ function toServerError(err: unknown): ServerError {
 
 export default function RegisterStep2({ firstName, lastName, email, referralCode, onNext, onBack, onGoToLogin }: Props) {
 	const insets = useSafeAreaInsets();
+	// With the keyboard up the footer shrinks: the home-indicator padding sits
+	// under the keyboard, and the secondary link only took space from the form.
+	const keyboardOpen = useKeyboardVisible();
 	const colors = useThemeColors();
 	
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -226,13 +226,9 @@ export default function RegisterStep2({ firstName, lastName, email, referralCode
 				</View>
 			</ScrollView>
 
-			<View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
+			<View style={[styles.footer, { paddingBottom: keyboardOpen ? space.sm : insets.bottom + space.sm }]}>
 				{serverError && (
-					<View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
-						<View style={styles.errorLine}>
-							<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
-							<Text style={styles.errorText}>{serverError.message}</Text>
-						</View>
+					<InlineNotice message={serverError.message}>
 						{serverError.kind === "emailTaken" && (
 							<View style={styles.errorActions}>
 								{onGoToLogin && (
@@ -245,27 +241,10 @@ export default function RegisterStep2({ firstName, lastName, email, referralCode
 								</Pressable>
 							</View>
 						)}
-					</View>
+					</InlineNotice>
 				)}
 
-				<Pressable
-					onPress={handleRegister}
-					style={(state) => [
-							styles.primaryButton,
-							state.pressed && !loading && styles.primaryButtonPressed,
-							loading && styles.primaryButtonLoading,
-							isFocused(state) && styles.focusRing,
-						]}
-					accessibilityRole="button"
-					accessibilityLabel="Crear cuenta"
-					accessibilityState={{ busy: loading, disabled: loading }}
-				>
-					{loading ? (
-						<ActivityIndicator size="small" color={colors.actionText} />
-					) : (
-						<Text style={styles.primaryButtonText}>Crear cuenta</Text>
-					)}
-				</Pressable>
+				<PrimaryButton label="Crear cuenta" onPress={handleRegister} loading={loading} />
 			</View>
 			</KeyboardAvoidingView>
 		</View>
@@ -334,29 +313,11 @@ function createStyles(colors: ColorTokens) {
 		borderTopWidth: 1,
 		borderTopColor: colors.divider,
 	},
-	primaryButton: {
-		backgroundColor: colors.actionFill,
-		height: 52,
-		borderRadius: radii.sm + 2,
-		alignItems: "center",
-		justifyContent: "center",
-	},
 	
-	primaryButtonPressed: { opacity: 0.9 },
-	primaryButtonLoading: { opacity: 0.7 },
-	primaryButtonText: {
-		color: colors.actionText,
-		fontFamily: typography.family.medium,
-		fontSize: typography.sizes.body,
-		lineHeight: typography.lineHeights.label,
-	},
 	
-	errorBox: { paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: radii.sm + 2, backgroundColor: colors.dangerSoft, gap: space.xs },
-	errorLine: { flexDirection: "row", alignItems: "center", gap: space.sm },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption, lineHeight: typography.lineHeights.caption },
 	errorActions: { flexDirection: "row", gap: space.lg },
 	errorAction: { minHeight: 44, justifyContent: "center" },
 	errorActionText: { color: colors.dangerSoftText, fontFamily: typography.family.bold, fontSize: typography.sizes.caption, textDecorationLine: "underline" },
-		focusRing: { outlineWidth: 2, outlineColor: colors.actionFill, outlineOffset: 2, outlineStyle: "solid" },
+		focusRing: focusRing(colors),
 		});
 }

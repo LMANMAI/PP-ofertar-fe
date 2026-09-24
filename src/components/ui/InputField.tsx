@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		height: 52,
 		fontFamily: typography.family.regular,
-		fontSize: 15,
+		fontSize: typography.sizes.body,
 	},
 	// 44x44 hit area; the negative margin keeps the icon where the 32px one sat.
 	eyeButton: {

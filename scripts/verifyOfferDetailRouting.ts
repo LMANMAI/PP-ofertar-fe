@@ -97,7 +97,7 @@ console.log("\nCada pantalla manda la oferta, no solo el id");
 
 const pantallas: [string, string[], string][] = [
 	["OffersScreen", ["src", "screens", "OffersScreen.tsx"], "onOpenOffer(offer.id, offer)"],
-	["HomeScreen", ["src", "screens", "HomeScreen.tsx"], "onOpenOffer(o.id, o)"],
+	["HomeScreen", ["src", "screens", "HomeScreen.tsx"], "onOpenOffer(offer.id, offer)"],
 	["RecurringProductsScreen", ["src", "screens", "RecurringProductsScreen.tsx"], "onOpenOffer?.(full.id, full)"],
 ];
 

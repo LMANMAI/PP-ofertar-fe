@@ -1,7 +1,6 @@
 
 import { StatusBar } from "expo-status-bar";
 import {
-	ActivityIndicator,
 	Image,
 	KeyboardAvoidingView,
 	Platform,
@@ -13,19 +12,17 @@ import {
 	type TextInput,
 } from "react-native";
 import { useMemo, useRef, useState } from "react";
+import { useKeyboardVisible } from "../utils/useKeyboardVisible";
 import { Ionicons } from "@expo/vector-icons";
-import { InputField } from "../components";
+import { InputField, InlineNotice, PrimaryButton } from "../components";
 
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { radii, space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
 import { login } from "../services/authApi";
 import { useBiometricInfo } from "../auth/biometricAuth";
 import type { Session } from "../auth/session";
-
-// Keyboard focus ring (web); native ignores `focused`.
-const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
 
 // Same rule and wording as RegisterStep1, so a typo is caught before the request.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -79,6 +76,9 @@ export function AuthLoginScreen({
 	const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 	const emailRef = useRef<TextInput>(null);
 	const passwordRef = useRef<TextInput>(null);
+	// With the keyboard up the footer shrinks to the button: the whole footer
+	// (biometrics, register link) rose with it and covered the form.
+	const keyboardOpen = useKeyboardVisible();
 
 	const handleLogin = async () => {
 		const next: { email?: string; password?: string } = {};
@@ -134,7 +134,7 @@ export function AuthLoginScreen({
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				keyboardVerticalOffset={insets.top}
+				keyboardVerticalOffset={0}
 			>
 				<ScrollView
 					contentContainerStyle={styles.content}
@@ -201,34 +201,14 @@ export function AuthLoginScreen({
 					</Pressable>
 				</ScrollView>
 
-				<View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
+				<View style={[styles.footer, { paddingBottom: keyboardOpen ? space.sm : insets.bottom + space.sm }]}>
 					{error && (
-						<View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
-							<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
-							<Text style={styles.errorText}>{error}</Text>
-						</View>
+						<InlineNotice message={error} />
 					)}
 
-					<Pressable
-						onPress={loading ? undefined : handleLogin}
-						style={(state) => [
-							styles.primaryButton,
-							state.pressed && !loading && styles.pressed,
-							loading && { opacity: 0.55 },
-							isFocused(state) && styles.focusRing,
-						]}
-						accessibilityRole="button"
-						accessibilityLabel="Iniciar sesión"
-						accessibilityState={{ busy: loading, disabled: loading }}
-					>
-						{loading ? (
-							<ActivityIndicator size="small" color={colors.actionText} />
-						) : (
-							<Text style={styles.primaryButtonText}>Iniciar sesión</Text>
-						)}
-					</Pressable>
+					<PrimaryButton label="Iniciar sesión" onPress={handleLogin} loading={loading} />
 
-					{showBiometricButton && (
+					{showBiometricButton && !keyboardOpen && (
 						<Pressable
 							onPress={onBiometricLogin}
 							style={(state) => [styles.secondaryButton, isFocused(state) && styles.focusRing]}
@@ -240,17 +220,19 @@ export function AuthLoginScreen({
 						</Pressable>
 					)}
 
-					<Pressable
-						onPress={onGoToRegister}
-						style={(state) => [styles.footerLinkWrap, isFocused(state) && styles.focusRing]}
-						accessibilityRole="button"
-						accessibilityLabel="¿No tenés cuenta? Registrate gratis"
-					>
-						<Text style={styles.footerText}>
-							¿No tenés cuenta?{" "}
-							<Text style={styles.footerLink}>Registrate gratis</Text>
-						</Text>
-					</Pressable>
+					{!keyboardOpen && (
+							<Pressable
+								onPress={onGoToRegister}
+								style={(state) => [styles.footerLinkWrap, isFocused(state) && styles.focusRing]}
+								accessibilityRole="button"
+								accessibilityLabel="¿No tenés cuenta? Registrate gratis"
+							>
+								<Text style={styles.footerText}>
+									¿No tenés cuenta?{" "}
+									<Text style={styles.footerLink}>Registrate gratis</Text>
+								</Text>
+							</Pressable>
+						)}
 				</View>
 			</KeyboardAvoidingView>
 		</View>
@@ -285,19 +267,15 @@ function createStyles(colors: ColorTokens) {
 		borderTopWidth: 1,
 		borderTopColor: colors.divider,
 	},
-	errorBox: { paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: radii.sm + 2, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption, lineHeight: typography.lineHeights.caption },
 	forgotButton: { alignSelf: "flex-end", marginTop: space.sm, minHeight: 44, justifyContent: "center" },
 	forgotText: { color: colors.actionFill, fontFamily: typography.family.medium, fontSize: typography.sizes.caption, lineHeight: typography.lineHeights.caption, textDecorationLine: "underline" },
-	primaryButton: { height: 52, borderRadius: radii.sm + 2, backgroundColor: colors.actionFill, alignItems: "center", justifyContent: "center" },
-	primaryButtonText: { color: colors.actionText, fontFamily: typography.family.medium, fontSize: typography.sizes.body, lineHeight: typography.lineHeights.body },
 	secondaryButton: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm },
 	secondaryButtonText: { color: colors.mutedText, fontFamily: typography.family.medium, fontSize: typography.sizes.label, lineHeight: typography.lineHeights.label },
 	footerLinkWrap: { alignItems: "center", justifyContent: "center", minHeight: 44 },
 	footerText: { textAlign: "center", color: colors.mutedText, fontFamily: typography.family.regular, fontSize: typography.sizes.caption, lineHeight: typography.lineHeights.caption },
 	footerLink: { color: colors.defaultText, fontFamily: typography.family.medium, textDecorationLine: "underline" },
 	pressed: { opacity: 0.88 },
-	focusRing: { outlineWidth: 2, outlineColor: colors.actionFill, outlineOffset: 2, outlineStyle: "solid" },
+	focusRing: focusRing(colors),
 	// The header is navy in both themes, so the ring there must be cyan: the
 	// actionFill ring is navy in light mode and vanished against it (1.00:1).
 	backFocusRing: { outlineWidth: 2, outlineColor: colors.cyan, outlineOffset: 0, outlineStyle: "solid" },

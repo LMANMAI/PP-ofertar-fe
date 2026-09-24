@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AccessibilityInfo, Animated, Easing, StyleSheet } from "react-native";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
+import { useThemeColors } from "../../theme/designSystem";
 
 type Props = {
 	/** The current top-level screen key. Deliberately NOT the bottom-tab key —
@@ -27,6 +28,7 @@ export function ScreenTransition({ activeKey, children }: Props) {
 	const [translateY] = useState(() => new Animated.Value(0));
 	const [reduceMotion, setReduceMotion] = useState(false);
 	const isFirstRender = useRef(true);
+	const colors = useThemeColors();
 
 	useEffect(() => {
 		let cancelled = false;
@@ -40,7 +42,10 @@ export function ScreenTransition({ activeKey, children }: Props) {
 		};
 	}, []);
 
-	useEffect(() => {
+	// A layout effect, not a passive one: the new screen is already in this
+	// commit, so setting the starting values after the paint showed it at full
+	// opacity for one frame, hid it, and only then faded it in — a flash.
+	useLayoutEffect(() => {
 		// The very first paint has nothing to transition from — animating it
 		// would just delay the app's first visible frame.
 		if (isFirstRender.current) {
@@ -52,7 +57,9 @@ export function ScreenTransition({ activeKey, children }: Props) {
 			translateY.setValue(0);
 			return;
 		}
-		opacity.setValue(0);
+		// Not 0: a fully transparent frame shows whatever is behind the app, which
+		// is a white window until the theme background is drawn there.
+		opacity.setValue(FADE_FROM);
 		translateY.setValue(8);
 		Animated.parallel([
 			Animated.timing(opacity, {
@@ -74,11 +81,16 @@ export function ScreenTransition({ activeKey, children }: Props) {
 	}, [activeKey]);
 
 	return (
-		<Animated.View style={[styles.fill, { opacity, transform: [{ translateY }] }]}>
-			{children}
-		</Animated.View>
+		// The fade happens over the theme background, never over the bare window.
+		<View style={[styles.fill, { backgroundColor: colors.background }]}>
+			<Animated.View style={[styles.fill, { opacity, transform: [{ translateY }] }]}>
+				{children}
+			</Animated.View>
+		</View>
 	);
 }
+
+const FADE_FROM = 0.3;
 
 const styles = StyleSheet.create({
 	fill: { flex: 1 },

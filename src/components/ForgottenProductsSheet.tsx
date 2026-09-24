@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 import type { RecurringProduct } from "../services";
 
 /**
@@ -95,14 +95,14 @@ function createStyles(colors: ColorTokens) {
 	subtitle: {
 		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 		textAlign: "center",
 		lineHeight: 18,
 	},
 	list: {
 		alignSelf: "stretch",
 		backgroundColor: colors.background,
-		borderRadius: 12,
+		borderRadius: radii.md,
 		borderWidth: 1,
 		borderColor: colors.divider,
 		paddingHorizontal: space.md,
@@ -110,8 +110,8 @@ function createStyles(colors: ColorTokens) {
 		marginTop: space.xs,
 	},
 	row: { flexDirection: "row", alignItems: "center", gap: space.smPlus, paddingVertical: space.smPlus },
-	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
-	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 11, marginTop: 1 },
+	name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.overline, marginTop: 1 },
 	divider: { height: 1, backgroundColor: colors.divider },
 	button: {
 		alignSelf: "stretch",
@@ -125,7 +125,7 @@ function createStyles(colors: ColorTokens) {
 	buttonText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 14,
+		fontSize: typography.sizes.label,
 	},
 	});
 }

@@ -114,10 +114,11 @@ check("el chip se dibuja con el valor ya filtrado", () => {
 });
 
 check("sin categoria no se dibuja nada", () => {
-	// El chip cuelga de `category !== null`, y la fila entera de metadatos solo
-	// existe si hay categoria o vigencia: una oferta de folleto sin ninguna de
-	// las dos no deja una fila vacia ocupando alto.
-	assert.match(screen, /\{\(category !== null \|\| until !== null\) && \(/);
+	// El chip cuelga de `category !== null`. La fila de metadatos siempre
+	// existe: sin vigencia dice "Vigencia no informada" en vez de callarlo, así
+	// que una oferta sin categoria no deja un chip vacio pero si la fecha.
+	assert.match(screen, /\{category !== null && \(/);
+	assert.ok(screen.includes("Vigencia no informada"), "sin fecha tiene que decirlo");
 });
 
 check("la categoria ya no cuelga de que haya marca", () => {

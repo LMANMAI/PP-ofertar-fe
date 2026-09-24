@@ -3,7 +3,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import MapView, { Marker, PROVIDER_DEFAULT } from "../components/ui/AppMapView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
 import { BottomNav, ChainMarkerPin, ScreenHeader, type TabKey } from "../components";
 import { getChainMarker, markerAccessibilityLabel } from "../theme/chainMarkers";
@@ -130,12 +130,12 @@ function createStyles(colors: ColorTokens) {
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	scroll: { flex: 1 },
 	emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.smPlus, paddingHorizontal: 32 },
-	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
+	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.label, textAlign: "center" },
 	mapWrap: { height: 200, backgroundColor: colors.divider },
 	content: { padding: space.lg, gap: space.md },
 	summaryCard: {
 		backgroundColor: colors.card,
-		borderRadius: 16,
+		borderRadius: radii.lg,
 		padding: space.lg,
 		gap: space.md,
 		borderWidth: 1,
@@ -153,24 +153,24 @@ function createStyles(colors: ColorTokens) {
 	storeName: {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
-		fontSize: 15,
+		fontSize: typography.sizes.body,
 	},
 	storeChain: {
 		color: colors.mutedText2,
 		fontFamily: typography.family.regular,
-		fontSize: 12,
+		fontSize: typography.sizes.micro,
 	},
 	infoRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 	infoText: {
 		flex: 1,
 		color: colors.defaultText,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 	},
 	disclaimer: {
 		color: colors.subtleText,
 		fontFamily: typography.family.regular,
-		fontSize: 12,
+		fontSize: typography.sizes.micro,
 		lineHeight: 17,
 	},
 	footer: {
@@ -193,7 +193,7 @@ function createStyles(colors: ColorTokens) {
 	primaryButtonText: {
 		color: colors.cyan,
 		fontFamily: typography.family.medium,
-		fontSize: 16,
+		fontSize: typography.sizes.subtitle,
 	},
 	});
 }

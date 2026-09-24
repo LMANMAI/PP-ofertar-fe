@@ -40,7 +40,7 @@ export function ScreenHeader({ title, onBack, logo, right }: Props) {
 			<StatusBar style="light" />
 			<View style={[styles.header, logo && styles.headerLogoVariant]}>
 				{logo ? (
-					<Image source={require("../../../assets/logo_ofertar.png")} style={styles.headerLogo} />
+					<Image source={require("../../../assets/logo_ofertar.png")} style={styles.headerLogo} accessible={false} />
 				) : onBack ? (
 					<Pressable
 						onPress={onBack}
@@ -52,7 +52,7 @@ export function ScreenHeader({ title, onBack, logo, right }: Props) {
 						<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
 					</Pressable>
 				) : null}
-				<Text style={styles.headerTitle} numberOfLines={1}>
+				<Text style={styles.headerTitle} numberOfLines={1} accessibilityRole="header">
 					{title}
 				</Text>
 				{right}
@@ -73,13 +73,13 @@ function createStyles(colors: ColorTokens) {
 			gap: space.sm,
 		},
 		headerLogoVariant: { paddingHorizontal: space.xl, gap: space.smPlus },
-		backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+		backButton: { width: 44, height: 44, marginLeft: -space.sm, alignItems: "center", justifyContent: "center" },
 		headerLogo: { width: 24, height: 24, borderRadius: 6 },
 		headerTitle: {
 			flex: 1,
 			color: colors.buttonText,
 			fontFamily: typography.family.medium,
-			fontSize: 17,
+			fontSize: typography.sizes.bodyL,
 		},
 	});
 }

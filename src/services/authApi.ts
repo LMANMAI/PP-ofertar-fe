@@ -6,7 +6,6 @@ export type UserProfile = {
 	email: string;
 	profilePicture: string | null;
 	address: string | null;
-	phone: string | null;
 	/** Show offers on the same product from other brands. */
 	alternativeBrandsEnabled: boolean;
 	createdAt: string;
@@ -25,8 +24,11 @@ export type UpdateProfileData = {
 	name?: string;
 	profilePicture?: string;
 	address?: string;
-	phone?: string;
 	alternativeBrandsEnabled?: boolean;
+	/** A different email also needs `currentPassword`; the response carries a
+	 * token issued for the new email, which replaces the session's. */
+	email?: string;
+	currentPassword?: string;
 };
 
 async function parseApiError(res: Response): Promise<string> {

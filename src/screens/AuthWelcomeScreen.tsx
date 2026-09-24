@@ -23,7 +23,7 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { space, typography, radii, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, radii, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
 import { Ionicons } from "@expo/vector-icons";
 import { useBiometricInfo } from "../auth/biometricAuth";
 import { TERMS_URL } from "../constants/legal";
@@ -46,9 +46,6 @@ const EXAMPLE_TIP = "Te conviene: leche entera 1 L a $1.140 en otra cadena";
 // Below this height the card would push the buttons off the first screen.
 const MIN_HEIGHT_FOR_EXAMPLE = 700;
 const EXAMPLE_LABEL = `Ejemplo ilustrativo de un ticket: ${EXAMPLE_ITEMS.map((i) => `${i.name} ${i.price}`).join(", ")}. ${EXAMPLE_TIP}`;
-
-// Keyboard focus ring (web); native ignores `focused`.
-const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
 
 export function AuthWelcomeScreen({
 	onAlreadyHaveAccount,
@@ -380,7 +377,7 @@ function createStyles(colors: ColorTokens) {
 	// White on the coral fill is 3.09:1; navy on coral is ~5.3:1.
 	primaryButton: {
 		height: 52,
-		borderRadius: radii.sm + 2,
+		borderRadius: radii.button,
 		backgroundColor: colors.orange,
 		alignItems: "center",
 		justifyContent: "center",
@@ -395,7 +392,7 @@ function createStyles(colors: ColorTokens) {
 	// cuenta" carries the coral, so the two read as a choice, not a pair.
 	secondaryButton: {
 		height: 52,
-		borderRadius: radii.sm + 2,
+		borderRadius: radii.button,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -442,12 +439,7 @@ function createStyles(colors: ColorTokens) {
 		fontSize: typography.sizes.label,
 		lineHeight: typography.lineHeights.label,
 	},
-	focusRing: {
-		outlineWidth: 2,
-		outlineColor: colors.cyan,
-		outlineOffset: 2,
-		outlineStyle: "solid",
-	},
+	focusRing: focusRing(colors),
 	pressed: {
 		opacity: 0.88,
 	},

@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { useKeyboardVisible } from "../utils/useKeyboardVisible";
 import { StatusBar } from "expo-status-bar";
 
 
@@ -15,11 +16,11 @@ import {
 	type TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { InputField } from "../components";
+import { InputField, PrimaryButton } from "../components";
 import { TERMS_URL } from "../constants/legal";
 import { FieldError } from "../components/ui/InputField";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { radii, space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
 
 export type RegisterStep1Data = {
 	firstName: string;
@@ -44,11 +45,11 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const EMAIL_ERROR = "Revisá el correo: tiene que ser algo como nombre@correo.com";
 
-// Keyboard focus ring (web); native ignores `focused`.
-const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
-
 export default function RegisterStep1({ onNext, onBack, onGoToLogin, initialData }: Props) {
 	const insets = useSafeAreaInsets();
+	// With the keyboard up the footer shrinks: the home-indicator padding sits
+	// under the keyboard, and the secondary link only took space from the form.
+	const keyboardOpen = useKeyboardVisible();
 	const colors = useThemeColors();
 	
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -272,23 +273,22 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin, initialData
 					{errors.terms ? <View style={styles.termsError}><FieldError message={errors.terms} /></View> : null}
 
 			</ScrollView>
-			<View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
-					<Pressable
-						onPress={handleContinue}
-						style={(state) => [styles.primaryButton, isFocused(state) && styles.focusRing]}
-						accessibilityRole="button"
-						accessibilityLabel="Continuar"
-					>
-						<Text style={styles.primaryButtonText}>Continuar</Text>
-						<Ionicons name="arrow-forward" size={16} color={colors.actionText} />
-					</Pressable>
+			<View style={[styles.footer, { paddingBottom: keyboardOpen ? space.sm : insets.bottom + space.sm }]}>
+					<PrimaryButton label="Continuar" onPress={handleContinue} icon="arrow-forward" iconAfter />
 
-					<Pressable onPress={onGoToLogin} style={(state) => [styles.footerLinkWrap, isFocused(state) && styles.focusRing]} accessibilityRole="button" accessibilityLabel="¿Ya tenés cuenta? Iniciá sesión">
-						<Text style={styles.footerText}>
-							¿Ya tenés cuenta?{" "}
-							<Text style={styles.footerLink}>Iniciá sesión</Text>
-						</Text>
-					</Pressable>
+					{!keyboardOpen && (
+						<Pressable
+							onPress={onGoToLogin}
+							style={(state) => [styles.footerLinkWrap, isFocused(state) && styles.focusRing]}
+							accessibilityRole="button"
+							accessibilityLabel="¿Ya tenés cuenta? Iniciá sesión"
+						>
+							<Text style={styles.footerText}>
+								¿Ya tenés cuenta?{" "}
+								<Text style={styles.footerLink}>Iniciá sesión</Text>
+							</Text>
+						</Pressable>
+					)}
 			</View>
 			</KeyboardAvoidingView>
 		</View>
@@ -407,33 +407,13 @@ function createStyles(colors: ColorTokens) {
 			lineHeight: typography.lineHeights.label,
 			textDecorationLine: "underline",
 		},
-		focusRing: {
-			outlineWidth: 2,
-			outlineColor: colors.actionFill,
-			outlineOffset: 2,
-			outlineStyle: "solid",
-		},
+		focusRing: focusRing(colors),
 	footer: {
 		paddingHorizontal: space.xl,
 		paddingTop: space.md,
 		backgroundColor: colors.background,
 		borderTopWidth: 1,
 		borderTopColor: colors.divider,
-	},
-	primaryButton: {
-		backgroundColor: colors.actionFill,
-		height: 52,
-		borderRadius: radii.sm + 2,
-		alignItems: "center",
-		justifyContent: "center",
-		flexDirection: "row",
-		gap: space.sm,
-	},
-	primaryButtonText: {
-			color: colors.actionText,
-		fontFamily: typography.family.medium,
-		fontSize: typography.sizes.body,
-		lineHeight: typography.lineHeights.label,
 	},
 	footerLinkWrap: { marginTop: space.lg, alignItems: "center", justifyContent: "center", minHeight: 44 },
 	footerText: {

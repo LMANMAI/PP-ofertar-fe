@@ -12,13 +12,8 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
-import { BottomNav, type TabKey } from "../components";
-import { space, typography, radii,
-	useIsDarkMode,
-	useThemeColors,
-	useThemePreference,
-	type ColorTokens,
-	type ThemePreference, } from "../theme/designSystem";
+import { BottomNav, type TabKey, SectionLabel } from "../components";
+import { space, typography, radii, useIsDarkMode, useThemeColors, useThemePreference, type ColorTokens, type ThemePreference, isFocused, focusRing } from "../theme/designSystem";
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { isBiometricAvailable, useBiometricInfo } from "../auth/biometricAuth";
@@ -35,6 +30,7 @@ type Props = {
 	onLogout: () => void;
 	onOpenPersonalData: () => void;
 	onOpenPayment: () => void;
+	onOpenPlans?: () => void;
 	onOpenStores: () => void;
 	onOpenPoints: () => void;
 	onOpenHelp: () => void;
@@ -51,7 +47,7 @@ type LinkItem = {
 	id: string;
 	icon: IonName;
 	label: string;
-	action: keyof Pick<Props, "onOpenPayment" | "onOpenStores" | "onOpenPoints" | "onChangePassword">;
+	action: keyof Pick<Props, "onOpenPayment" | "onOpenPlans" | "onOpenStores" | "onOpenPoints" | "onChangePassword">;
 };
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; icon: IonName }[] = [
@@ -62,6 +58,7 @@ const THEME_OPTIONS: { value: ThemePreference; label: string; icon: IonName }[] 
 
 const ACCOUNT_ITEMS: LinkItem[] = [
 	{ id: "points", icon: "people-outline", label: "Puntos y referidos", action: "onOpenPoints" },
+	{ id: "plans", icon: "ribbon-outline", label: "Planes", action: "onOpenPlans" },
 	{ id: "payment", icon: "card-outline", label: "Métodos de pago", action: "onOpenPayment" },
 	{ id: "stores", icon: "location-outline", label: "Mis tiendas favoritas", action: "onOpenStores" },
 	{ id: "password", icon: "lock-closed-outline", label: "Cambiar contraseña", action: "onChangePassword" },
@@ -76,9 +73,10 @@ export function ProfileScreen({
 	onLogout,
 	onOpenPersonalData,
 	onOpenPayment,
-	onOpenStores,
-	onOpenPoints,
-	onOpenHelp,
+		onOpenPlans,
+		onOpenStores,
+		onOpenPoints,
+		onOpenHelp,
 	onChangePassword,
 	biometricEnabled = false,
 	onToggleBiometric,
@@ -114,6 +112,14 @@ export function ProfileScreen({
 		isBiometricAvailable().then(setBiometricAvailable).catch(() => {});
 	}, []);
 
+	// The error sits under the switch it belongs to; without this it stayed
+	// there until the next toggle.
+	useEffect(() => {
+		if (!preferenceError) return;
+		const id = setTimeout(() => setPreferenceError(null), 6000);
+		return () => clearTimeout(id);
+	}, [preferenceError]);
+
 	const handleToggleAlternativeBrands = async (value: boolean) => {
 		// Optimistic: the switch should feel instant, and a failed save is
 		// recoverable by toggling again rather than worth blocking the UI.
@@ -132,12 +138,14 @@ export function ProfileScreen({
 		}
 	};
 
-	const handlers: Record<string, () => void> = {
+	const handlers: Partial<Record<LinkItem["action"], () => void>> = {
 		onOpenPayment,
+		onOpenPlans,
 		onOpenStores,
 		onOpenPoints,
-		onChangePassword: onChangePassword ?? (() => {}),
+		onChangePassword,
 	};
+	const visibleItems = ACCOUNT_ITEMS.filter((it) => handlers[it.action]);
 
 	return (
 		<View style={styles.safeArea}>
@@ -162,10 +170,10 @@ export function ProfileScreen({
 				showsVerticalScrollIndicator={false}
 			>
 				<Pressable
-					style={styles.profileCard}
+					style={(state) => [styles.profileCard, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
 					onPress={onOpenPersonalData}
 					accessibilityRole="button"
-					accessibilityLabel={`Datos personales. ${firstName} ${lastName}, ${session.user.email}`}
+					accessibilityLabel={`Datos personales. ${firstName} ${lastName}, ${session.user.email}, ${referralPoints.toLocaleString("es-AR")} puntos por referidos`}
 				>
 					<View style={styles.avatar}>
 						{session.user.profilePicture ? (
@@ -180,7 +188,7 @@ export function ProfileScreen({
 						</Text>
 						<Text style={styles.profileEmail} numberOfLines={1}>{session.user.email}</Text>
 						<View style={styles.levelBadge}>
-							<Ionicons name="people" size={10} color={colors.infoSoftText} />
+							<Ionicons name="people" size={12} color={colors.infoSoftText} />
 							<Text style={styles.levelBadgeText}>
 								{referralPoints.toLocaleString("es-AR")} pts por referidos
 							</Text>
@@ -189,14 +197,14 @@ export function ProfileScreen({
 					<Ionicons name="chevron-forward" size={18} color={colors.subtleText} />
 				</Pressable>
 
-				<Text style={styles.sectionLabel} accessibilityRole="header">CUENTA</Text>
+				<SectionLabel style={styles.sectionLabel}>CUENTA</SectionLabel>
 				<View style={styles.listCard}>
-					{ACCOUNT_ITEMS.map((it, idx) => {
+					{visibleItems.map((it, idx) => {
 						return (
 							<View key={it.id}>
 								<Pressable
-									style={styles.listItem}
-									onPress={handlers[it.action]}
+									style={(state) => [styles.listItem, state.pressed && styles.pressed, isFocused(state) && styles.focusRingInset]}
+										onPress={handlers[it.action]}
 									accessibilityRole="button"
 									accessibilityLabel={it.label}
 								>
@@ -208,13 +216,13 @@ export function ProfileScreen({
 									</View>
 									<Ionicons name="chevron-forward" size={18} color={colors.subtleText} />
 								</Pressable>
-								{idx < ACCOUNT_ITEMS.length - 1 && <View style={styles.listDivider} />}
+								{idx < visibleItems.length - 1 && <View style={styles.listDivider} />}
 							</View>
 						);
 					})}
 				</View>
 
-				<Text style={styles.sectionLabel} accessibilityRole="header">PREFERENCIAS</Text>
+				<SectionLabel style={styles.sectionLabel}>PREFERENCIAS</SectionLabel>
 				<View style={styles.listCard}>
 					<View style={[styles.listItem, styles.themeRow]}>
 						<View style={styles.listIconWrap}>
@@ -232,7 +240,11 @@ export function ProfileScreen({
 								<Pressable
 									key={opt.value}
 									onPress={() => setThemePreference(opt.value)}
-									style={[styles.themeOption, active && styles.themeOptionActive]}
+									style={(state) => [
+											styles.themeOption,
+											active && styles.themeOptionActive,
+											isFocused(state) && styles.focusRingInset,
+										]}
 									accessibilityRole="radio"
 									accessibilityState={{ checked: active }}
 									accessibilityLabel={`Tema ${opt.label}`}
@@ -240,7 +252,7 @@ export function ProfileScreen({
 									<Ionicons
 										name={opt.icon}
 										size={15}
-										color={active ? colors.buttonText : colors.mutedText2}
+										color={active ? colors.actionText : colors.mutedText2}
 									/>
 									<Text style={[styles.themeOptionText, active && styles.themeOptionTextActive]} numberOfLines={1}>
 										{opt.label}
@@ -266,9 +278,16 @@ export function ProfileScreen({
 						/>
 					</View>
 					<View style={styles.listDivider} />
-					<View style={styles.listItem}>
-						<View style={styles.listIconWrap}>
-							<Ionicons name="swap-horizontal-outline" size={16} color={colors.infoSoftText} />
+					<Pressable
+							style={(state) => [styles.listItem, isFocused(state) && styles.focusRingInset]}
+							onPress={() => handleToggleAlternativeBrands(!alternativeBrands)}
+							disabled={savingPreference}
+							accessibilityRole="switch"
+							accessibilityLabel="Marcas alternativas. Mostrarte ofertas del mismo producto en otras marcas"
+							accessibilityState={{ checked: alternativeBrands, disabled: savingPreference }}
+						>
+							<View style={styles.listIconWrap}>
+								<Ionicons name="swap-horizontal-outline" size={16} color={colors.infoSoftText} />
 						</View>
 						<View style={{ flex: 1, gap: space.xs }}>
 							<Text style={styles.listLabel}>Marcas alternativas</Text>
@@ -276,7 +295,7 @@ export function ProfileScreen({
 								Mostrarte ofertas del mismo producto en otras marcas
 							</Text>
 							{preferenceError && (
-								<View style={styles.errorRow} accessibilityLiveRegion="polite">
+								<View style={styles.errorRow} accessibilityRole="alert" accessibilityLiveRegion="polite">
 									<Ionicons name="alert-circle" size={13} color={colors.dangerSoftText} />
 									<Text style={styles.errorText}>{preferenceError}</Text>
 								</View>
@@ -287,9 +306,10 @@ export function ProfileScreen({
 							onValueChange={handleToggleAlternativeBrands}
 							{...switchColors(alternativeBrands)}
 							disabled={savingPreference}
-							accessibilityLabel="Marcas alternativas"
-						/>
-					</View>
+							accessibilityElementsHidden
+								importantForAccessibility="no-hide-descendants"
+							/>
+						</Pressable>
 					<View style={styles.listDivider} />
 					<View style={styles.listItem}>
 						<View style={styles.listIconWrap}>
@@ -309,9 +329,15 @@ export function ProfileScreen({
 					{biometricAvailable && (
 						<>
 							<View style={styles.listDivider} />
-							<View style={styles.listItem}>
-								<View style={styles.listIconWrap}>
-									<Ionicons name={biometric.icon} size={16} color={colors.infoSoftText} />
+							<Pressable
+									style={(state) => [styles.listItem, isFocused(state) && styles.focusRingInset]}
+									onPress={() => onToggleBiometric?.(!biometricEnabled)}
+									accessibilityRole="switch"
+									accessibilityLabel={`Inicio de sesión biométrico. Usá ${biometric.hint} para ingresar`}
+									accessibilityState={{ checked: biometricEnabled }}
+								>
+									<View style={styles.listIconWrap}>
+										<Ionicons name={biometric.icon} size={16} color={colors.infoSoftText} />
 								</View>
 								<View style={{ flex: 1, gap: space.xs }}>
 									<Text style={styles.listLabel}>Inicio de sesión biométrico</Text>
@@ -323,15 +349,16 @@ export function ProfileScreen({
 									value={biometricEnabled}
 									onValueChange={(v) => onToggleBiometric?.(v)}
 									{...switchColors(biometricEnabled)}
-									accessibilityLabel="Inicio de sesión biométrico"
-								/>
-							</View>
+									accessibilityElementsHidden
+										importantForAccessibility="no-hide-descendants"
+									/>
+								</Pressable>
 						</>
 					)}
 					<View style={styles.listDivider} />
 					<Pressable
-						style={styles.listItem}
-						onPress={onOpenHelp}
+							style={(state) => [styles.listItem, state.pressed && styles.pressed, isFocused(state) && styles.focusRingInset]}
+							onPress={onOpenHelp}
 						accessibilityRole="button"
 						accessibilityLabel="Centro de ayuda"
 					>
@@ -346,7 +373,7 @@ export function ProfileScreen({
 				</View>
 
 				<Pressable
-					style={styles.logoutButton}
+					style={(state) => [styles.logoutButton, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
 					onPress={onLogout}
 					accessibilityRole="button"
 					accessibilityLabel="Cerrar sesión"
@@ -372,25 +399,25 @@ function createStyles(colors: ColorTokens) {
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	statusBarBg: { backgroundColor: colors.navy },
 	header: { backgroundColor: colors.navy, paddingHorizontal: space.xl, height: 56, flexDirection: "row", alignItems: "center", gap: space.smPlus },
-	headerLogo: { width: 24, height: 24, borderRadius: 6 },
+	headerLogo: { width: 24, height: 24, borderRadius: radii.sm },
 	headerTitle: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: typography.sizes.bodyL },
 	scroll: { flex: 1 },
 	scrollContent: { padding: space.lg, gap: space.md, width: "100%", maxWidth: 640, alignSelf: "center" },
 	profileCard: { backgroundColor: colors.card, borderRadius: radii.lg, padding: space.lg, flexDirection: "row", alignItems: "center", gap: space.mdPlus, borderWidth: 1, borderColor: colors.divider },
-	avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+	avatar: { width: 52, height: 52, borderRadius: radii.full, backgroundColor: colors.cyan, alignItems: "center", justifyContent: "center", overflow: "hidden" },
 	avatarImage: { width: "100%", height: "100%" },
 	avatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: typography.sizes.bodyL },
 	profileName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.subtitle },
-	profileEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.micro },
+	profileEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption },
 	levelBadge: { alignSelf: "flex-start", backgroundColor: colors.infoSoft, paddingHorizontal: space.smPlus, paddingVertical: space.xsPlus, borderRadius: radii.sm, flexDirection: "row", alignItems: "center", gap: space.xs, marginTop: space.xs },
-	levelBadgeText: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.overline, letterSpacing: 0.3 },
-	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: typography.sizes.overline, letterSpacing: 1.2, marginTop: space.sm },
+	levelBadgeText: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.micro },
+	sectionLabel: { marginTop: space.sm },
 	listCard: { backgroundColor: colors.card, borderRadius: radii.md, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
 	listItem: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.md, minHeight: 60 },
 	listIconWrap: { width: 32, height: 32, borderRadius: radii.sm, backgroundColor: colors.infoSoft, alignItems: "center", justifyContent: "center" },
 	listLabel: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.label },
-	listHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.micro },
-	listDivider: { height: 1, backgroundColor: colors.divider, marginLeft: 60 },
+	listHint: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption },
+	listDivider: { height: 1, backgroundColor: colors.divider, marginLeft: space.lg + 32 + space.md },
 	themeRow: { paddingBottom: space.xs, minHeight: 0 },
 	themeOptionsRow: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, paddingHorizontal: space.lg, paddingBottom: space.mdPlus },
 	themeOption: {
@@ -407,12 +434,16 @@ function createStyles(colors: ColorTokens) {
 		borderWidth: 1,
 		borderColor: colors.divider,
 	},
-	themeOptionActive: { backgroundColor: colors.navy, borderColor: colors.navy },
-	themeOptionText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: typography.sizes.micro },
-	themeOptionTextActive: { color: colors.buttonText },
-	logoutButton: { marginTop: space.sm, height: 48, borderRadius: 10, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm },
+	themeOptionActive: { backgroundColor: colors.actionFill, borderColor: colors.actionFill },
+	themeOptionText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	themeOptionTextActive: { color: colors.actionText },
+	logoutButton: { marginTop: space.sm, height: 48, borderRadius: radii.md, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm },
 	logoutText: { color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.body },
-	errorRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.micro },
+	pressed: { opacity: 0.88 },
+		focusRing: focusRing(colors),
+		// Rows sit inside a card that clips overflow, so their ring is drawn inward.
+		focusRingInset: focusRing(colors, true),
+		errorRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
+	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
 	});
 }

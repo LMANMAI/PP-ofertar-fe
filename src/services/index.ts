@@ -29,6 +29,7 @@ export type {
 } from "./authApi";
 
 export {
+	bestKnownDiscount,
 	campaignOfferToOffer,
 	describeCampaignDiscount,
 	getRecurringProducts,
@@ -77,11 +78,13 @@ export {
 
 export type { StoreChain, NearbyStore, FavoriteStores } from "./storesApi";
 
-export { getProductoPorEan } from "./sepaApi";
+export { getProductoPorEan, getSucursalesCercanas, SepaError } from "./sepaApi";
 
 export type {
 	ProductoDetalleResponse,
 	ComercioPrecioResponse,
+	SucursalPrecio,
+	SucursalesCercanas,
 } from "./sepaApi";
 
 export {

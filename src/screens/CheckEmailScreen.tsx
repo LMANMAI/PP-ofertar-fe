@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-	ActivityIndicator,
 	KeyboardAvoidingView,
 	Platform,
 	Pressable,
@@ -12,8 +11,8 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { radii, space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { InputField } from "../components";
+import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
+import { InputField, InlineNotice, PrimaryButton } from "../components";
 import { friendlyAuthError, requestPasswordReset, verifyResetCode } from "../services/authApi";
 
 type Props = {
@@ -26,9 +25,6 @@ type Props = {
 const CODE_LENGTH = 6;
 // Matches the backend's resend cooldown: asking earlier is silently ignored there.
 const RESEND_SECONDS = 60;
-
-// Keyboard focus ring (web); native ignores `focused`.
-const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
 
 export function CheckEmailScreen({ email, onBack, onVerified }: Props) {
 	const insets = useSafeAreaInsets();
@@ -108,7 +104,7 @@ export function CheckEmailScreen({ email, onBack, onVerified }: Props) {
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				keyboardVerticalOffset={insets.top}
+				keyboardVerticalOffset={0}
 			>
 				<ScrollView
 					contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxl }]}
@@ -145,37 +141,19 @@ export function CheckEmailScreen({ email, onBack, onVerified }: Props) {
 					<Text style={styles.hint}>Si no lo ves, revisá la carpeta de spam o correo no deseado.</Text>
 
 					{error && (
-						<View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
-							<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
-							<Text style={styles.errorText}>{error}</Text>
-						</View>
+						<InlineNotice message={error} style={styles.errorBox} />
 					)}
 					{notice && (
-						<View style={styles.noticeBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
-							<Ionicons name="checkmark-circle" size={16} color={colors.successSoftText} />
-							<Text style={styles.noticeText}>{notice}</Text>
-						</View>
+						<InlineNotice variant="success" live message={notice} style={styles.errorBox} />
 					)}
 
-					<Pressable
-						style={(state) => [
-							styles.cta,
-							loading && styles.ctaLoading,
-							state.pressed && !busy && styles.pressed,
-							isFocused(state) && styles.focusRing,
-						]}
+					<PrimaryButton
+						label="Verificar código"
 						onPress={handleVerify}
-						disabled={busy}
-						accessibilityRole="button"
-						accessibilityLabel="Verificar código"
-						accessibilityState={{ busy: loading, disabled: busy }}
-					>
-						{loading ? (
-							<ActivityIndicator size="small" color={colors.actionText} />
-						) : (
-							<Text style={styles.ctaText}>Verificar código</Text>
-						)}
-					</Pressable>
+						loading={loading}
+						disabled={resending}
+						style={styles.cta}
+					/>
 
 					<Pressable
 						onPress={handleResend}
@@ -224,55 +202,8 @@ function createStyles(colors: ColorTokens) {
 			fontSize: typography.sizes.caption,
 			lineHeight: typography.lineHeights.caption,
 		},
-		errorBox: {
-			marginTop: space.md,
-			paddingVertical: space.smPlus,
-			paddingHorizontal: space.md,
-			borderRadius: radii.sm + 2,
-			backgroundColor: colors.dangerSoft,
-			flexDirection: "row",
-			alignItems: "center",
-			gap: space.sm,
-		},
-		errorText: {
-			flex: 1,
-			color: colors.dangerSoftText,
-			fontFamily: typography.family.medium,
-			fontSize: typography.sizes.caption,
-			lineHeight: typography.lineHeights.caption,
-		},
-		noticeBox: {
-			marginTop: space.md,
-			paddingVertical: space.smPlus,
-			paddingHorizontal: space.md,
-			borderRadius: radii.sm + 2,
-			backgroundColor: colors.successSoft,
-			flexDirection: "row",
-			alignItems: "center",
-			gap: space.sm,
-		},
-		noticeText: {
-			flex: 1,
-			color: colors.successSoftText,
-			fontFamily: typography.family.medium,
-			fontSize: typography.sizes.caption,
-			lineHeight: typography.lineHeights.caption,
-		},
-		cta: {
-			marginTop: space.lg,
-			backgroundColor: colors.actionFill,
-			height: 52,
-			borderRadius: radii.sm + 2,
-			alignItems: "center",
-			justifyContent: "center",
-		},
-		ctaLoading: { opacity: 0.7 },
-		ctaText: {
-			color: colors.actionText,
-			fontFamily: typography.family.medium,
-			fontSize: typography.sizes.body,
-			lineHeight: typography.lineHeights.body,
-		},
+		errorBox: { marginTop: space.md },
+		cta: { marginTop: space.lg },
 		resend: { marginTop: space.md, minHeight: 44, alignItems: "center", justifyContent: "center" },
 		resendText: {
 			color: colors.defaultText,
@@ -283,6 +214,6 @@ function createStyles(colors: ColorTokens) {
 		},
 		resendTextWaiting: { color: colors.mutedText, textDecorationLine: "none" },
 		pressed: { opacity: 0.88 },
-		focusRing: { outlineWidth: 2, outlineColor: colors.actionFill, outlineOffset: 2, outlineStyle: "solid" },
+		focusRing: focusRing(colors),
 	});
 }

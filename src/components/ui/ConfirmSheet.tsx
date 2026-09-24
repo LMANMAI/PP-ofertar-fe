@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../../theme/designSystem";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -68,17 +68,17 @@ export function ConfirmSheet({
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
-		sheet: { backgroundColor: colors.card, borderRadius: 16, padding: 22, gap: space.sm, alignItems: "stretch" },
+		sheet: { backgroundColor: colors.card, borderRadius: radii.lg, padding: 22, gap: space.sm, alignItems: "stretch" },
 		iconCircle: { alignSelf: "center", width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center" },
 		iconCircleDanger: { backgroundColor: colors.dangerSoft },
 		iconCircleInfo: { backgroundColor: colors.infoSoft },
-		title: { textAlign: "center", color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: space.xs },
-		subtitle: { textAlign: "center", color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
+		title: { textAlign: "center", color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.h3, marginTop: space.xs },
+		subtitle: { textAlign: "center", color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption, lineHeight: 18 },
 		confirmBtn: { backgroundColor: colors.navy, height: 48, borderRadius: 10, alignItems: "center", justifyContent: "center", marginTop: space.md },
 		confirmBtnDanger: { backgroundColor: colors.danger },
 		confirmBtnDisabled: { opacity: 0.5 },
-		confirmText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
+		confirmText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: typography.sizes.body },
 		cancelBtn: { height: 44, alignItems: "center", justifyContent: "center" },
-		cancelText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
+		cancelText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: typography.sizes.label },
 	});
 }

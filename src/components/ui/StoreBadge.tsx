@@ -79,6 +79,6 @@ const styles = StyleSheet.create({
 	},
 	initials: {
 		fontFamily: typography.family.bold,
-		fontSize: 10,
+		fontSize: typography.sizes.tiny,
 	},
 });

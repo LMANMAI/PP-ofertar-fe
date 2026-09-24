@@ -2,9 +2,8 @@ import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { ConfirmSheet } from "../components";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
+import { ConfirmSheet, InlineNotice } from "../components";
 import type { Reward } from "../data/rewards";
 
 type Props = {
@@ -45,19 +44,9 @@ export function ConfirmRedeemScreen({ reward, pointsBalance, onCancel, onConfirm
 				</View>
 
 				{canConfirm ? (
-					<View style={styles.warningBox}>
-						<Ionicons name="information-circle-outline" size={16} color={colors.warningSoftText} />
-						<Text style={styles.warningText}>
-							Una vez confirmado, los puntos no se pueden devolver.
-						</Text>
-					</View>
+					<InlineNotice variant="warning" icon="information-circle-outline" message="Una vez confirmado, los puntos no se pueden devolver." />
 				) : (
-					<View style={[styles.warningBox, styles.warningBoxDanger]}>
-						<Ionicons name="alert-circle-outline" size={16} color={colors.dangerSoftText} />
-						<Text style={[styles.warningText, { color: colors.dangerSoftText }]}>
-							No te alcanzan los puntos todavía.
-						</Text>
-					</View>
+					<InlineNotice icon="alert-circle-outline" live={false} message="No te alcanzan los puntos todavía." />
 				)}
 			</ConfirmSheet>
 		</View>
@@ -90,11 +79,8 @@ function createStyles(colors: ColorTokens) {
 	backdrop: { flex: 1, backgroundColor: "rgba(10,31,68,0.7)", justifyContent: "center", paddingHorizontal: space.xl },
 	bold: { color: colors.defaultText, fontFamily: typography.family.medium },
 	statsRow: { flexDirection: "row", gap: space.smPlus, marginTop: space.xsPlus },
-	stat: { flex: 1, backgroundColor: colors.navy, borderRadius: 12, padding: space.mdPlus, alignItems: "center" },
-	statLabel: { color: colors.navyMutedText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1 },
+	stat: { flex: 1, backgroundColor: colors.navy, borderRadius: radii.md, padding: space.mdPlus, alignItems: "center" },
+	statLabel: { color: colors.navyMutedText, fontFamily: typography.family.medium, fontSize: typography.sizes.tiny, letterSpacing: 1 },
 	statValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 18, marginTop: space.xs },
-	warningBox: { flexDirection: "row", gap: space.sm, alignItems: "center", backgroundColor: colors.warningSoft, padding: space.smPlus, borderRadius: 10 },
-	warningBoxDanger: { backgroundColor: colors.dangerSoft },
-	warningText: { flex: 1, color: colors.warningSoftText, fontFamily: typography.family.regular, fontSize: 12, lineHeight: 16 },
 	});
 }
