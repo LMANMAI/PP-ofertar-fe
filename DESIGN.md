@@ -135,7 +135,7 @@ The palette reads as controlled and confident rather than colorful — three bra
 - **Highlighter Cyan** (`#7DD4F5`): The interactive accent — focus rings, active filter pills, discount badges, the scan tab, "ver más" links. If something on screen is cyan, it's either interactive or marking where the value is, the way a highlighter pen marks a receipt line.
 
 ### Tertiary
-- **Alert Coral** (`#E76F51`): Used sparingly for warmth and a subset of warning icons. Not a CTA color — navy owns primary actions; coral never competes with it for that role.
+- **Alert Coral** (`#E76F51`): Used sparingly for warmth and a subset of warning icons. Not a CTA color on light surfaces — navy owns primary actions there; coral never competes with it for that role. The one exception is the welcome screen: its whole surface is navy, so a navy button would vanish into it, and the primary "Crear cuenta" button is coral with navy text (white on coral is only 3.09:1; navy on coral is ~5.3:1).
 
 ### Neutral
 - **Paper Background** (`#F8FAFC` light / `#0B1220` dark): Screen background.
@@ -236,8 +236,8 @@ Buttons are pill-adjacent but not fully rounded — a 10px radius on a ~48-52px-
 
 ### Inputs
 - **Style:** 52px height, 10px radius, 1px hairline border, label always visible above the field rather than a vanishing placeholder.
-- **Focus:** Border and background both shift to cyan tints (`{colors.highlighter-cyan}` border, a soft cyan fill) — the app's one consistent focus treatment across every text field.
-- **Error/Disabled:** Not a dedicated visual state on the input itself; validation errors surface as a separate inline message below the field instead of restyling the input border.
+- **Focus:** The border takes the action color (navy in light, cyan in dark, the `actionFill` token) and the fill shifts to a soft cyan tint — the app's one consistent focus treatment across every text field. The resting border uses the `inputBorder` token (~3:1), not the hairline, because it is the only thing that delimits the field.
+- **Error/Disabled:** Not a dedicated visual state on the input itself; validation errors surface as an inline message (icon plus text, announced to screen readers) below the field, and the field border also turns danger-red so the failing field is findable at a glance.
 
 ### Navigation
 - **Style:** Fixed bottom bar, `{colors.card-surface}` background, active tab marked by icon fill plus label color shift rather than a pill background. A raised circular scan button sits at center, breaking the row's flat rhythm — the app's one deliberately oversized touch target, because it's the primary action reachable from anywhere in the app.

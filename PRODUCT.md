@@ -30,7 +30,7 @@ El usuario sale del supermercado, escanea el ticket en segundos, y antes de la p
 - Geolocalización real (react-native-maps + expo-location) para tiendas favoritas y comparar precios por zona.
 - Sistema de referidos: cada usuario tiene un código propio; tanto quien invita como quien se registra ganan puntos, canjeables por beneficios. Hoy es frontend-only, sin persistencia real en un backend (no existe todavía columna de puntos/código de referido en el modelo de usuario).
 - Backend real en Spring Boot + MySQL (repo separado `PP-ofertar`); frontend en Expo + React Native + TypeScript (`PP-ofertar-fe`), sin librería de navegación (máquina de estados en `App.tsx`) ni librería de manejo de estado global — son decisiones deliberadas del proyecto, no deuda a resolver sin más contexto.
-- No existe todavía un modelo de suscripción real ni facturación. La recompensa de "descuento de suscripción" del sistema de puntos es aspiracional/ilustrativa por ahora, no un producto de pago real (ver Evidence on Hand y Product Principles).
+- Modelo de negocio planificado: **freemium** (plan gratuito + plan pago). Todavía no está implementado: no hay facturación, ni suscripción real, ni definición confirmada de qué funciones son gratuitas y cuáles pagas. La recompensa de "descuento de suscripción" del sistema de puntos sigue siendo ilustrativa hasta que exista el plan pago. Mientras no haya límites definidos, la copy puede decir que se empieza gratis, pero no debe prometer que algo seguirá siendo gratis ni nombrar funciones de un plan específico.
 
 ## Brand Commitments
 
@@ -49,4 +49,4 @@ El usuario sale del supermercado, escanea el ticket en segundos, y antes de la p
 - El historial de consumo real (tickets escaneados) manda sobre cualquier dato inventado o mock. Cuando los dos compiten por ser "la" fuente de precios, el histórico real/verificado es hacia donde hay que migrar, no al revés.
 - Pasivo antes que manual: cada feature nueva debería reducirle trabajo al usuario (comparar, buscar, armar listas), no agregarle un paso más.
 - No fabricar lo que no existe. Sin un backend real detrás, una funcionalidad no debe aparentar estarlo — mock está bien, mock disfrazado de real no (ver el hallazgo del QR falso de ofertas, resuelto en esta sesión).
-- Es un proyecto académico, no un producto en producción todavía. Features "post-MVP" (suscripción paga, afiliados, modo offline) son terreno legítimo para explorar, pero no deben tratarse como compromisos comerciales reales sin que el usuario lo confirme explícitamente.
+- Es un proyecto académico, no un producto en producción todavía. Features "post-MVP" (plan pago del freemium, afiliados, modo offline) son terreno legítimo para explorar, pero no deben tratarse como compromisos comerciales reales sin que el usuario lo confirme explícitamente. Qué entra en el plan gratuito y qué en el pago está sin definir: no inventar límites, precios ni nombres de planes.
