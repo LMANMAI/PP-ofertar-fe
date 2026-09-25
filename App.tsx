@@ -5,7 +5,7 @@ import { ActivityIndicator, BackHandler, Platform, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
-import * as Notifications from "expo-notifications";
+import { canUsePush, loadNotifications } from "./src/notifications/loadNotifications";
 import { registerForPushNotifications } from "./src/notifications/pushRegistration";
 
 import {
@@ -247,43 +247,55 @@ export default function App() {
 	const goMain = (t: TabKey = "home") => { setTab(t); setScreen("main"); };
 
 	useEffect(() => {
-		Notifications.setNotificationHandler({
-			handleNotification: async () => ({
-				shouldShowBanner: true,
-				shouldShowList: true,
-				shouldPlaySound: true,
-				shouldSetBadge: false,
-			}),
-		});
-
-		const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-			const data = response.notification.request.content.data as { screen?: string; ticketId?: string };
-			if (data.screen === "ticketDetail" && data.ticketId) {
-				setSelectedTicketId(Number(data.ticketId));
-				setScreen("ticketDetail");
-				return;
-			}
-			if (data.screen === "pointsHistory") {
-				setScreen("pointsHistory");
-				return;
-			}
-			if (data.screen === "ticketHistory") {
-				setTab("history");
-				setScreen("ticketHistory");
-				return;
-			}
-			if (data.screen === "scanMethod") {
-				setTab("scan");
-				setScreen("captureTicket");
-				return;
-			}
-			if (data.screen === "offers") {
-				goMain("offers");
-				return;
-			}
-			goMain("home");
-		});
-		return () => sub.remove();
+		// expo-notifications throws on import in Expo Go (Android), so it is
+		// loaded lazily and only outside Expo Go.
+		if (!canUsePush()) return;
+		let cancelled = false;
+		let sub: { remove: () => void } | undefined;
+		loadNotifications()
+			.then((Notifications) => {
+				if (!Notifications || cancelled) return;
+				Notifications.setNotificationHandler({
+					handleNotification: async () => ({
+						shouldShowBanner: true,
+						shouldShowList: true,
+						shouldPlaySound: true,
+						shouldSetBadge: false,
+					}),
+				});
+				sub = Notifications.addNotificationResponseReceivedListener((response) => {
+					const data = response.notification.request.content.data as { screen?: string; ticketId?: string };
+					if (data.screen === "ticketDetail" && data.ticketId) {
+						setSelectedTicketId(Number(data.ticketId));
+						setScreen("ticketDetail");
+						return;
+					}
+					if (data.screen === "pointsHistory") {
+						setScreen("pointsHistory");
+						return;
+					}
+					if (data.screen === "ticketHistory") {
+						setTab("history");
+						setScreen("ticketHistory");
+						return;
+					}
+					if (data.screen === "scanMethod") {
+						setTab("scan");
+						setScreen("captureTicket");
+						return;
+					}
+					if (data.screen === "offers") {
+						goMain("offers");
+						return;
+					}
+					goMain("home");
+				});
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+			sub?.remove();
+		};
 	}, []);
 
 	/**
