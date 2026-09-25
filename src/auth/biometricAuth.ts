@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as LocalAuthentication from "expo-local-authentication";
 
@@ -47,4 +48,33 @@ export async function getPromptDismissed(): Promise<boolean> {
 
 export async function setPromptDismissed(): Promise<void> {
 	await SecureStore.setItemAsync(DISMISSED_KEY, "true");
+}
+
+export type BiometricInfo = {
+	/** Noun phrase for copy ("Usá {hint} para ingresar"). */
+	hint: string;
+	icon: "finger-print-outline" | "scan-outline";
+};
+
+const DEFAULT_BIOMETRIC_INFO: BiometricInfo = { hint: "tu biometría", icon: "finger-print-outline" };
+
+/** What to call the device's biometric in copy and which icon to show:
+ * iPhones with Face ID have no fingerprint, so "huella" would be wrong there. */
+export async function getBiometricInfo(): Promise<BiometricInfo> {
+	const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+	if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+		return { hint: "Face ID", icon: "scan-outline" };
+	}
+	if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+		return { hint: "tu huella", icon: "finger-print-outline" };
+	}
+	return DEFAULT_BIOMETRIC_INFO;
+}
+
+export function useBiometricInfo(): BiometricInfo {
+	const [info, setInfo] = useState<BiometricInfo>(DEFAULT_BIOMETRIC_INFO);
+	useEffect(() => {
+		getBiometricInfo().then(setInfo).catch(() => {});
+	}, []);
+	return info;
 }

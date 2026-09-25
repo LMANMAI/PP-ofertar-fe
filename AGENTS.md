@@ -29,7 +29,7 @@ All screens live in `src/screens/`, one component per file. The barrel `src/scre
 
 ## Reusable components
 
-`src/components/ui/` contains 5 shared components: `BottomNav`, `InputField`, `LoadingOverlay`, `PasswordStrengthBar`, `Toast`. Exported via `src/components/index.ts`.
+`src/components/ui/` holds the shared components, exported via `src/components/index.ts`. Reach for these before building a screen-local version: `PrimaryButton` (the filled action button), `InlineNotice` (icon + message box), `SectionLabel`, `InputField`, `EmptyState`, `ErrorBanner`, `ScreenHeader`, `BottomNav`. Sizes, radii and spacing come from `typography`, `radii` (`radii.button` for buttons) and `space` in `src/theme/designSystem.tsx`, and so do the keyboard-focus helpers `isFocused` / `focusRing`.
 
 ## Backend
 

@@ -34,7 +34,7 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.card },
 	content: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.xsPlus },
-	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, marginTop: 18 },
-	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13 },
+	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.h3, marginTop: 18 },
+	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption },
 	});
 }

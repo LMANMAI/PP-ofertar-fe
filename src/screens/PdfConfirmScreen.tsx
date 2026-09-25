@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { ScreenHeader } from "../components";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 
 type Props = {
 	pdfName: string;
@@ -18,16 +18,7 @@ export function PdfConfirmScreen({ pdfName, onSend, onCancel }: Props) {
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" />
-
-			<View style={styles.header}>
-				<Pressable onPress={onCancel} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Confirmar PDF</Text>
-				<View style={{ width: 32 }} />
-			</View>
+			<ScreenHeader title="Confirmar PDF" onBack={onCancel} />
 
 			<View style={styles.content}>
 				<View style={styles.card}>
@@ -59,24 +50,6 @@ export function PdfConfirmScreen({ pdfName, onSend, onCancel }: Props) {
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: {
-		backgroundColor: colors.navy,
-		paddingHorizontal: space.md,
-		paddingTop: space.sm,
-		paddingBottom: space.lg,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: space.sm,
-	},
-	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-	headerTitle: {
-		flex: 1,
-		textAlign: "center",
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 16,
-	},
 	content: {
 		flex: 1,
 		paddingHorizontal: space.xl,
@@ -85,7 +58,7 @@ function createStyles(colors: ColorTokens) {
 	},
 	card: {
 		backgroundColor: colors.card,
-		borderRadius: 20,
+		borderRadius: radii.xl,
 		borderWidth: 1,
 		borderColor: colors.border,
 		padding: 32,
@@ -104,21 +77,21 @@ function createStyles(colors: ColorTokens) {
 	fileName: {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
-		fontSize: 16,
+		fontSize: typography.sizes.subtitle,
 		textAlign: "center",
 		lineHeight: 22,
 	},
 	hint: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 14,
+		fontSize: typography.sizes.label,
 		textAlign: "center",
 	},
 	actions: { gap: space.md, paddingBottom: space.md },
 	primaryButton: {
 		backgroundColor: colors.navy,
 		height: 54,
-		borderRadius: 12,
+		borderRadius: radii.md,
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
@@ -127,21 +100,21 @@ function createStyles(colors: ColorTokens) {
 	primaryButtonText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 15,
+		fontSize: typography.sizes.body,
 	},
 	secondaryButton: {
 		borderWidth: 1,
 		borderColor: colors.border,
 		backgroundColor: colors.card,
 		height: 52,
-		borderRadius: 12,
+		borderRadius: radii.md,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	secondaryButtonText: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
-		fontSize: 14,
+		fontSize: typography.sizes.label,
 	},
 	});
 }

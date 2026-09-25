@@ -56,7 +56,12 @@
         }
       ],
       "expo-secure-store",
-      "expo-local-authentication",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Usamos Face ID para que ingreses a OfertAR sin escribir tu contraseña."
+        }
+      ],
       "expo-font",
       "expo-status-bar"
     ],

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../../theme/designSystem";
 
 type Props = {
 	text: string;
@@ -20,10 +20,10 @@ export function Tag({ text, tone }: Props) {
 
 function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
-		tag: { paddingHorizontal: space.smPlus, paddingVertical: 5, borderRadius: 999 },
+		tag: { paddingHorizontal: space.smPlus, paddingVertical: 5, borderRadius: radii.full },
 		tagMuted: { backgroundColor: "rgba(255,255,255,0.12)" },
 		tagCyan: { backgroundColor: colors.cyan },
-		tagText: { fontFamily: typography.family.medium, fontSize: 11 },
+		tagText: { fontFamily: typography.family.medium, fontSize: typography.sizes.overline },
 		tagTextMuted: { color: "rgba(255,255,255,0.85)" },
 		tagTextCyan: { color: colors.navy },
 	});

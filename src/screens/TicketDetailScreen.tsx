@@ -2,20 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 import { getRecurringProducts, getTicket, offerBadge } from "../services";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
-import {
-	BottomNav,
-	EmptyState,
-	ErrorBanner,
-	ForgottenProductsSheet,
-	forgottenIn,
-	LoadingState,
-	ScreenHeader,
-	type TabKey,
-} from "../components";
+import { BottomNav, EmptyState, ErrorBanner, ForgottenProductsSheet, forgottenIn, LoadingState, ScreenHeader, type TabKey, SectionLabel } from "../components";
 import { hasBeenAnnounced, markAnnounced } from "../store/announcedTickets";
 import { formatCurrencyExact, formatQuantity, formatTicketTimestamp } from "../utils/format";
 
@@ -160,7 +151,7 @@ export function TicketDetailScreen({ ticketId, onBack, session, activeTab, onSel
 						</View>
 					)}
 
-					<Text style={styles.sectionLabel}>PRODUCTOS</Text>
+					<SectionLabel>PRODUCTOS</SectionLabel>
 					<View style={styles.products}>
 						{ticket.items.map((item, idx) => (
 							<View key={item.id || idx}>
@@ -208,37 +199,36 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	failedBanner: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.dangerSoft, borderRadius: 10, padding: space.md },
-	failedBannerText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13 },
-	summary: { backgroundColor: colors.navy, borderRadius: 16, padding: space.lg, gap: space.xsPlus },
+	failedBannerText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	summary: { backgroundColor: colors.navy, borderRadius: radii.lg, padding: space.lg, gap: space.xsPlus },
 	summaryHeader: { flexDirection: "row", alignItems: "center", gap: space.smPlus },
-	storeBadge: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 11 },
-	storeName: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 13 },
-	storeMeta: { color: "rgba(255,255,255,0.55)", fontFamily: typography.family.regular, fontSize: 11 },
-	totalLabel: { color: "rgba(255,255,255,0.55)", fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.3, marginTop: space.xsPlus },
+	storeBadge: { width: 32, height: 32, borderRadius: radii.lg, alignItems: "center", justifyContent: "center" },
+	storeBadgeText: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: typography.sizes.overline },
+	storeName: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	storeMeta: { color: "rgba(255,255,255,0.55)", fontFamily: typography.family.regular, fontSize: typography.sizes.overline },
+	totalLabel: { color: "rgba(255,255,255,0.55)", fontFamily: typography.family.medium, fontSize: typography.sizes.tiny, letterSpacing: 1.3, marginTop: space.xsPlus },
 	totalValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 24 },
 	strikethroughSubtotal: {
 		color: "rgba(255,255,255,0.5)",
 		textDecorationLine: "line-through",
 		fontFamily: typography.family.medium,
-		fontSize: 14,
+		fontSize: typography.sizes.label,
 		marginTop: space.xs,
 	},
 	tagsRow: { flexDirection: "row", gap: space.xsPlus, marginTop: space.xsPlus },
-	tag: { paddingHorizontal: space.smPlus, paddingVertical: 5, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.12)" },
-	tagText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 11 },
-	savings: { flexDirection: "row", gap: space.smPlus, backgroundColor: colors.successSoft, padding: space.mdPlus, borderRadius: 12, alignItems: "center" },
-	savingsTitle: { color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: 13 },
-	savingsHint: { color: colors.successSoftText, fontFamily: typography.family.regular, fontSize: 11, marginTop: 2 },
-	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
-	products: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
+	tag: { paddingHorizontal: space.smPlus, paddingVertical: 5, borderRadius: radii.full, backgroundColor: "rgba(255,255,255,0.12)" },
+	tagText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: typography.sizes.overline },
+	savings: { flexDirection: "row", gap: space.smPlus, backgroundColor: colors.successSoft, padding: space.mdPlus, borderRadius: radii.md, alignItems: "center" },
+	savingsTitle: { color: colors.successSoftText, fontFamily: typography.family.bold, fontSize: typography.sizes.caption },
+	savingsHint: { color: colors.successSoftText, fontFamily: typography.family.regular, fontSize: typography.sizes.overline, marginTop: 2 },
+	products: { backgroundColor: colors.card, borderRadius: radii.md, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" },
 	productRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: space.mdPlus, paddingVertical: space.md },
-	productName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
+	productName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.label },
 	priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.sm, marginTop: 2 },
-	productMeta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 12 },
-	originalPrice: { textDecorationLine: "line-through", color: colors.subtleText, opacity: 0.6, fontFamily: typography.family.regular, fontSize: 12 },
-	productPrice: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 14 },
-	discountText: { color: colors.success, fontFamily: typography.family.medium, fontSize: 11, marginTop: 2 },
+	productMeta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.micro },
+	originalPrice: { textDecorationLine: "line-through", color: colors.subtleText, opacity: 0.6, fontFamily: typography.family.regular, fontSize: typography.sizes.micro },
+	productPrice: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.label },
+	discountText: { color: colors.success, fontFamily: typography.family.medium, fontSize: typography.sizes.overline, marginTop: 2 },
 	divider: { height: 1, backgroundColor: colors.divider },
 	});
 }

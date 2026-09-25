@@ -1,65 +1,115 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
+import { useKeyboardVisible } from "../utils/useKeyboardVisible";
 import { StatusBar } from "expo-status-bar";
-import { useFonts } from "expo-font";
-import {
-	PlusJakartaSans_400Regular,
-	PlusJakartaSans_500Medium,
-	PlusJakartaSans_700Bold,
-} from "@expo-google-fonts/plus-jakarta-sans";
-import { View, Text, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { InputField } from "../components";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
 
-type Props = {
-	onNext: (data: { firstName: string; lastName: string; email: string; phone: string; referralCode: string }) => void;
-	onBack: () => void;
-	onGoToLogin?: () => void;
+
+import {
+	View,
+	Text,
+	StyleSheet,
+	Pressable,
+	ScrollView,
+	KeyboardAvoidingView,
+	Keyboard,
+	Linking,
+	Platform,
+	type TextInput,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { InputField, PrimaryButton } from "../components";
+import { TERMS_URL } from "../constants/legal";
+import { FieldError } from "../components/ui/InputField";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
+
+export type RegisterStep1Data = {
+	firstName: string;
+	lastName: string;
+	email: string;
+	referralCode: string;
 };
 
-export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
-	const insets = useSafeAreaInsets();
-	const colors = useThemeColors();
-	const styles = useMemo(() => createStyles(colors), [colors]);
-	const [fontsLoaded] = useFonts({
-		PlusJakartaSans_400Regular,
-		PlusJakartaSans_500Medium,
-		PlusJakartaSans_700Bold,
-	});
+type Props = {
+	onNext: (data: RegisterStep1Data) => void;
+	onBack: () => void;
+	onGoToLogin?: () => void;
+	/** What the user had typed before going to step 2 and coming back. */
+	initialData?: RegisterStep1Data | null;
+};
 
-	const [firstName, setFirstName] = useState("");
-	const [lastName, setLastName] = useState("");
-	const [email, setEmail] = useState("");
-	const [phone, setPhone] = useState("");
-	const [referralCode, setReferralCode] = useState("");
-	const [accepted, setAccepted] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+type Errors = { firstName?: string; email?: string; terms?: string };
+
+// Needs something after the "@" and a dot with a real ending; the backend is
+// still the authority, this only catches typos before the round trip.
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+const EMAIL_ERROR = "Revisá el correo: tiene que ser algo como nombre@correo.com";
+
+export default function RegisterStep1({ onNext, onBack, onGoToLogin, initialData }: Props) {
+	const insets = useSafeAreaInsets();
+	// With the keyboard up the footer shrinks: the home-indicator padding sits
+	// under the keyboard, and the secondary link only took space from the form.
+	const keyboardOpen = useKeyboardVisible();
+	const colors = useThemeColors();
+	
+	const styles = useMemo(() => createStyles(colors), [colors]);
+	
+
+	const [firstName, setFirstName] = useState(initialData?.firstName ?? "");
+	const [lastName, setLastName] = useState(initialData?.lastName ?? "");
+	const [email, setEmail] = useState(initialData?.email ?? "");
+	const [referralCode, setReferralCode] = useState(initialData?.referralCode ?? "");
+	const [referralOpen, setReferralOpen] = useState(Boolean(initialData?.referralCode));
+	// Coming back from step 2 means they already accepted to get there.
+	const [accepted, setAccepted] = useState(Boolean(initialData));
+	const [errors, setErrors] = useState<Errors>({});
+
+	const lastNameRef = useRef<TextInput>(null);
+	const emailRef = useRef<TextInput>(null);
+	const firstNameRef = useRef<TextInput>(null);
+	const referralRef = useRef<TextInput>(null);
+	const scrollRef = useRef<ScrollView>(null);
+
+	const clearError = (key: keyof Errors) => setErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
 
 	const handleContinue = () => {
-		setError(null);
-		if (!firstName.trim()) {
-			setError("Ingresá tu nombre");
+		const next: Errors = {};
+		if (!firstName.trim()) next.firstName = "Ingresá tu nombre";
+		if (!EMAIL_PATTERN.test(email.trim())) next.email = email.trim() ? EMAIL_ERROR : "Ingresá tu correo electrónico";
+		if (!accepted) next.terms = "Aceptá los términos y la política de privacidad para continuar";
+		setErrors(next);
+
+		if (next.firstName) {
+			firstNameRef.current?.focus();
 			return;
 		}
-		if (!email.trim() || !email.includes("@")) {
-			setError("Ingresá un correo electrónico válido");
+		if (next.email) {
+			emailRef.current?.focus();
 			return;
 		}
-		if (!accepted) {
-			setError("Aceptá los Términos y condiciones para continuar");
-			return;
-		}
+		if (next.terms) {
+				Keyboard.dismiss();
+				setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+				return;
+			}
+
 		onNext({
 			firstName: firstName.trim(),
 			lastName: lastName.trim(),
 			email: email.trim(),
-			phone: phone.trim(),
 			referralCode: referralCode.trim(),
 		});
 	};
 
-	if (!fontsLoaded) return null;
+	const formReady = firstName.trim() !== "" && EMAIL_PATTERN.test(email.trim()) && accepted;
+	const submitIfReady = () => (formReady ? handleContinue() : Keyboard.dismiss());
+
+	const openReferral = () => {
+		setReferralOpen(true);
+		setTimeout(() => referralRef.current?.focus(), 50);
+	};
+
+	
 
 	return (
 		<View style={[styles.safeArea, { paddingTop: insets.top }]}>
@@ -68,7 +118,7 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 			<View style={styles.header}>
 				<View style={styles.headerLine}>
 					<View style={styles.headerLeft}>
-						<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
+						<Pressable onPress={onBack} style={(state) => [styles.backButton, isFocused(state) && styles.focusRing]} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
 							<Ionicons name="chevron-back" size={20} color={colors.buttonText} />
 						</Pressable>
 						<Text style={styles.headerTitle}>Registrarse</Text>
@@ -76,7 +126,15 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 					<Text style={styles.stepLabel}>Paso 1 de 2</Text>
 				</View>
 			</View>
-			<View style={styles.progressWrap}>
+			<View
+				style={styles.progressWrap}
+				accessibilityRole="progressbar"
+				accessibilityLabel="Progreso del registro"
+				accessibilityValue={{ min: 0, max: 2, now: 1, text: "Paso 1 de 2" }}
+				aria-valuemin={0}
+				aria-valuemax={2}
+				aria-valuenow={1}
+			>
 				<View style={styles.progressTrack}>
 					<View style={styles.progressFill} />
 				</View>
@@ -84,82 +142,154 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin }: Props) {
 
 			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
 			<ScrollView
-				contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 120 }]}
-				keyboardShouldPersistTaps="handled"
-			>
-				<Text style={styles.title}>Creá tu cuenta</Text>
+					ref={scrollRef}
+					contentContainerStyle={[styles.container, { paddingBottom: space.xl }]}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="on-drag"
+				>
+				<Text style={styles.title} accessibilityRole="header">Creá tu cuenta</Text>
 				<Text style={styles.subtitle}>
-					Completá tus datos para empezar a ahorrar.
+					Con tu cuenta guardamos tus tickets para decirte qué te conviene.
 				</Text>
 
 				<View style={styles.form}>
 					<InputField
 						label="Nombre"
 						value={firstName}
-						onChangeText={setFirstName}
+						onChangeText={(t) => {
+							setFirstName(t);
+							clearError("firstName");
+						}}
+						error={errors.firstName}
+						inputRef={firstNameRef}
+						autoComplete="given-name"
+						textContentType="givenName"
+						autoCapitalize="words"
+						returnKeyType="next"
+						onSubmitEditing={() => lastNameRef.current?.focus()}
 					/>
 					<InputField
-						label="Apellido"
+						label="Apellido (opcional)"
 						value={lastName}
 						onChangeText={setLastName}
+						inputRef={lastNameRef}
+						autoComplete="family-name"
+						textContentType="familyName"
+						autoCapitalize="words"
+						returnKeyType="next"
+						onSubmitEditing={() => emailRef.current?.focus()}
 					/>
 					<InputField
 						label="Correo electrónico"
 						value={email}
-						onChangeText={setEmail}
+						onChangeText={(t) => {
+							setEmail(t);
+							clearError("email");
+						}}
+						onBlur={() => {
+							if (email.trim() && !EMAIL_PATTERN.test(email.trim())) {
+								setErrors((prev) => ({ ...prev, email: EMAIL_ERROR }));
+							}
+						}}
+						error={errors.email}
+						inputRef={emailRef}
 						keyboardType="email-address"
+						autoComplete="email"
+						textContentType="emailAddress"
+						autoCapitalize="none"
+						autoCorrect={false}
+						returnKeyType={referralOpen ? "next" : "done"}
+						onSubmitEditing={() => (referralOpen ? referralRef.current?.focus() : submitIfReady())}
 					/>
-					<InputField
-						label="Teléfono (opcional)"
-						value={phone}
-						onChangeText={setPhone}
-						keyboardType="phone-pad"
-					/>
-					<InputField
-						label="Código de invitación (opcional)"
-						value={referralCode}
-						onChangeText={(t) => setReferralCode(t.toUpperCase())}
-						autoCapitalize="characters"
-						leftIcon="people-outline"
-					/>
+					{referralOpen ? (
+						<InputField
+							label="Código de invitación (opcional)"
+							value={referralCode}
+							onChangeText={(t) => setReferralCode(t.toUpperCase())}
+							inputRef={referralRef}
+							autoCapitalize="characters"
+							autoCorrect={false}
+							autoComplete="off"
+							returnKeyType="done"
+							onSubmitEditing={submitIfReady}
+							leftIcon="people-outline"
+						/>
+					) : (
+						<Pressable
+							onPress={openReferral}
+							style={(state) => [styles.referralToggle, isFocused(state) && styles.focusRing]}
+							accessibilityRole="button"
+							accessibilityState={{ expanded: false }}
+							aria-expanded={false}
+							accessibilityLabel="¿Tenés un código de invitación? Si te invitó alguien, los dos suman puntos"
+						>
+							<Ionicons name="people-outline" size={18} color={colors.mutedText} />
+							<View style={styles.referralToggleCopy}>
+								<Text style={styles.referralToggleText}>¿Tenés un código de invitación?</Text>
+								<Text style={styles.referralToggleHint}>Si te invitó alguien, los dos suman puntos</Text>
+							</View>
+							<Ionicons name="chevron-down" size={16} color={colors.mutedText} />
+						</Pressable>
+					)}
 				</View>
 
-				<Pressable
-					onPress={() => setAccepted(!accepted)}
-					style={styles.checkboxRow}
-				>
-					<View
-						style={[styles.checkbox, accepted && styles.checkboxChecked]}
+				<View style={styles.checkboxRow}>
+					<Pressable
+						onPress={() => {
+							setAccepted(!accepted);
+							clearError("terms");
+						}}
+						accessibilityRole="checkbox"
+						accessibilityState={{ checked: accepted }}
+						aria-checked={accepted}
+						accessibilityLabel="Acepto los términos y condiciones y la política de privacidad"
+						accessibilityHint={errors.terms}
+						style={(state) => [styles.checkboxTarget, isFocused(state) && styles.focusRing]}
 					>
-						{accepted && (
-							<Ionicons name="checkmark" size={14} color={colors.buttonText} />
-						)}
-					</View>
-					<Text style={styles.checkboxText}>
-						Acepto los Términos y condiciones y la Política de privacidad de
-						OfertAR.
+						<View style={[styles.checkbox, accepted && styles.checkboxChecked, errors.terms ? styles.checkboxError : null]}>
+							{accepted && <Ionicons name="checkmark" size={16} color={colors.navy} />}
+						</View>
+					</Pressable>
+					<Text
+						style={styles.checkboxText}
+						onPress={() => {
+							setAccepted(!accepted);
+							clearError("terms");
+						}}
+					>
+						Acepto los términos y condiciones y la política de privacidad de OfertAR.
 					</Text>
-				</Pressable>
+				</View>
+				<Pressable
+						onPress={() => {
+							Linking.openURL(TERMS_URL).catch(() => {});
+						}}
+						style={(state) => [styles.legalLink, isFocused(state) && styles.focusRing]}
+						accessibilityRole="link"
+						accessibilityLabel="Leer los términos y condiciones y la política de privacidad"
+					>
+						<Text style={styles.legalLinkText}>Leer los términos y la política de privacidad</Text>
+					</Pressable>
+					{errors.terms ? <View style={styles.termsError}><FieldError message={errors.terms} /></View> : null}
 
-				{error && (
-					<View style={styles.errorBox}>
-						<Ionicons name="alert-circle" size={16} color={colors.dangerSoftText} />
-						<Text style={styles.errorText}>{error}</Text>
-					</View>
-				)}
-
-				<Pressable onPress={handleContinue} style={styles.primaryButton}>
-					<Text style={styles.primaryButtonText}>Continuar</Text>
-					<Ionicons name="arrow-forward" size={16} color={colors.buttonText} />
-				</Pressable>
-
-				<Pressable onPress={onGoToLogin} style={styles.footerLinkWrap}>
-					<Text style={styles.footerText}>
-						¿Ya tenés cuenta?{" "}
-						<Text style={styles.footerLink}>Iniciá sesión</Text>
-					</Text>
-				</Pressable>
 			</ScrollView>
+			<View style={[styles.footer, { paddingBottom: keyboardOpen ? space.sm : insets.bottom + space.sm }]}>
+					<PrimaryButton label="Continuar" onPress={handleContinue} icon="arrow-forward" iconAfter />
+
+					{!keyboardOpen && (
+						<Pressable
+							onPress={onGoToLogin}
+							style={(state) => [styles.footerLinkWrap, isFocused(state) && styles.focusRing]}
+							accessibilityRole="button"
+							accessibilityLabel="¿Ya tenés cuenta? Iniciá sesión"
+						>
+							<Text style={styles.footerText}>
+								¿Ya tenés cuenta?{" "}
+								<Text style={styles.footerLink}>Iniciá sesión</Text>
+							</Text>
+						</Pressable>
+					)}
+			</View>
 			</KeyboardAvoidingView>
 		</View>
 	);
@@ -169,7 +299,7 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.navy },
 	progressWrap: { backgroundColor: colors.navy },
-	progressTrack: { height: 6, backgroundColor: colors.softCyan, width: "100%" },
+	progressTrack: { height: 6, backgroundColor: colors.navyHairline, width: "100%" },
 	progressFill: { height: 6, backgroundColor: colors.cyan, width: "50%" },
 	header: {
 		paddingHorizontal: space.md,
@@ -189,9 +319,15 @@ function createStyles(colors: ColorTokens) {
 	headerTitle: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 16,
+		fontSize: typography.sizes.subtitle,
 	},
-	stepLabel: { color: colors.cyan, fontSize: 11, lineHeight: 14, paddingRight: space.xs },
+	stepLabel: {
+		color: colors.cyan,
+		fontFamily: typography.family.medium,
+		fontSize: typography.sizes.overline,
+		lineHeight: typography.lineHeights.overline,
+		paddingRight: space.xs,
+	},
 	container: {
 		paddingHorizontal: space.xl,
 		paddingTop: space.xxl,
@@ -201,73 +337,95 @@ function createStyles(colors: ColorTokens) {
 	},
 	title: {
 		color: colors.defaultText,
-		fontFamily: typography.family.medium,
-		fontSize: 28,
-		lineHeight: 36,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.h1,
+		lineHeight: typography.lineHeights.h1,
 		marginBottom: space.xsPlus,
 	},
 	subtitle: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 17,
-		lineHeight: 26,
-		marginBottom: 22,
+		fontSize: typography.sizes.bodyL,
+		lineHeight: typography.lineHeights.bodyL,
+		marginBottom: space.xl,
 	},
 	form: { gap: space.lg },
+	referralToggle: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.smPlus,
+		minHeight: 44,
+	},
+	referralToggleCopy: { flex: 1, gap: 2 },
+	referralToggleText: {
+		color: colors.mutedText,
+		fontFamily: typography.family.medium,
+		fontSize: typography.sizes.label,
+		lineHeight: typography.lineHeights.label,
+	},
+	referralToggleHint: {
+		color: colors.mutedText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.micro,
+		lineHeight: typography.lineHeights.micro,
+	},
+	checkboxTarget: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginLeft: -space.smPlus },
 	checkboxRow: {
 		flexDirection: "row",
-		alignItems: "flex-start",
+		alignItems: "center",
 		gap: space.smPlus,
-		marginTop: 18,
+		marginTop: space.lg,
+		minHeight: 44,
 	},
+	// Border from a token, not a fixed rgba: the old black-at-18% one
+	// disappeared on the dark surface. mutedText2 clears 3:1 in both themes.
 	checkbox: {
-		width: 20,
-		height: 20,
-		borderRadius: 4,
-		borderWidth: 1,
-		borderColor: "rgba(0,0,0,0.18)",
+		width: 24,
+		height: 24,
+		borderRadius: radii.sm / 2,
+		borderWidth: 1.5,
+		borderColor: colors.mutedText2,
 		backgroundColor: colors.card,
-		marginTop: 2,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	checkboxChecked: { backgroundColor: colors.cyan, borderColor: colors.cyan },
+	checkboxError: { borderColor: colors.danger },
 	checkboxText: {
 		flex: 1,
 		color: colors.defaultText,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
-		lineHeight: 19,
+		fontSize: typography.sizes.body,
+		lineHeight: typography.lineHeights.body,
 	},
-	primaryButton: {
-		marginTop: 22,
-		backgroundColor: colors.navy,
-		height: 52,
-		borderRadius: 10,
-		alignItems: "center",
-		justifyContent: "center",
-		flexDirection: "row",
-		gap: space.sm,
+	termsError: { marginTop: space.xs },
+		legalLink: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
+		legalLinkText: {
+			color: colors.defaultText,
+			fontFamily: typography.family.medium,
+			fontSize: typography.sizes.label,
+			lineHeight: typography.lineHeights.label,
+			textDecorationLine: "underline",
+		},
+		focusRing: focusRing(colors),
+	footer: {
+		paddingHorizontal: space.xl,
+		paddingTop: space.md,
+		backgroundColor: colors.background,
+		borderTopWidth: 1,
+		borderTopColor: colors.divider,
 	},
-	primaryButtonText: {
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 15,
-		lineHeight: 18,
-	},
-	footerLinkWrap: { marginTop: 18, alignItems: "center" },
+	footerLinkWrap: { marginTop: space.lg, alignItems: "center", justifyContent: "center", minHeight: 44 },
 	footerText: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
-		lineHeight: 18,
+		fontSize: typography.sizes.caption,
+		lineHeight: typography.lineHeights.caption,
 	},
 	footerLink: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		textDecorationLine: "underline",
 	},
-	errorBox: { marginTop: space.md, paddingVertical: space.smPlus, paddingHorizontal: space.md, borderRadius: 10, backgroundColor: colors.dangerSoft, flexDirection: "row", alignItems: "center", gap: space.sm },
-	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
 	});
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../../theme/designSystem";
 
 const appIcon = require("../../../assets/icon.png");
 
@@ -191,17 +191,17 @@ function createStyles(colors: ColorTokens) {
 	logo: {
 		width: 52,
 		height: 52,
-		borderRadius: 12,
+		borderRadius: radii.md,
 	},
 	fileBadge: {
 		paddingHorizontal: space.mdPlus,
 		paddingVertical: 5,
-		borderRadius: 999,
+		borderRadius: radii.full,
 	},
 	fileBadgeText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 		letterSpacing: 1.2,
 	},
 	progressTrack: {
@@ -220,13 +220,13 @@ function createStyles(colors: ColorTokens) {
 	statusText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 15,
+		fontSize: typography.sizes.body,
 		textAlign: "center",
 	},
 	hint: {
 		color: "rgba(255,255,255,0.4)",
 		fontFamily: typography.family.regular,
-		fontSize: 12,
+		fontSize: typography.sizes.micro,
 		textAlign: "center",
 	},
 	});

@@ -12,6 +12,7 @@ export type PromoIcon =
 	| "layers-outline"
 	| "gift-outline"
 	| "pricetag-outline"
+	| "card-outline"
 	| "information-circle-outline";
 
 export interface PromoWording {
@@ -63,10 +64,17 @@ export interface PromoWording {
  * it looks like. `percentage_off` is the residual bucket — a percentage with
  * no multi-unit condition found — so it is worded as a discount on the price
  * and nothing stronger. A null mechanic gets no discount wording at all.
+ *
+ * `hedged` existe para la otra fuente de promos: las etiquetas de texto que
+ * publica la cadena ("Llevando 2 (Hasta 30% DTO!!)"). Ahí el "hasta" viene
+ * escrito en la propia etiqueta, con un solo número, así que `several` no
+ * alcanza para detectarlo — y mostrar "30%" pelado sobre un aviso que dice
+ * "hasta 30%" sería prometer más de lo que la cadena promete.
  */
 export function describePromo(
 	percentages: number[] | null | undefined,
 	mechanic: PromoMechanic | null | undefined,
+	hedged = false,
 ): PromoWording {
 	// Deduplicated: the same number twice is still one advertised discount, and
 	// "Hasta 50%" for a banner whose only number is 50 would hedge for nothing.
@@ -77,8 +85,9 @@ export function describePromo(
 	const top = valid.length > 0 ? Math.max(...valid) : null;
 	const pct = top === null ? null : `${top}%`;
 	// More than one number on the banner: we can vouch for the best of them
-	// being advertised, not for any single product carrying it.
-	const several = valid.length > 1;
+	// being advertised, not for any single product carrying it. O la fuente ya
+	// venía hedgeada de origen (`hedged`), que dice exactamente lo mismo.
+	const several = valid.length > 1 || hedged;
 	const prefix = several ? "Hasta " : "";
 
 	switch (mechanic) {
@@ -195,6 +204,29 @@ export interface Offer {
 	discountPercentages?: number[] | null;
 }
 
+/**
+ * La oferta que hay que mostrar en el detalle.
+ *
+ * `list` es la lista que tiene el router, `fallback` la que el usuario acaba de
+ * tocar. Hacen falta las dos: cada pantalla que muestra ofertas trae su propia
+ * pagina —el home pide 8, la pantalla de ofertas pide de a 50 con filtros y
+ * paginado— y ninguna es la del router, que pide una sola pagina sin filtros.
+ * Resolver solo contra `list` deja afuera todo lo que caiga fuera de esa
+ * pagina, y el detalle abre con "No encontramos esta oferta" sobre una oferta
+ * que el usuario esta viendo en pantalla.
+ *
+ * El fallback se compara por id en vez de devolverlo directamente para que una
+ * oferta vieja, de un detalle anterior, no se cuele en el lugar de otra.
+ */
+export function resolveOffer(
+  list: Offer[],
+  id: string | null,
+  fallback: Offer | null,
+): Offer | null {
+  if (id === null) return null;
+  return list.find((o) => o.id === id) ?? (fallback?.id === id ? fallback : null);
+}
+
 export interface OfferPage {
 	page: number;
 	pageSize: number;
@@ -225,8 +257,53 @@ export function offerCategories(offers: Offer[]): string[] {
 	return [ALL_CATEGORIES, ...[...found].sort()];
 }
 
-export async function getOffers(token: string, page = 1, pageSize = 30): Promise<OfferPage> {
-	const response = await fetch(`${BACKEND_URL}/offers?page=${page}&pageSize=${pageSize}`, {
+/**
+ * La categoría de una oferta tal como se muestra, o null cuando no hay ninguna
+ * que mostrar. Quien la pinte tiene que tratar el null como "no dibujes nada",
+ * no como "dibujá un chip vacío".
+ *
+ * Hay tres formas de no tener categoría y las tres llegan hasta acá:
+ *
+ *  - null: la oferta nunca la tuvo.
+ *  - "" (o espacios): los productos que salen de folleto —Makro, y los folletos
+ *    de Dia y Jumbo— los arma el scraper leyendo una imagen, de donde no hay
+ *    categoría que sacar. Es una porción real del catálogo, no un caso raro.
+ *  - ALL_CATEGORIES: "Todas" no es una categoría, es el rótulo de "sin filtrar"
+ *    del filtro de categorías. `OffersScreen` ya lo saca de la lista de
+ *    categorías conocidas; si igual se colara en `offer.category`, una card
+ *    diría que la oferta es "de la categoría Todas".
+ *
+ * El texto se devuelve como viene (sólo recortado): tiene que decir exactamente
+ * lo mismo que la fila "Categoría" del detalle y que el chip del filtro. Si acá
+ * se capitalizara o se tradujera, las tres pantallas se contradirían entre sí.
+ */
+export function offerCategoryLabel(category: string | null | undefined): string | null {
+	const clean = (category ?? "").trim();
+	if (clean === "") return null;
+	if (clean.toLocaleLowerCase("es") === ALL_CATEGORIES.toLocaleLowerCase("es")) return null;
+	return clean;
+}
+
+/**
+ * One page of the offers feed.
+ *
+ * `chains` and `categories` narrow the query itself. Filtering the returned
+ * page instead left three Makro offers on screen out of 628 in the catalog,
+ * because the page had already been filled with the chain that has four times
+ * as many — and a category filter could empty the screen while matching rows
+ * sat on a page nobody had asked for.
+ */
+export async function getOffers(
+	token: string,
+	page = 1,
+	pageSize = 30,
+	chains?: string[],
+	categories?: string[],
+): Promise<OfferPage> {
+	const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+	if (chains?.length) params.append("chains", chains.join(","));
+	if (categories?.length) params.append("categories", categories.join(","));
+	const response = await fetch(`${BACKEND_URL}/offers?${params.toString()}`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",

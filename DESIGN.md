@@ -135,7 +135,7 @@ The palette reads as controlled and confident rather than colorful — three bra
 - **Highlighter Cyan** (`#7DD4F5`): The interactive accent — focus rings, active filter pills, discount badges, the scan tab, "ver más" links. If something on screen is cyan, it's either interactive or marking where the value is, the way a highlighter pen marks a receipt line.
 
 ### Tertiary
-- **Alert Coral** (`#E76F51`): Used sparingly for warmth and a subset of warning icons. Not a CTA color — navy owns primary actions; coral never competes with it for that role.
+- **Alert Coral** (`#E76F51`): Used sparingly for warmth and a subset of warning icons. Not a CTA color on light surfaces — navy owns primary actions there; coral never competes with it for that role. The one exception is the welcome screen: its whole surface is navy, so a navy button would vanish into it, and the primary "Crear cuenta" button is coral with navy text (white on coral is only 3.09:1; navy on coral is ~5.3:1).
 
 ### Neutral
 - **Paper Background** (`#F8FAFC` light / `#0B1220` dark): Screen background.
@@ -218,10 +218,17 @@ Buttons are pill-adjacent but not fully rounded — a 10px radius on a ~48-52px-
 
 ### Buttons
 - **Shape:** 10px radius (`rounded.button`), 48-52px height.
-- **Primary:** Navy fill (`{colors.ledger-navy}`), white text, medium-weight 14-15px label. Used for the single most important action on a screen.
+- **Primary:** the `PrimaryButton` component (`src/components/ui/PrimaryButton.tsx`) — `actionFill` fill with `actionText` label (navy on white in light mode, cyan on navy in dark, so it never vanishes into the page), medium-weight 15px. Used for the single most important action on a screen. Sizes: `large` 52px (main action), `medium` 48px (inside a card), `compact` 44px (inline, sizes to its label). `loading` swaps the label for a spinner but keeps it as the accessible name; `disabled` and `loading` announce their state. Screens no longer build this button by hand.
 - **Destructive:** Same shape and weight as primary, `{colors.alert-red}` fill — reserved for irreversible actions confirmed through a confirm-sheet, never a lighter-weight everyday action.
 - **Secondary/Cancel:** No fill, muted text color, same height footprint as the primary button in the same group so a button pair stays visually aligned.
 - **Icon-only:** 32×32px hit target regardless of the icon's own visual size, always paired with `accessibilityLabel`.
+
+### Notices
+- **`InlineNotice`** (`src/components/ui/InlineNotice.tsx`): a rounded box (`radii.button`) with an icon and one message, in the soft background and text pair of its meaning (`error`, `success`, `info`, `warning`). Errors are announced to screen readers when they appear; a recovery link goes in as `children`. The full-width banner with a retry stays `ErrorBanner`.
+- **`SectionLabel`** (`src/components/ui/SectionLabel.tsx`): the small uppercase caption above a group of rows, announced as a heading. The screen passes only margins.
+
+### Focus
+Every pressable shows a 2px ring in the action color on keyboard focus (web): `isFocused(state) && styles.focusRing`, with `focusRing(colors)` (or `focusRing(colors, true)` inside a card that clips its overflow) from the theme. The helpers live in `src/theme/designSystem.tsx`; do not redefine them per screen.
 
 ### Chips
 - **Style:** Soft-fill background + matching text color drawn from a semantic pair, 8-20px radius depending on size.
@@ -236,8 +243,8 @@ Buttons are pill-adjacent but not fully rounded — a 10px radius on a ~48-52px-
 
 ### Inputs
 - **Style:** 52px height, 10px radius, 1px hairline border, label always visible above the field rather than a vanishing placeholder.
-- **Focus:** Border and background both shift to cyan tints (`{colors.highlighter-cyan}` border, a soft cyan fill) — the app's one consistent focus treatment across every text field.
-- **Error/Disabled:** Not a dedicated visual state on the input itself; validation errors surface as a separate inline message below the field instead of restyling the input border.
+- **Focus:** The border takes the action color (navy in light, cyan in dark, the `actionFill` token) and the fill shifts to a soft cyan tint — the app's one consistent focus treatment across every text field. The resting border uses the `inputBorder` token (~3:1), not the hairline, because it is the only thing that delimits the field.
+- **Error/Disabled:** Not a dedicated visual state on the input itself; validation errors surface as an inline message (icon plus text, announced to screen readers) below the field, and the field border also turns danger-red so the failing field is findable at a glance.
 
 ### Navigation
 - **Style:** Fixed bottom bar, `{colors.card-surface}` background, active tab marked by icon fill plus label color shift rather than a pill background. A raised circular scan button sits at center, breaking the row's flat rhythm — the app's one deliberately oversized touch target, because it's the primary action reachable from anywhere in the app.

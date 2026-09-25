@@ -4,8 +4,8 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { getStoredToken, clearStoredToken } from "../auth/biometricAuth";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
+import { getStoredToken, clearStoredToken, useBiometricInfo } from "../auth/biometricAuth";
 import type { Session } from "../auth/session";
 
 type Props = {
@@ -20,13 +20,16 @@ export function BiometricLockScreen({ onSuccess, onFallback }: Props) {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [attempts, setAttempts] = useState(0);
+	const biometric = useBiometricInfo();
 
 	const handleAuthenticate = async () => {
 		setLoading(true);
 		setError(null);
 		try {
 			const result = await LocalAuthentication.authenticateAsync({
-				promptMessage: "Usá tu huella para ingresar",
+				// Generic on purpose: this runs on mount, before the biometric type
+				// has been detected, and the system prompt already shows Face ID/Touch ID.
+				promptMessage: "Verificá tu identidad para ingresar",
 				fallbackLabel: "Usar contraseña",
 				disableDeviceFallback: false,
 			});
@@ -104,17 +107,17 @@ export function BiometricLockScreen({ onSuccess, onFallback }: Props) {
 					]}
 					disabled={loading}
 					accessibilityRole="button"
-					accessibilityLabel="Reintentar verificación con huella"
+					accessibilityLabel={`Reintentar verificación con ${biometric.hint}`}
 				>
 					{loading && attempts === 0 ? (
 						<ActivityIndicator size="large" color={colors.navy} />
 					) : (
-						<Ionicons name="finger-print-outline" size={56} color={colors.navy} />
+						<Ionicons name={biometric.icon} size={56} color={colors.navy} />
 					)}
 				</Pressable>
 
 				<Text style={styles.title}>
-					{loading && attempts === 0 ? "Verificando..." : "Usá tu huella para ingresar"}
+					{loading && attempts === 0 ? "Verificando..." : `Usá ${biometric.hint} para ingresar`}
 				</Text>
 				<Text style={styles.hint}>
 					Tocá el ícono para intentar de nuevo
@@ -156,10 +159,10 @@ function createStyles(colors: ColorTokens) {
 		marginBottom: space.sm,
 	},
 	title: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 18, textAlign: "center" },
-	hint: { color: colors.navyMutedText, fontFamily: typography.family.regular, fontSize: 14, textAlign: "center" },
-	errorBox: { marginTop: space.xs, paddingVertical: space.md, paddingHorizontal: space.lg, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.12)", borderWidth: 1, borderColor: "rgba(239,68,68,0.3)", flexDirection: "row", alignItems: "flex-start", gap: space.smPlus, maxWidth: 320 },
-	errorText: { flex: 1, color: "#FCA5A5", fontFamily: typography.family.medium, fontSize: 13, lineHeight: 18 },
+	hint: { color: colors.navyMutedText, fontFamily: typography.family.regular, fontSize: typography.sizes.label, textAlign: "center" },
+	errorBox: { marginTop: space.xs, paddingVertical: space.md, paddingHorizontal: space.lg, borderRadius: radii.md, backgroundColor: "rgba(239,68,68,0.12)", borderWidth: 1, borderColor: "rgba(239,68,68,0.3)", flexDirection: "row", alignItems: "flex-start", gap: space.smPlus, maxWidth: 320 },
+	errorText: { flex: 1, color: "#FCA5A5", fontFamily: typography.family.medium, fontSize: typography.sizes.caption, lineHeight: 18 },
 	fallbackBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.smPlus, paddingVertical: space.lg, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)" },
-	fallbackText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 15 },
+	fallbackText: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: typography.sizes.body },
 	});
 }

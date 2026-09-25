@@ -6,7 +6,7 @@ import {
 	useWindowDimensions,
 } from "react-native";
 import { useMemo, type RefObject } from "react";
-import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../../theme/designSystem";
 import type { OnboardingTargetId } from "./OnboardingProvider";
 
 export type SpotlightRect = {
@@ -154,7 +154,7 @@ function createStyles(colors: ColorTokens) {
 		position: "absolute",
 		width: 300,
 		backgroundColor: colors.card,
-		borderRadius: 16,
+		borderRadius: radii.lg,
 		padding: 18,
 		shadowColor: colors.shadow,
 		shadowOpacity: 0.25,
@@ -173,7 +173,7 @@ function createStyles(colors: ColorTokens) {
 	step: {
 		color: colors.orange,
 		fontFamily: typography.family.bold,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 		letterSpacing: 1,
 		textTransform: "uppercase",
 	},
@@ -186,7 +186,7 @@ function createStyles(colors: ColorTokens) {
 	description: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 		lineHeight: 19,
 		marginTop: 7,
 	},
@@ -199,7 +199,7 @@ function createStyles(colors: ColorTokens) {
 	skip: {
 		color: colors.mutedText,
 		fontFamily: typography.family.medium,
-		fontSize: 12,
+		fontSize: typography.sizes.micro,
 	},
 	next: {
 		backgroundColor: colors.navy,
@@ -210,7 +210,7 @@ function createStyles(colors: ColorTokens) {
 	nextText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
-		fontSize: 12,
+		fontSize: typography.sizes.micro,
 	},
 	});
 }

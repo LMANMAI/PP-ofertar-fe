@@ -43,7 +43,8 @@ export const colors = {
 	// éxito, alerta, info). Antes eran pasteles sueltos por pantalla que no
 	// se adaptaban al tema oscuro; acá quedan como tokens con variante propia.
 	successSoft: "#E0F5EF",
-	successSoftText: "#15803D",
+	// 4.4:1 on successSoft was short of 4.5 for 11-12px badge text.
+	successSoftText: "#166534",
 	dangerSoft: "#FEF2F2",
 	dangerSoftText: "#991B1B",
 	warningSoft: "#FFF7ED",
@@ -58,6 +59,17 @@ export const colors = {
 	// hex suelto en 6 pantallas antes de nombrarlo. Igual en los dos temas,
 	// como el resto de la paleta navy: la superficie no cambia con el tema.
 	navyMutedText: "#99B2CC",
+	// Borde hairline sobre superficie navy fija (cards, divisores).
+	navyHairline: "rgba(153, 178, 204, 0.3)",
+	// Fondo atenuado detrás de las hojas modales.
+	scrim: "rgba(15, 23, 42, 0.45)",
+	// Botón primario de las pantallas claras: navy en claro, cyan en oscuro
+	// (navy sobre el fondo oscuro es ~1.1:1).
+	actionFill: "#0A1F44",
+	actionText: "#FFFFFF",
+	// Borde de un campo de texto en reposo: el hairline `border` da ~1.3:1 contra
+	// la card, y el borde es lo único que delimita el campo (pide 3:1).
+	inputBorder: "#7F8A9E",
 } as const;
 
 export type ColorTokens = Record<keyof typeof colors, string>;
@@ -100,6 +112,12 @@ export const darkColors: ColorTokens = {
 	warmChip: "#3A2118",
 	warmChipText: "#F4A387",
 	navyMutedText: "#99B2CC",
+	// Borde hairline sobre superficie navy fija (cards, divisores).
+	navyHairline: "rgba(153, 178, 204, 0.3)",
+	scrim: "rgba(0, 0, 0, 0.6)",
+	actionFill: "#7DD4F5",
+	actionText: "#0A1F44",
+	inputBorder: "#5B6A88",
 };
 
 export type ThemePreference = "system" | "light" | "dark";
@@ -225,6 +243,9 @@ export const radii = {
 	lg: 16,
 	xl: 20,
 	full: 999,
+	// Botones y CTAs: el radio más común de la app, entre sm y md (ver DESIGN.md,
+	// `rounded.button`). Antes se escribía `radii.sm + 2` o un 10 suelto.
+	button: 10,
 } as const;
 
 export const space = {
@@ -241,3 +262,21 @@ export const space = {
 	xl: 20,
 	xxl: 24,
 } as const;
+
+/** True while a control has keyboard focus. Native ignores it (no `focused`);
+ * on web it drives the ring below. */
+export const isFocused = (state: unknown) => !!(state as { focused?: boolean }).focused;
+
+/**
+ * Keyboard focus ring in the action color (navy in light, cyan in dark).
+ * `inset` draws it inside the box, for rows in a card that clips its overflow.
+ * Use it as `isFocused(state) && styles.focusRing` on a Pressable's style.
+ */
+export function focusRing(colors: ColorTokens, inset = false) {
+	return {
+		outlineWidth: 2,
+		outlineColor: colors.actionFill,
+		outlineOffset: inset ? -2 : 2,
+		outlineStyle: "solid",
+	} as const;
+}

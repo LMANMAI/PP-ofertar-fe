@@ -3,9 +3,9 @@ import { Animated, Dimensions, Easing, Pressable, StyleSheet, Text, View } from 
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 import type { Session } from "../auth/session";
-import { storeToken, setBiometricPreference } from "../auth/biometricAuth";
+import { storeToken, setBiometricPreference, useBiometricInfo } from "../auth/biometricAuth";
 
 type Props = {
 	session: Session;
@@ -21,6 +21,7 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [activating, setActivating] = useState(false);
+	const biometric = useBiometricInfo();
 
 	const [overlayOpacity] = useState(() => new Animated.Value(0));
 	const [cardScale] = useState(() => new Animated.Value(0.92));
@@ -81,13 +82,13 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 					]}
 				>
 					<Animated.View style={[styles.fingerprintCircle, { transform: [{ scale: circleScale }] }]}>
-						<Ionicons name="finger-print-outline" size={44} color={colors.navy} />
+						<Ionicons name={biometric.icon} size={44} color={colors.navy} />
 					</Animated.View>
 
-					<Text style={styles.title}>¿Querés usar tu huella para ingresar más rápido?</Text>
+					<Text style={styles.title}>¿Querés usar {biometric.hint} para ingresar más rápido?</Text>
 
 					<Text style={styles.body}>
-						La próxima vez que abras la app podrás ingresar con tu huella en vez de escribir la contraseña.
+						La próxima vez que abras la app podrás ingresar con {biometric.hint} en vez de escribir la contraseña.
 					</Text>
 
 					<Pressable
@@ -99,8 +100,8 @@ export function BiometricPromptScreen({ session, onEnable, onDismiss }: Props) {
 						]}
 						disabled={activating}
 					>
-						<Ionicons name="finger-print-outline" size={20} color={colors.buttonText} />
-						<Text style={styles.enableBtnText}>Activar inicio con huella</Text>
+						<Ionicons name={biometric.icon} size={20} color={colors.buttonText} />
+						<Text style={styles.enableBtnText}>Activar inicio con {biometric.hint}</Text>
 					</Pressable>
 
 					<Pressable
@@ -128,7 +129,7 @@ function createStyles(colors: ColorTokens) {
 	center: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xxl },
 	card: {
 		backgroundColor: colors.card,
-		borderRadius: 20,
+		borderRadius: radii.xl,
 		paddingHorizontal: 28,
 		paddingTop: 32,
 		paddingBottom: 28,
@@ -149,8 +150,8 @@ function createStyles(colors: ColorTokens) {
 		justifyContent: "center",
 		marginBottom: space.xs,
 	},
-	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 20, lineHeight: 28, textAlign: "center" },
-	body: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: 14, lineHeight: 20, textAlign: "center", marginTop: -4 },
+	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.h3, lineHeight: 28, textAlign: "center" },
+	body: { color: colors.mutedText, fontFamily: typography.family.regular, fontSize: typography.sizes.label, lineHeight: 20, textAlign: "center", marginTop: -4 },
 	enableBtn: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -158,13 +159,13 @@ function createStyles(colors: ColorTokens) {
 		gap: space.smPlus,
 		backgroundColor: colors.navy,
 		height: 52,
-		borderRadius: 12,
+		borderRadius: radii.md,
 		paddingHorizontal: space.xxl,
 		width: "100%",
 		marginTop: space.xs,
 	},
-	enableBtnText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
+	enableBtnText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: typography.sizes.body, lineHeight: 18 },
 	dismissBtn: { paddingVertical: space.md, paddingHorizontal: space.xl },
-	dismissBtnText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 15, lineHeight: 18 },
+	dismissBtnText: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.body, lineHeight: 18 },
 	});
 }

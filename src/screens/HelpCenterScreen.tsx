@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { BottomNav, ScreenHeader, type TabKey } from "../components";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
+import { BottomNav, ScreenHeader, type TabKey, SectionLabel } from "../components";
 import { POINTS_REFERRED_SIGNUP, POINTS_REFERRER_ACTIVATION, POINTS_REFERRER_RETENTION } from "../data/rewards";
 
 type Faq = { id: string; q: string; a: string };
@@ -59,7 +59,7 @@ export function HelpCenterScreen({ onBack, activeTab, onSelectTab, onScanPress }
 					)}
 				</View>
 
-				<Text style={styles.sectionLabel}>PREGUNTAS FRECUENTES</Text>
+				<SectionLabel style={styles.sectionLabel}>PREGUNTAS FRECUENTES</SectionLabel>
 				{filteredFaqs.length === 0 ? (
 					<View style={styles.emptyWrap}>
 						<Text style={styles.emptyText}>
@@ -109,16 +109,16 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	safeArea: { flex: 1, backgroundColor: colors.background },
 	searchBox: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.card, padding: space.md, borderRadius: 10, borderWidth: 1, borderColor: colors.divider },
-	searchInput: { flex: 1, color: colors.defaultText, fontFamily: typography.family.regular, fontSize: 14, padding: 0 },
-	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2, marginTop: space.sm },
-	emptyWrap: { backgroundColor: colors.card, borderRadius: 12, padding: space.xl, alignItems: "center" },
-	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, textAlign: "center" },
-	faqCard: { backgroundColor: colors.card, borderRadius: 12, overflow: "hidden" },
+	searchInput: { flex: 1, color: colors.defaultText, fontFamily: typography.family.regular, fontSize: typography.sizes.label, padding: 0 },
+	sectionLabel: { marginTop: space.sm },
+	emptyWrap: { backgroundColor: colors.card, borderRadius: radii.md, padding: space.xl, alignItems: "center" },
+	emptyText: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption, textAlign: "center" },
+	faqCard: { backgroundColor: colors.card, borderRadius: radii.md, overflow: "hidden" },
 	faqRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: space.lg },
-	faqQ: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
-	faqA: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: space.lg, paddingBottom: space.mdPlus },
+	faqQ: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.label },
+	faqA: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption, lineHeight: 19, paddingHorizontal: space.lg, paddingBottom: space.mdPlus },
 	divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: space.lg },
 	contactBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm, backgroundColor: colors.navy, height: 48, borderRadius: 10 },
-	contactText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 15 },
+	contactText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: typography.sizes.body },
 	});
 }
