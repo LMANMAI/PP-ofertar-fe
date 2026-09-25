@@ -1,22 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
+import { yyyyMM } from "../utils/format";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 import { getSavingsReport } from "../services";
 import type { SavingsReportResponse } from "../services";
 import type { Session } from "../auth/session";
-import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, Tag, type TabKey } from "../components";
+import { BottomNav, EmptyState, ErrorBanner, LoadingState, ScreenHeader, Tag, type TabKey, SectionLabel } from "../components";
 import { formatCurrencyExact } from "../utils/format";
 
 function formatMonth(date: Date): string {
 	return date.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
-}
-
-function yyyyMM(date: Date): string {
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, "0");
-	return `${y}-${m}`;
 }
 
 type Props = {
@@ -144,7 +139,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 
 					{report.byCategory.length > 0 && (
 						<>
-							<Text style={styles.sectionLabel}>AHORRO POR CATEGORÍA</Text>
+							<SectionLabel>AHORRO POR CATEGORÍA</SectionLabel>
 							<View style={styles.catsCard}>
 								{report.byCategory.map((c, idx) => (
 									<View key={c.category} style={[styles.catRow, idx === report.byCategory.length - 1 && { borderBottomWidth: 0 }]}>
@@ -167,7 +162,7 @@ export function MonthlyAnalysisScreen({ onBack, session, activeTab, onSelectTab,
 
 					{report.byStore.length > 0 && (
 						<>
-							<Text style={styles.sectionLabel}>AHORRO POR SUPERMERCADO</Text>
+							<SectionLabel>AHORRO POR SUPERMERCADO</SectionLabel>
 							<View style={styles.catsCard}>
 								{report.byStore.map((s, idx) => (
 									<View key={s.storeName} style={[styles.catRow, idx === report.byStore.length - 1 && { borderBottomWidth: 0 }]}>
@@ -216,21 +211,20 @@ function createStyles(colors: ColorTokens) {
 	monthSelector: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: space.md, gap: space.md, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
 	monthArrow: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	monthArrowDisabled: { opacity: 0.4 },
-	monthLabel: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 15, textTransform: "capitalize" },
-	heroCard: { backgroundColor: colors.navy, borderRadius: 16, padding: space.xl, gap: space.sm },
-	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
+	monthLabel: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.body, textTransform: "capitalize" },
+	heroCard: { backgroundColor: colors.navy, borderRadius: radii.lg, padding: space.xl, gap: space.sm },
+	heroLabel: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: typography.sizes.tiny, letterSpacing: 1.2 },
 	heroValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: 34 },
 	heroRow: { flexDirection: "row", gap: space.xsPlus, marginTop: space.xs },
-	sectionLabel: { color: colors.subtleText, fontFamily: typography.family.medium, fontSize: 10, letterSpacing: 1.2 },
 	catsCard: { backgroundColor: colors.card, borderRadius: 14, padding: space.xsPlus },
 	catRow: { flexDirection: "row", alignItems: "center", gap: space.smPlus, paddingHorizontal: space.smPlus, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
 	catDot: { width: 10, height: 10, borderRadius: 5 },
 	catHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: space.xs },
-	catName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 13 },
-	catAmount: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 12 },
+	catName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	catAmount: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: typography.sizes.micro },
 	catBarTrack: { height: 6, backgroundColor: colors.softWarm, borderRadius: 3, overflow: "hidden" },
 	catBarFill: { height: 6, borderRadius: 3 },
-	catPct: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 13, width: 54, textAlign: "right" },
+	catPct: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.caption, width: 54, textAlign: "right" },
 	highlightsRow: {
 		flexDirection: "row",
 		gap: space.smPlus,
@@ -241,7 +235,7 @@ function createStyles(colors: ColorTokens) {
 		alignItems: "center",
 		gap: space.smPlus,
 		backgroundColor: colors.card,
-		borderRadius: 12,
+		borderRadius: radii.md,
 		padding: space.mdPlus,
 		borderWidth: 1,
 		borderColor: colors.border,
@@ -249,12 +243,12 @@ function createStyles(colors: ColorTokens) {
 	highlightValue: {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
-		fontSize: 15,
+		fontSize: typography.sizes.body,
 	},
 	highlightLabel: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 		marginTop: 1,
 	},
 	});

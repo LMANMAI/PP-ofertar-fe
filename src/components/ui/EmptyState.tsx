@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { PrimaryButton } from "./PrimaryButton";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -31,9 +32,7 @@ export function EmptyState({ icon, title, hint, action, fill = true }: Props) {
 			<Text style={styles.title}>{title}</Text>
 			{hint && <Text style={styles.hint}>{hint}</Text>}
 			{action && (
-				<Pressable style={styles.action} onPress={action.onPress}>
-					<Text style={styles.actionText}>{action.label}</Text>
-				</Pressable>
+				<PrimaryButton label={action.label} onPress={action.onPress} size="compact" style={styles.action} />
 			)}
 		</View>
 	);
@@ -52,23 +51,16 @@ function createStyles(colors: ColorTokens) {
 		title: {
 			color: colors.defaultText,
 			fontFamily: typography.family.bold,
-			fontSize: 16,
+			fontSize: typography.sizes.subtitle,
 			textAlign: "center",
 		},
 		hint: {
 			color: colors.mutedText,
 			fontFamily: typography.family.regular,
-			fontSize: 13,
+			fontSize: typography.sizes.caption,
 			textAlign: "center",
 			lineHeight: 18,
 		},
-		action: {
-			marginTop: space.xsPlus,
-			backgroundColor: colors.navy,
-			paddingHorizontal: 18,
-			paddingVertical: space.smPlus,
-			borderRadius: 10,
-		},
-		actionText: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: 13 },
+		action: { marginTop: space.xsPlus },
 	});
 }

@@ -13,7 +13,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 import { InputField, BottomNav, ConfirmSheet, ForgottenProductsSheet, forgottenIn, Tag, type TabKey } from "../components";
 import type { RecurringProduct, TicketResponse } from "../services";
 import type { Session } from "../auth/session";
@@ -523,7 +523,7 @@ function createStyles(colors: ColorTokens) {
 		flex: 1,
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 16,
+		fontSize: typography.sizes.subtitle,
 	},
 	ocrBadge: {
 		flexDirection: "row",
@@ -532,12 +532,12 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: "rgba(125,212,245,0.18)",
 		paddingHorizontal: space.smPlus,
 		paddingVertical: 5,
-		borderRadius: 999,
+		borderRadius: radii.full,
 	},
 	ocrText: {
 		color: colors.cyan,
 		fontFamily: typography.family.medium,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 	},
 	failedBadge: {
 		flexDirection: "row",
@@ -546,19 +546,19 @@ function createStyles(colors: ColorTokens) {
 		backgroundColor: "rgba(231,111,81,0.18)",
 		paddingHorizontal: space.smPlus,
 		paddingVertical: 5,
-		borderRadius: 999,
+		borderRadius: radii.full,
 	},
 	failedText: {
 		color: colors.orange,
 		fontFamily: typography.family.medium,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 	},
 	failedBanner: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: space.smPlus,
 		backgroundColor: colors.dangerSoft,
-		borderRadius: 12,
+		borderRadius: radii.md,
 		padding: space.mdPlus,
 		marginBottom: space.md,
 	},
@@ -566,13 +566,13 @@ function createStyles(colors: ColorTokens) {
 		flex: 1,
 		color: colors.dangerSoftText,
 		fontFamily: typography.family.medium,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 	},
 	scroll: { flex: 1 },
 	scrollContent: { paddingHorizontal: space.xl, paddingTop: 18, paddingBottom: space.xxl },
 	summaryCard: {
 		backgroundColor: colors.navy,
-		borderRadius: 16,
+		borderRadius: radii.lg,
 		padding: space.lg,
 		gap: space.sm,
 	},
@@ -580,43 +580,43 @@ function createStyles(colors: ColorTokens) {
 	storeBadge: {
 		width: 32,
 		height: 32,
-		borderRadius: 16,
+		borderRadius: radii.lg,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	storeBadgeText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 	},
 	storeName: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 	},
 	storeMeta: {
 		color: "rgba(255,255,255,0.55)",
 		fontFamily: typography.family.regular,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 	},
 	totalLabel: {
 		color: "rgba(255,255,255,0.55)",
 		fontFamily: typography.family.medium,
-		fontSize: 10,
+		fontSize: typography.sizes.tiny,
 		letterSpacing: 1.3,
 		marginTop: space.xsPlus,
 	},
 	totalValue: {
 		color: colors.buttonText,
 		fontFamily: typography.family.bold,
-		fontSize: 28,
+		fontSize: typography.sizes.h1,
 		lineHeight: 34,
 	},
 	tagsRow: { flexDirection: "row", gap: space.xsPlus, marginTop: space.sm, flexWrap: "wrap" },
 	sectionTitle: {
 		color: colors.mutedText,
 		fontFamily: typography.family.medium,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 		letterSpacing: 1.4,
 		marginTop: 22,
 		marginBottom: space.sm,
@@ -646,18 +646,18 @@ function createStyles(colors: ColorTokens) {
 	productName: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
-		fontSize: 14,
+		fontSize: typography.sizes.label,
 	},
 	savingsChip: {
 		backgroundColor: colors.successSoft,
 		paddingHorizontal: space.sm,
 		paddingVertical: 2,
-		borderRadius: 999,
+		borderRadius: radii.full,
 	},
 	savingsChipText: {
 		color: colors.successSoftText,
 		fontFamily: typography.family.medium,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 	},
 	priceRow: {
 		flexDirection: "row",
@@ -668,14 +668,14 @@ function createStyles(colors: ColorTokens) {
 	productMeta: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 12,
+		fontSize: typography.sizes.micro,
 	},
 	originalPrice: {
 		textDecorationLine: "line-through",
 		color: colors.mutedText,
 		opacity: 0.6,
 		fontFamily: typography.family.regular,
-		fontSize: 12,
+		fontSize: typography.sizes.micro,
 	},
 	footer: {
 		paddingHorizontal: space.xl,
@@ -697,12 +697,12 @@ function createStyles(colors: ColorTokens) {
 	primaryButtonText: {
 		color: colors.buttonText,
 		fontFamily: typography.family.medium,
-		fontSize: 15,
+		fontSize: typography.sizes.body,
 	},
 	confirmHint: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 12,
+		fontSize: typography.sizes.micro,
 		textAlign: "center",
 	},
 	cancelButton: {
@@ -718,7 +718,7 @@ function createStyles(colors: ColorTokens) {
 	cancelText: {
 		color: colors.danger,
 		fontFamily: typography.family.medium,
-		fontSize: 14,
+		fontSize: typography.sizes.label,
 	},
 	modalBackdrop: {
 		flex: 1,
@@ -740,12 +740,12 @@ function createStyles(colors: ColorTokens) {
 	lockedText: {
 		color: colors.mutedText2,
 		fontFamily: typography.family.medium,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 	},
 	modalSheet: {
 		backgroundColor: colors.card,
-		borderTopLeftRadius: 20,
-		borderTopRightRadius: 20,
+		borderTopLeftRadius: radii.xl,
+		borderTopRightRadius: radii.xl,
 		paddingHorizontal: space.xl,
 		paddingTop: space.mdPlus,
 		paddingBottom: 28,
@@ -761,30 +761,30 @@ function createStyles(colors: ColorTokens) {
 	modalCancel: {
 		color: colors.mutedText,
 		fontFamily: typography.family.medium,
-		fontSize: 14,
+		fontSize: typography.sizes.label,
 	},
 	modalTitle: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
-		fontSize: 16,
+		fontSize: typography.sizes.subtitle,
 	},
 	modalSave: {
 		color: colors.defaultText,
 		fontFamily: typography.family.bold,
-		fontSize: 14,
+		fontSize: typography.sizes.label,
 	},
 	modalForm: { paddingTop: 18, gap: space.mdPlus },
 	modalRow: { flexDirection: "row", gap: space.md },
 	readOnlyInfo: {
 		backgroundColor: colors.softNavy,
-		borderRadius: 8,
+		borderRadius: radii.sm,
 		padding: space.md,
 		gap: space.xs,
 	},
 	readOnlyText: {
 		color: colors.mutedText,
 		fontFamily: typography.family.regular,
-		fontSize: 13,
+		fontSize: typography.sizes.caption,
 	},
 	});
 }

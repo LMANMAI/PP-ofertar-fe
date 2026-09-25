@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import {
 	Pressable,
 	StyleSheet,
@@ -6,6 +6,8 @@ import {
 	TextInput,
 	View,
 	KeyboardTypeOptions,
+	type ReturnKeyTypeOptions,
+	type TextInputProps,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useThemeColors } from "../../theme/designSystem";
@@ -22,7 +24,31 @@ type InputFieldProps = {
 	secureTextEntry?: boolean;
 	rightIcon?: IoniconName;
 	showPasswordToggle?: boolean;
+	/** Inline message under the field; also puts the field's border in the
+	 * error color and announces the message to screen readers. */
+	error?: string;
+	autoComplete?: TextInputProps["autoComplete"];
+	textContentType?: TextInputProps["textContentType"];
+	autoCorrect?: boolean;
+	returnKeyType?: ReturnKeyTypeOptions;
+	onSubmitEditing?: () => void;
+	onBlur?: () => void;
+	inputRef?: Ref<TextInput>;
+	/** false while the form is submitting. */
+	editable?: boolean;
 };
+
+/** Error line shared by fields and by controls that are not text inputs
+ * (the terms checkbox). Icon plus text, so the state never rides on color. */
+export function FieldError({ message }: { message: string }) {
+	const colors = useThemeColors();
+	return (
+		<View style={styles.errorRow} accessibilityRole="alert" accessibilityLiveRegion="polite">
+			<Ionicons name="alert-circle" size={14} color={colors.dangerSoftText} />
+			<Text style={[styles.errorText, { color: colors.dangerSoftText }]}>{message}</Text>
+		</View>
+	);
+}
 
 export function InputField({
 	label,
@@ -34,6 +60,15 @@ export function InputField({
 	secureTextEntry,
 	rightIcon,
 	showPasswordToggle,
+	error,
+	autoComplete,
+	textContentType,
+	autoCorrect,
+	returnKeyType,
+	onSubmitEditing,
+	onBlur,
+	inputRef,
+	editable,
 }: InputFieldProps) {
 	const colors = useThemeColors();
 	const [focused, setFocused] = useState(false);
@@ -47,11 +82,12 @@ export function InputField({
 			<View
 				style={[
 					styles.inputRow,
-					{ borderColor: colors.border, backgroundColor: colors.card },
+					{ borderColor: colors.inputBorder, backgroundColor: colors.card },
 					focused && {
-						borderColor: colors.cyan,
+						borderColor: colors.actionFill,
 						backgroundColor: colors.softCyan,
 					},
+					error ? { borderColor: colors.danger } : null,
 				]}
 			>
 				{leftIcon ? (
@@ -62,7 +98,8 @@ export function InputField({
 						style={styles.leftIcon}
 					/>
 				) : null}
-				<TextInput
+				<TextInput ref={inputRef}
+					editable={editable}
 					value={value}
 					onChangeText={onChangeText}
 					placeholder=""
@@ -70,16 +107,32 @@ export function InputField({
 					style={[styles.input, { color: colors.defaultText }]}
 					keyboardType={keyboardType}
 					autoCapitalize={autoCapitalize}
+					autoComplete={autoComplete}
+					textContentType={textContentType}
+					autoCorrect={autoCorrect}
+					returnKeyType={returnKeyType}
+					onSubmitEditing={onSubmitEditing}
 					secureTextEntry={isSecure}
 					onFocus={() => setFocused(true)}
-					onBlur={() => setFocused(false)}
+					onBlur={() => {
+						setFocused(false);
+						onBlur?.();
+					}}
 					accessibilityLabel={label}
+					aria-invalid={error ? true : undefined}
 				/>
 				{showPasswordToggle ? (
 					<Pressable
 						onPress={() => setPasswordVisible((prev) => !prev)}
-						style={styles.eyeButton}
-						hitSlop={8}
+						style={(state) => [
+							styles.eyeButton,
+							(state as { focused?: boolean }).focused && {
+								outlineWidth: 2,
+								outlineColor: colors.actionFill,
+								outlineOffset: 0,
+								outlineStyle: "solid" as const,
+							},
+						]}
 						accessibilityRole="button"
 						accessibilityLabel={
 							passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"
@@ -95,6 +148,7 @@ export function InputField({
 					<Ionicons name={rightIcon} size={16} color={colors.mutedText} />
 				) : null}
 			</View>
+			{error ? <FieldError message={error} /> : null}
 		</View>
 	);
 }
@@ -105,8 +159,8 @@ const styles = StyleSheet.create({
 	},
 	label: {
 		fontFamily: typography.family.medium,
-		fontSize: 13,
-		lineHeight: 16,
+		fontSize: typography.sizes.label,
+		lineHeight: typography.lineHeights.label,
 	},
 	inputRow: {
 		height: 52,
@@ -124,12 +178,26 @@ const styles = StyleSheet.create({
 		flex: 1,
 		height: 52,
 		fontFamily: typography.family.regular,
-		fontSize: 15,
+		fontSize: typography.sizes.body,
 	},
+	// 44x44 hit area; the negative margin keeps the icon where the 32px one sat.
 	eyeButton: {
-		width: 32,
-		height: 32,
+		width: 44,
+		height: 44,
+		marginRight: -space.smPlus,
+		borderRadius: 10,
 		alignItems: "center",
 		justifyContent: "center",
+	},
+	errorRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: space.xsPlus,
+	},
+	errorText: {
+		flex: 1,
+		fontFamily: typography.family.medium,
+		fontSize: typography.sizes.caption,
+		lineHeight: typography.lineHeights.caption,
 	},
 });

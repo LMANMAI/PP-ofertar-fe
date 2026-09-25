@@ -29,14 +29,32 @@ export type {
 } from "./authApi";
 
 export {
+	bestKnownDiscount,
 	campaignOfferToOffer,
 	describeCampaignDiscount,
 	getRecurringProducts,
 	offerSavings,
 	sortByOfferRelevance,
+	summarizeOfferPromos,
 } from "./productsApi";
 
-export type { RecurringProduct, BestOffer, AlternativeOffer, CampaignOffer } from "./productsApi";
+export type {
+	RecurringProduct,
+	BestOffer,
+	AlternativeOffer,
+	CampaignOffer,
+	FeaturedPromo,
+	OfferPromoSummary,
+} from "./productsApi";
+
+export {
+	describePromoLabel,
+	pickProductPromo,
+	readPromoLabel,
+	readPromoLabels,
+} from "./promoLabels";
+
+export type { PromoCondition, PromoLabelKind, PromoLabelReading } from "./promoLabels";
 
 export {
 	ALL_CATEGORIES,
@@ -44,7 +62,9 @@ export {
 	getOffers,
 	offerBadge,
 	offerCategories,
+	offerCategoryLabel,
 	offerPromo,
+	resolveOffer,
 } from "./offersApi";
 
 export type { Offer, OfferPage, PromoIcon, PromoMechanic, PromoWording } from "./offersApi";
@@ -58,11 +78,13 @@ export {
 
 export type { StoreChain, NearbyStore, FavoriteStores } from "./storesApi";
 
-export { getProductoPorEan } from "./sepaApi";
+export { getProductoPorEan, getSucursalesCercanas, SepaError } from "./sepaApi";
 
 export type {
 	ProductoDetalleResponse,
 	ComercioPrecioResponse,
+	SucursalPrecio,
+	SucursalesCercanas,
 } from "./sepaApi";
 
 export {

@@ -1,44 +1,60 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-	ActivityIndicator,
-	Image,
-	Pressable,
-	ScrollView,
-	StyleSheet,
-	Text,
-	View,
-} from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { space, typography, useThemeColors, type ColorTokens } from "../theme/designSystem";
-import { getProductoPorEan } from "../services/sepaApi";
-import type { ProductoDetalleResponse } from "../services/sepaApi";
+import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
+import { InputField, ProductPriceResult, ScanModeSwitch, ScreenHeader } from "../components";
+import { useShopperContext } from "../hooks/useShopperContext";
+import { getProductoPorEan, SepaError } from "../services";
+import type { ProductoDetalleResponse } from "../services";
+import type { Session } from "../auth/session";
+
+/** The camera keeps seeing the product it just read. Ignoring the same code for
+ * this long after coming back to the viewfinder stops it from firing again. */
+const RESCAN_IGNORE_MS = 2500;
 
 type Props = {
 	onBack: () => void;
+	session: Session;
+	/** Reading a receipt is the camera's other mode. */
+	onChooseTicket: () => void;
+	/** Opens "Mis tiendas favoritas": the prices are read for those chains. */
+	onOpenFavorites: () => void;
 };
 
-type Estado = "escaneando" | "buscando" | "resultado" | "error";
+type Estado = "escaneando" | "manual" | "buscando" | "resultado" | "error";
 
-const formatearPrecio = (valor: number | null) =>
-	valor == null
-		? "—"
-		: valor.toLocaleString("es-AR", {
-				style: "currency",
-				currency: "ARS",
-				maximumFractionDigits: 0,
-			});
+const ERROR_ICON: Record<SepaError["kind"], keyof typeof Ionicons.glyphMap> = {
+	invalid: "barcode-outline",
+	network: "cloud-offline-outline",
+	timeout: "hourglass-outline",
+	server: "alert-circle-outline",
+};
 
-export function ScanBarcodeScreen({ onBack }: Props) {
+const ERROR_TITLE: Record<SepaError["kind"], string> = {
+	invalid: "Revisá el código",
+	network: "Sin conexión",
+	timeout: "Tardó demasiado",
+	server: "No pudimos buscarlo",
+};
+
+/** A barcode is 8 to 14 digits. Anything else is a typo, said before asking. */
+const isPlausibleCode = (code: string) => /^\d{8,14}$/.test(code);
+
+export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavorites }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
+	const shopper = useShopperContext(session.token, session.user.id);
 	const [permission, requestPermission] = useCameraPermissions();
 	const [estado, setEstado] = useState<Estado>("escaneando");
 	const [producto, setProducto] = useState<ProductoDetalleResponse | null>(null);
-	const [mensajeError, setMensajeError] = useState<string | null>(null);
+	const [error, setError] = useState<SepaError | null>(null);
+	const [ean, setEan] = useState<string | null>(null);
+	const [manual, setManual] = useState("");
+	const [manualError, setManualError] = useState<string | null>(null);
+	const lastScan = useRef<{ ean: string; at: number } | null>(null);
 
 	useEffect(() => {
 		if (permission && !permission.granted && permission.canAskAgain) {
@@ -46,432 +62,276 @@ export function ScanBarcodeScreen({ onBack }: Props) {
 		}
 	}, [permission, requestPermission]);
 
-	const buscar = useCallback(async (ean: string) => {
+	const buscar = useCallback(async (code: string) => {
+		lastScan.current = { ean: code, at: Date.now() };
+		setEan(code);
 		setEstado("buscando");
 		try {
-			setProducto(await getProductoPorEan(ean));
+			setProducto(await getProductoPorEan(code));
 			setEstado("resultado");
 		} catch (e) {
-			setMensajeError(
-				e instanceof Error ? e.message : "No pudimos consultar el producto.",
-			);
+			setError(e instanceof SepaError ? e : new SepaError("server", "No pudimos consultar el producto. Probá de nuevo."));
 			setEstado("error");
 		}
 	}, []);
 
 	const volverAEscanear = useCallback(() => {
+		if (lastScan.current) lastScan.current.at = Date.now();
 		setProducto(null);
-		setMensajeError(null);
+		setError(null);
+		setManualError(null);
 		setEstado("escaneando");
 	}, []);
 
-	if (!permission) {
-		return (
-			<View style={styles.centrado}>
-				<ActivityIndicator color={colors.cyan} />
-			</View>
-		);
-	}
+	const handleScanned = ({ data }: { data: string }) => {
+		const last = lastScan.current;
+		if (last && last.ean === data && Date.now() - last.at < RESCAN_IGNORE_MS) return;
+		buscar(data);
+	};
 
-	if (!permission.granted) {
+	const submitManual = () => {
+		const code = manual.replace(/\D/g, "");
+		if (!isPlausibleCode(code)) {
+			setManualError("Un código de barras tiene entre 8 y 14 números. Revisá que esté completo.");
+			return;
+		}
+		setManualError(null);
+		buscar(code);
+	};
+
+	const cameraOn = permission?.granted === true;
+	const title = estado === "resultado" ? "Precio del producto" : "Escanear producto";
+
+	// The camera is only needed to scan: typing a code, waiting and reading the
+	// result all work without it.
+	if (estado === "escaneando" && !permission) {
 		return (
-			<View style={styles.centrado}>
-				<Ionicons name="camera-outline" size={40} color={colors.mutedText} />
-				<Text style={styles.permisoTitulo}>Necesitamos la cámara</Text>
-				<Text style={styles.permisoTexto}>
-					Para escanear el código de barras de un producto y buscarte los
-					precios, tenemos que poder usar la cámara.
-				</Text>
-				<Pressable style={styles.botonPrimario} onPress={requestPermission}>
-					<Text style={styles.botonPrimarioTexto}>Permitir cámara</Text>
-				</Pressable>
-				<Pressable onPress={onBack}>
-					<Text style={styles.linkSecundario}>Volver</Text>
-				</Pressable>
+			<View style={styles.safeArea}>
+				<ScreenHeader title={title} onBack={onBack} />
+				<View style={styles.centrado}>
+					<ActivityIndicator color={colors.cyan} />
+				</View>
 			</View>
 		);
 	}
 
 	return (
 		<View style={styles.safeArea}>
-			<View style={[styles.statusBarBg, { height: insets.top }]} />
-			<StatusBar style="light" />
+			<ScreenHeader title={title} onBack={onBack} />
 
-			<View style={styles.header}>
-				<Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Volver">
-					<Ionicons name="chevron-back" size={22} color={colors.buttonText} />
-				</Pressable>
-				<Text style={styles.headerTitle}>Escanear producto</Text>
-				<View style={{ width: 32 }} />
-			</View>
+			{estado === "escaneando" && !cameraOn && (
+				<View style={styles.centrado}>
+					<Ionicons name="camera-outline" size={40} color={colors.mutedText2} accessible={false} />
+					<Text style={styles.titulo}>Necesitamos la cámara</Text>
+					<Text style={styles.texto}>
+						Para escanear el código de barras de un producto tenemos que poder usar la cámara. También podés
+						escribir el código.
+					</Text>
+					<Pressable
+						style={(state) => [styles.botonPrimario, isFocused(state) && styles.focusRing]}
+						onPress={permission?.canAskAgain ? requestPermission : () => Linking.openSettings()}
+						accessibilityRole="button"
+					>
+						<Text style={styles.botonPrimarioTexto}>{permission?.canAskAgain ? "Permitir cámara" : "Abrir ajustes"}</Text>
+					</Pressable>
+					<Pressable
+						style={(state) => [styles.botonSecundario, isFocused(state) && styles.focusRing]}
+						onPress={() => setEstado("manual")}
+						accessibilityRole="button"
+					>
+						<Text style={styles.botonSecundarioTexto}>Escribir el código</Text>
+					</Pressable>
+				</View>
+			)}
 
-			{estado === "escaneando" || estado === "buscando" ? (
+			{estado === "escaneando" && cameraOn && (
 				<View style={styles.camaraWrap}>
 					<CameraView
 						style={StyleSheet.absoluteFill}
 						facing="back"
-						barcodeScannerSettings={{
-							barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e"],
-						}}
-						// Pasar undefined desactiva el escáner: sin esto la cámara
-						// dispara el mismo código decenas de veces por segundo.
-						onBarcodeScanned={
-							estado === "escaneando"
-								? ({ data }) => buscar(data)
-								: undefined
-						}
+						barcodeScannerSettings={{ barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e"] }}
+						onBarcodeScanned={handleScanned}
 					/>
-
 					<View style={styles.mira} pointerEvents="none" />
-
-					<View style={styles.ayudaWrap} pointerEvents="none">
-						{estado === "buscando" ? (
-							<View style={styles.ayudaCargando}>
-								<ActivityIndicator color={colors.buttonText} />
-								<Text style={styles.ayudaTexto}>Buscando precios…</Text>
-							</View>
-						) : (
-							<Text style={styles.ayudaTexto}>
-								Apuntá al código de barras del producto
-							</Text>
-						)}
+					<View style={[styles.controles, { bottom: insets.bottom + space.xxl }]} pointerEvents="box-none">
+						<View style={styles.ayuda} pointerEvents="none">
+							<Text style={styles.ayudaTexto}>Apuntá al código de barras del producto</Text>
+						</View>
+						<Pressable
+							style={(state) => [styles.linkCamara, isFocused(state) && styles.focusRingLight]}
+							onPress={() => setEstado("manual")}
+							accessibilityRole="button"
+						>
+							<Text style={styles.linkCamaraTexto}>¿No lo lee? Escribí el código</Text>
+						</Pressable>
+						<ScanModeSwitch mode="barcode" onSelect={(m) => m === "ticket" && onChooseTicket()} />
 					</View>
 				</View>
-			) : estado === "error" ? (
-				<View style={styles.centrado}>
-					<Ionicons name="cloud-offline-outline" size={40} color={colors.orange} />
-					<Text style={styles.permisoTitulo}>No pudimos buscarlo</Text>
-					<Text style={styles.permisoTexto}>{mensajeError}</Text>
-					<Pressable style={styles.botonPrimario} onPress={volverAEscanear}>
-						<Text style={styles.botonPrimarioTexto}>Reintentar</Text>
+			)}
+
+			{estado === "manual" && (
+				<ScrollView contentContainerStyle={styles.manualContent} keyboardShouldPersistTaps="handled">
+					<Text style={styles.titulo}>Escribí el código</Text>
+					<Text style={styles.texto}>Está debajo de las barras del envase, son entre 8 y 14 números.</Text>
+					<InputField
+						label="Código de barras"
+						leftIcon="barcode-outline"
+						value={manual}
+						onChangeText={(t) => {
+							setManual(t.replace(/\D/g, ""));
+							setManualError(null);
+						}}
+						keyboardType="number-pad"
+						returnKeyType="search"
+						onSubmitEditing={submitManual}
+						error={manualError ?? undefined}
+					/>
+					<Pressable
+						style={(state) => [styles.botonPrimario, isFocused(state) && styles.focusRing]}
+						onPress={submitManual}
+						accessibilityRole="button"
+					>
+						<Text style={styles.botonPrimarioTexto}>Buscar precios</Text>
+					</Pressable>
+					<Pressable
+						style={(state) => [styles.link, isFocused(state) && styles.focusRing]}
+						onPress={volverAEscanear}
+						accessibilityRole="button"
+					>
+						<Text style={styles.linkTexto}>{cameraOn ? "Volver a la cámara" : "Cancelar"}</Text>
+					</Pressable>
+				</ScrollView>
+			)}
+
+			{estado === "buscando" && (
+				<View style={styles.centrado} accessibilityLiveRegion="polite">
+					<ActivityIndicator color={colors.cyan} />
+					<Text style={styles.texto}>Buscando precios…</Text>
+					{ean && <Text style={styles.codigo}>Código {ean}</Text>}
+				</View>
+			)}
+
+			{estado === "error" && error && (
+				<View style={styles.centrado} accessibilityRole="alert">
+					<Ionicons name={ERROR_ICON[error.kind]} size={40} color={colors.orange} accessible={false} />
+					<Text style={styles.titulo}>{ERROR_TITLE[error.kind]}</Text>
+					<Text style={styles.texto}>{error.message}</Text>
+					{error.kind === "invalid" ? (
+						<Pressable
+							style={(state) => [styles.botonPrimario, isFocused(state) && styles.focusRing]}
+							onPress={() => setEstado("manual")}
+							accessibilityRole="button"
+						>
+							<Text style={styles.botonPrimarioTexto}>Escribir el código</Text>
+						</Pressable>
+					) : (
+						<Pressable
+							style={(state) => [styles.botonPrimario, isFocused(state) && styles.focusRing]}
+							onPress={() => ean && buscar(ean)}
+							accessibilityRole="button"
+						>
+							<Text style={styles.botonPrimarioTexto}>Reintentar</Text>
+						</Pressable>
+					)}
+					<Pressable
+						style={(state) => [styles.botonSecundario, isFocused(state) && styles.focusRing]}
+						onPress={volverAEscanear}
+						accessibilityRole="button"
+					>
+						<Text style={styles.botonSecundarioTexto}>Escanear otro</Text>
 					</Pressable>
 				</View>
-			) : (
-				<Resultado producto={producto!} onEscanearOtro={volverAEscanear} colors={colors} styles={styles} />
+			)}
+
+			{estado === "resultado" && producto && (
+				<>
+					<ScrollView contentContainerStyle={styles.resultadoContent} keyboardShouldPersistTaps="handled">
+						<ProductPriceResult
+							producto={producto}
+							shopper={shopper}
+							onOpenFavorites={onOpenFavorites}
+							onRetry={() => ean && buscar(ean)}
+							onEnterCode={() => setEstado("manual")}
+							onScanTicket={onChooseTicket}
+						/>
+					</ScrollView>
+					{/* Fixed: with a list of stores under the product, "scan another" used to
+					    sit a full scroll away, and the next product is what comes next. */}
+					<View style={[styles.pie, { paddingBottom: insets.bottom + space.md }]}>
+						<Pressable
+							style={(state) => [styles.botonPrimario, styles.botonPie, isFocused(state) && styles.focusRing]}
+							onPress={volverAEscanear}
+							accessibilityRole="button"
+						>
+							<Ionicons name="barcode-outline" size={18} color={colors.actionText} accessible={false} />
+							<Text style={styles.botonPrimarioTexto}>Escanear otro</Text>
+						</Pressable>
+					</View>
+				</>
 			)}
 		</View>
 	);
 }
 
-function Resultado({
-	producto,
-	onEscanearOtro,
-	colors,
-	styles,
-}: {
-	producto: ProductoDetalleResponse;
-	onEscanearOtro: () => void;
-	colors: ColorTokens;
-	styles: ReturnType<typeof createStyles>;
-}) {
-	return (
-		<ScrollView
-			style={styles.resultado}
-			contentContainerStyle={styles.resultadoContent}
-		>
-			<View style={styles.productoCard}>
-				{producto.imagenUrl ? (
-					<Image
-						source={{ uri: producto.imagenUrl }}
-						style={styles.productoImagen}
-						resizeMode="contain"
-					/>
-				) : (
-					<View style={[styles.productoImagen, styles.imagenPlaceholder]}>
-						<Ionicons name="image-outline" size={28} color={colors.mutedText} />
-					</View>
-				)}
-
-				<View style={styles.productoInfo}>
-					<Text style={styles.productoNombre} numberOfLines={3}>
-						{producto.descripcion ?? "Producto sin nombre"}
-					</Text>
-					{producto.marca ? (
-						<Text style={styles.productoMarca}>{producto.marca}</Text>
-					) : null}
-					<Text style={styles.productoEan}>EAN {producto.ean}</Text>
-				</View>
-			</View>
-
-			{producto.sinPrecios ? (
-				<View style={styles.avisoSinPrecios}>
-					<Ionicons name="information-circle-outline" size={20} color={colors.warningSoftText} />
-					<Text style={styles.avisoTexto}>
-						{producto.fuenteDatos === "ninguna"
-							? "No encontramos este producto. Puede ser un código interno del comercio."
-							: "SEPA todavía no publica precios de este producto."}
-					</Text>
-				</View>
-			) : (
-				<>
-					<View style={styles.precioCard}>
-						<Text style={styles.precioLabel}>Precio más bajo</Text>
-						<Text style={styles.precioDestacado}>
-							{formatearPrecio(producto.precioMinimo)}
-						</Text>
-						<Text style={styles.precioRango}>
-							Promedio {formatearPrecio(producto.precioPromedio)} · Máximo{" "}
-							{formatearPrecio(producto.precioMaximo)}
-						</Text>
-					</View>
-
-					{producto.comercios.length > 0 ? (
-						<View style={styles.comerciosWrap}>
-							<Text style={styles.seccionTitulo}>Dónde comprarlo</Text>
-							{producto.comercios.map((comercio, index) => (
-								<View
-									key={`${comercio.comercioId}-${index}`}
-									style={[styles.comercioFila, index === 0 && styles.comercioMasBarato]}
-								>
-									<View style={styles.comercioInfo}>
-										<Text style={styles.comercioNombre} numberOfLines={1}>
-											{comercio.bandera || comercio.razonSocial || "Comercio"}
-										</Text>
-										<Text style={styles.comercioSucursales}>
-											{comercio.cantidadSucursales === 1
-												? "1 sucursal"
-												: `${comercio.cantidadSucursales} sucursales`}
-										</Text>
-									</View>
-									<View style={styles.comercioPrecioWrap}>
-										{index === 0 ? (
-											<View style={styles.badgeBarato}>
-												<Text style={styles.badgeBaratoTexto}>Más barato</Text>
-											</View>
-										) : null}
-										<Text style={styles.comercioPrecio}>
-											{formatearPrecio(comercio.precioMinimo)}
-										</Text>
-									</View>
-								</View>
-							))}
-						</View>
-					) : null}
-
-					{producto.fechaDataset ? (
-						<Text style={styles.pieDatos}>
-							Datos de SEPA al {producto.fechaDataset}
-						</Text>
-					) : null}
-				</>
-			)}
-
-			<Pressable style={styles.botonPrimario} onPress={onEscanearOtro}>
-				<Ionicons name="barcode-outline" size={18} color={colors.buttonText} />
-				<Text style={styles.botonPrimarioTexto}>Escanear otro</Text>
-			</Pressable>
-		</ScrollView>
-	);
-}
-
 function createStyles(colors: ColorTokens) {
+	const { sizes, lineHeights } = typography;
 	return StyleSheet.create({
-	safeArea: { flex: 1, backgroundColor: colors.background },
-	statusBarBg: { backgroundColor: colors.navy },
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		backgroundColor: colors.navy,
-		paddingHorizontal: space.lg,
-		paddingBottom: space.mdPlus,
-	},
-	backButton: { width: 32, height: 32, justifyContent: "center" },
-	headerTitle: {
-		color: colors.buttonText,
-		fontFamily: typography.family.bold,
-		fontSize: typography.sizes.bodyL,
-	},
+		safeArea: { flex: 1, backgroundColor: colors.background },
+		focusRing: focusRing(colors),
+		focusRingLight: { outlineWidth: 2, outlineColor: colors.buttonText, outlineOffset: 2, outlineStyle: "solid" },
 
-	camaraWrap: { flex: 1, backgroundColor: "#000" },
-	mira: {
-		position: "absolute",
-		top: "30%",
-		left: "10%",
-		right: "10%",
-		height: 160,
-		borderWidth: 2,
-		borderColor: colors.cyan,
-		borderRadius: 16,
-	},
-	ayudaWrap: { position: "absolute", bottom: 48, left: 24, right: 24, alignItems: "center" },
-	ayudaCargando: { flexDirection: "row", alignItems: "center", gap: space.smPlus },
-	ayudaTexto: {
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: typography.sizes.body,
-		textAlign: "center",
-	},
+		camaraWrap: { flex: 1, backgroundColor: "#000" },
+		mira: {
+			position: "absolute",
+			top: "30%",
+			left: "10%",
+			right: "10%",
+			height: 160,
+			borderWidth: 2,
+			borderColor: colors.cyan,
+			borderRadius: radii.lg,
+		},
+		controles: { position: "absolute", left: 0, right: 0, alignItems: "center", gap: space.md },
+		// A scrim behind the words: they sit over a live camera, so their contrast
+		// is whatever the shop's lighting happens to be.
+		ayuda: { paddingHorizontal: space.lg, paddingVertical: space.smPlus, borderRadius: radii.md, backgroundColor: "rgba(0,0,0,0.6)" },
+		ayudaTexto: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: sizes.body, textAlign: "center" },
+		linkCamara: { minHeight: 44, justifyContent: "center", paddingHorizontal: space.lg, borderRadius: radii.full, backgroundColor: "rgba(0,0,0,0.6)" },
+		linkCamaraTexto: { color: colors.buttonText, fontFamily: typography.family.medium, fontSize: sizes.caption, textDecorationLine: "underline" },
 
-	centrado: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		gap: space.md,
-		paddingHorizontal: 32,
-		backgroundColor: colors.background,
-	},
-	permisoTitulo: {
-		color: colors.defaultText,
-		fontFamily: typography.family.bold,
-		fontSize: typography.sizes.bodyL,
-	},
-	permisoTexto: {
-		color: colors.mutedText,
-		fontFamily: typography.family.regular,
-		fontSize: typography.sizes.caption,
-		lineHeight: typography.lineHeights.caption,
-		textAlign: "center",
-	},
-	linkSecundario: {
-		color: colors.mutedText,
-		fontFamily: typography.family.medium,
-		fontSize: typography.sizes.caption,
-		marginTop: space.xs,
-	},
+		centrado: { flex: 1, alignItems: "center", justifyContent: "center", gap: space.md, paddingHorizontal: space.xxl, backgroundColor: colors.background },
+		titulo: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: sizes.bodyL, textAlign: "center" },
+		texto: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.label, lineHeight: lineHeights.label, textAlign: "center" },
+		codigo: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro },
 
-	resultado: { flex: 1 },
-	resultadoContent: { padding: space.xl, gap: space.lg },
-	productoCard: {
-		flexDirection: "row",
-		gap: space.mdPlus,
-		backgroundColor: colors.card,
-		borderRadius: 16,
-		borderWidth: 1,
-		borderColor: colors.border,
-		padding: space.mdPlus,
-	},
-	productoImagen: { width: 88, height: 88, borderRadius: 12, backgroundColor: colors.softWarm },
-	imagenPlaceholder: { alignItems: "center", justifyContent: "center" },
-	productoInfo: { flex: 1, justifyContent: "center", gap: 3 },
-	productoNombre: {
-		color: colors.defaultText,
-		fontFamily: typography.family.bold,
-		fontSize: typography.sizes.body,
-		lineHeight: typography.lineHeights.body,
-	},
-	productoMarca: {
-		color: colors.mutedText,
-		fontFamily: typography.family.medium,
-		fontSize: typography.sizes.caption,
-	},
-	productoEan: {
-		color: colors.mutedText,
-		fontFamily: typography.family.regular,
-		fontSize: typography.sizes.overline,
-		marginTop: 2,
-	},
+		manualContent: { padding: space.xl, gap: space.lg },
+		resultadoContent: { padding: space.xl, gap: space.lg },
+		pie: { paddingHorizontal: space.xl, paddingTop: space.md, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider },
 
-	avisoSinPrecios: {
-		flexDirection: "row",
-		alignItems: "flex-start",
-		gap: space.smPlus,
-		backgroundColor: colors.warningSoft,
-		borderRadius: 14,
-		padding: space.mdPlus,
-	},
-	avisoTexto: {
-		flex: 1,
-		color: colors.warningSoftText,
-		fontFamily: typography.family.medium,
-		fontSize: typography.sizes.caption,
-		lineHeight: typography.lineHeights.caption,
-	},
-
-	precioCard: {
-		backgroundColor: colors.softCyan,
-		borderRadius: 16,
-		padding: 18,
-		gap: 2,
-	},
-	precioLabel: {
-		color: colors.defaultText,
-		fontFamily: typography.family.medium,
-		fontSize: typography.sizes.overline,
-		textTransform: "uppercase",
-		letterSpacing: 0.5,
-	},
-	precioDestacado: {
-		color: colors.defaultText,
-		fontFamily: typography.family.bold,
-		fontSize: typography.sizes.h1,
-	},
-	precioRango: {
-		color: colors.mutedText,
-		fontFamily: typography.family.regular,
-		fontSize: typography.sizes.caption,
-	},
-
-	comerciosWrap: { gap: space.sm },
-	seccionTitulo: {
-		color: colors.defaultText,
-		fontFamily: typography.family.bold,
-		fontSize: typography.sizes.body,
-		marginBottom: 2,
-	},
-	comercioFila: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		backgroundColor: colors.card,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: colors.border,
-		paddingHorizontal: space.mdPlus,
-		paddingVertical: space.md,
-	},
-	comercioMasBarato: { borderColor: colors.cyan, backgroundColor: colors.softCyan },
-	comercioInfo: { flex: 1, gap: 2 },
-	comercioNombre: {
-		color: colors.defaultText,
-		fontFamily: typography.family.medium,
-		fontSize: typography.sizes.body,
-	},
-	comercioSucursales: {
-		color: colors.mutedText,
-		fontFamily: typography.family.regular,
-		fontSize: typography.sizes.overline,
-	},
-	comercioPrecioWrap: { alignItems: "flex-end", gap: 3 },
-	comercioPrecio: {
-		color: colors.defaultText,
-		fontFamily: typography.family.bold,
-		fontSize: typography.sizes.body,
-	},
-	badgeBarato: {
-		backgroundColor: colors.navy,
-		paddingHorizontal: space.sm,
-		paddingVertical: 2,
-		borderRadius: 6,
-	},
-	badgeBaratoTexto: {
-		color: colors.buttonText,
-		fontFamily: typography.family.medium,
-		fontSize: 10,
-	},
-
-	pieDatos: {
-		color: colors.mutedText,
-		fontFamily: typography.family.regular,
-		fontSize: typography.sizes.overline,
-		textAlign: "center",
-	},
-
-	botonPrimario: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: space.sm,
-		backgroundColor: colors.navy,
-		borderRadius: 14,
-		paddingVertical: 15,
-		paddingHorizontal: space.xxl,
-		marginTop: space.xs,
-	},
-	botonPrimarioTexto: {
-		color: colors.buttonText,
-		fontFamily: typography.family.bold,
-		fontSize: typography.sizes.body,
-	},
+		botonPrimario: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			gap: space.sm,
+			minHeight: 48,
+			paddingHorizontal: space.xxl,
+			borderRadius: radii.md,
+			backgroundColor: colors.actionFill,
+		},
+		botonPie: { alignSelf: "stretch" },
+		botonPrimarioTexto: { color: colors.actionText, fontFamily: typography.family.bold, fontSize: sizes.body },
+		botonSecundario: {
+			minHeight: 48,
+			alignItems: "center",
+			justifyContent: "center",
+			paddingHorizontal: space.xxl,
+			borderRadius: radii.md,
+			borderWidth: 1,
+			borderColor: colors.inputBorder,
+			backgroundColor: colors.card,
+		},
+		botonSecundarioTexto: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.label },
+		link: { minHeight: 44, alignItems: "center", justifyContent: "center" },
+		linkTexto: { color: colors.actionFill, fontFamily: typography.family.medium, fontSize: sizes.caption, textDecorationLine: "underline" },
 	});
 }

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens } from "../theme/designSystem";
+import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 
 type Account = { id: string; name: string; email: string; initials: string; color: string };
 
@@ -75,15 +75,15 @@ function createStyles(colors: ColorTokens) {
 	backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 	content: { flex: 1, paddingHorizontal: space.xxl, paddingTop: space.md },
 	title: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: 24 },
-	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 14, marginTop: space.xs },
+	subtitle: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.label, marginTop: space.xs },
 	accountList: { marginTop: space.xxl, gap: space.xs },
 	accountRow: { flexDirection: "row", alignItems: "center", gap: space.mdPlus, paddingVertical: space.md, paddingHorizontal: space.xs },
-	accAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-	accAvatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: 14 },
-	accName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: 14 },
-	accEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: 13, marginTop: 1 },
-	addAccount: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.softWarm, alignItems: "center", justifyContent: "center" },
-	addText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: 14 },
-	legal: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 11, lineHeight: 16, marginTop: 32 },
+	accAvatar: { width: 40, height: 40, borderRadius: radii.xl, alignItems: "center", justifyContent: "center" },
+	accAvatarText: { color: colors.navy, fontFamily: typography.family.bold, fontSize: typography.sizes.label },
+	accName: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.label },
+	accEmail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption, marginTop: 1 },
+	addAccount: { width: 40, height: 40, borderRadius: radii.xl, backgroundColor: colors.softWarm, alignItems: "center", justifyContent: "center" },
+	addText: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: typography.sizes.label },
+	legal: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: typography.sizes.overline, lineHeight: 16, marginTop: 32 },
 	});
 }

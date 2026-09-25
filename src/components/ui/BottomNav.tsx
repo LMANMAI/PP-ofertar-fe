@@ -54,7 +54,7 @@ export function BottomNav({ active, onSelect, onScanPress }: Props) {
 				{ backgroundColor: colors.card, borderTopColor: colors.border },
 			]}
 		>
-			<View style={styles.row}>
+			<View style={styles.row} accessibilityRole="tablist">
 				{ITEMS.slice(0, 2).map((it) => (
 					<NavItem
 						key={it.key}
@@ -68,9 +68,10 @@ export function BottomNav({ active, onSelect, onScanPress }: Props) {
 				<Pressable
 					style={styles.scanWrap}
 					onPress={onScanPress}
-					accessibilityRole="tab"
+					// An action, not a destination: it opens the scanner, it is never the
+					// selected tab, so it must not announce itself as one.
+					accessibilityRole="button"
 					accessibilityLabel="Escanear ticket"
-					accessibilityState={{ selected: active === "scan" }}
 					hitSlop={4}
 				>
 					<View
@@ -78,14 +79,16 @@ export function BottomNav({ active, onSelect, onScanPress }: Props) {
 						ref={scanTarget.attachRef} onLayout={scanTarget.onLayout}
 						style={[
 							styles.scanButton,
-							{ backgroundColor: colors.navy, shadowColor: colors.navy },
+							{ backgroundColor: colors.actionFill, shadowColor: colors.navy },
 							active === "scan" && { backgroundColor: colors.cyan },
 						]}
 					>
+						{/* Camera, not the receipt: the receipt is the Tickets tab. Navy fill
+						    in light, cyan in dark (navy on the dark bar was 1.07:1). */}
 						<Ionicons
-							name="receipt-outline"
-							size={24}
-							color={colors.buttonText}
+							name="camera-outline"
+							size={26}
+							color={active === "scan" ? colors.navy : colors.actionText}
 						/>
 					</View>
 				</Pressable>
@@ -123,6 +126,7 @@ function NavItem({
 			accessibilityRole="tab"
 			accessibilityLabel={label}
 			accessibilityState={{ selected: active }}
+			aria-selected={active}
 		>
 			<Ionicons
 				name={icon}
@@ -162,11 +166,12 @@ const styles = StyleSheet.create({
 	},
 	itemLabel: {
 		fontFamily: typography.family.medium,
-		fontSize: 11,
+		fontSize: typography.sizes.overline,
 		lineHeight: 14,
 	},
 	scanWrap: {
 		flex: 1,
+		minHeight: 44,
 		alignItems: "center",
 		justifyContent: "center",
 	},

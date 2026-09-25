@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
+import { radii, space, typography, useThemeColors, type ColorTokens } from "../../theme/designSystem";
 
 type Props = {
 	minLength: boolean;
@@ -22,12 +22,15 @@ export function PasswordStrengthBar({ minLength, uppercase, number, special, mat
 		return { count, total: checks.length };
 	}, [minLength, uppercase, number, special]);
 
-	const barColor = useMemo(() => {
-		if (strength.count <= 1) return colors.danger;
-		if (strength.count === 2) return "#F59E0B";
-		if (strength.count === 3) return colors.cyan;
-		return colors.success;
-	}, [strength.count]);
+	// Every level uses a role token that has its own light and dark value, so
+	// the bar and the label keep their contrast in both themes (the old cyan,
+	// amber and green literals were 1.6–2.2:1 on the light background).
+	const tone = useMemo(() => {
+		if (strength.count <= 1) return { bar: colors.danger, text: colors.dangerSoftText };
+		if (strength.count === 2) return { bar: colors.warningSoftText, text: colors.warningSoftText };
+		if (strength.count === 3) return { bar: colors.infoSoftText, text: colors.infoSoftText };
+		return { bar: colors.successSoftText, text: colors.successSoftText };
+	}, [strength.count, colors]);
 
 	const label = useMemo(() => {
 		const all = strength.count === strength.total && matches;
@@ -60,19 +63,32 @@ export function PasswordStrengthBar({ minLength, uppercase, number, special, mat
 						key={i}
 						style={[
 							styles.segment,
-							i < strength.count ? { backgroundColor: barColor } : styles.segmentEmpty,
+							i < strength.count ? { backgroundColor: tone.bar } : styles.segmentEmpty,
 						]}
 					/>
 				))}
 			</View>
-			{label !== "" && <Text style={[styles.label, { color: barColor }]}>{label}</Text>}
+			{/* Height is reserved: the label used to pop in on the first keystroke and
+			 * push the whole form down. Polite live region so the change is announced. */}
+			<View style={styles.labelSlot}>
+				{label !== "" && (
+					<Text style={[styles.label, { color: tone.text }]} accessibilityLiveRegion="polite">
+						{label}
+					</Text>
+				)}
+			</View>
 			<View style={styles.checklist}>
 				{items.map((item) => (
-					<View key={item.key} style={styles.checkRow}>
+					<View
+							key={item.key}
+							style={styles.checkRow}
+							accessible
+							accessibilityLabel={`${item.label}: ${item.met ? "cumplido" : "pendiente"}`}
+						>
 						<Ionicons
 							name={item.met ? "checkmark-circle" : "ellipse-outline"}
 							size={16}
-							color={item.met ? colors.cyan : colors.subtleText}
+							color={item.met ? colors.successSoftText : colors.subtleText}
 						/>
 						<Text style={[styles.checkText, item.met && styles.checkTextMet]}>
 							{item.label}
@@ -88,12 +104,13 @@ function createStyles(colors: ColorTokens) {
 	return StyleSheet.create({
 	wrap: { gap: space.sm },
 	barRow: { flexDirection: "row", gap: space.xs },
-	segment: { flex: 1, height: 4, borderRadius: 2 },
+	segment: { flex: 1, height: 4, borderRadius: radii.full },
 	segmentEmpty: { backgroundColor: colors.divider },
-	label: { fontFamily: typography.family.medium, fontSize: 12, lineHeight: 16 },
+	labelSlot: { minHeight: typography.lineHeights.caption },
+	label: { fontFamily: typography.family.medium, fontSize: typography.sizes.caption, lineHeight: typography.lineHeights.caption },
 	checklist: { gap: space.xs, marginTop: 2 },
 	checkRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-	checkText: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: 13, lineHeight: 18 },
+	checkText: { color: colors.subtleText, fontFamily: typography.family.regular, fontSize: typography.sizes.caption, lineHeight: typography.lineHeights.caption },
 	checkTextMet: { color: colors.defaultText, fontFamily: typography.family.medium },
 	});
 }
