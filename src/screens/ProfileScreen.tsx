@@ -17,6 +17,7 @@ import { space, typography, radii, useIsDarkMode, useThemeColors, useThemePrefer
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { isBiometricAvailable, useBiometricInfo } from "../auth/biometricAuth";
+import { registerForPushNotifications } from "../notifications/pushRegistration";
 import { updateProfile } from "../services";
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
@@ -87,7 +88,7 @@ export function ProfileScreen({
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	const { preference: themePreference, setPreference: setThemePreference } = useThemePreference();
 	const isDark = useIsDarkMode();
-	const [alertsEnabled, setAlertsEnabled] = useState(true);
+	const [offersPushEnabled, setOffersPushEnabled] = useState(session.user.offersPushEnabled ?? true);
 	const [biometricAvailable, setBiometricAvailable] = useState(false);
 	const biometric = useBiometricInfo();
 	const [alternativeBrands, setAlternativeBrands] = useState(
@@ -132,6 +133,39 @@ export function ProfileScreen({
 			onSessionUpdate?.({ token: updated.token || session.token, user: updated.user });
 		} catch {
 			setAlternativeBrands(!value);
+			setPreferenceError("No pudimos guardar el cambio. Probá de nuevo.");
+		} finally {
+			setSavingPreference(false);
+		}
+	};
+
+	const handleToggleOffersAlerts = async (value: boolean) => {
+		setOffersPushEnabled(value);
+		setSavingPreference(true);
+		setPreferenceError(null);
+		try {
+			// Prenderlo es el pedido explícito de permiso: si el usuario nunca
+			// lo concedió, el sistema le muestra el prompt recién acá, no al
+			// abrir la app.
+			if (value) {
+				const result = await registerForPushNotifications(session.token, { requestPermission: true });
+				if (result === "denied") {
+					setOffersPushEnabled(false);
+					setPreferenceError(
+						"Para activar las notificaciones, andá a Ajustes > Notificaciones > OfertAR y permitilas.",
+					);
+					return;
+				}
+				if (result === "unsupported") {
+					setOffersPushEnabled(false);
+					setPreferenceError("Las notificaciones push no están disponibles en este dispositivo.");
+					return;
+				}
+			}
+			const updated = await updateProfile(session.token, { offersPushEnabled: value });
+			onSessionUpdate?.({ token: updated.token || session.token, user: updated.user });
+		} catch {
+			setOffersPushEnabled(!value);
 			setPreferenceError("No pudimos guardar el cambio. Probá de nuevo.");
 		} finally {
 			setSavingPreference(false);
@@ -271,9 +305,10 @@ export function ProfileScreen({
 							<Text style={styles.listHint}>Notificaciones push</Text>
 						</View>
 						<Switch
-							value={alertsEnabled}
-							onValueChange={setAlertsEnabled}
-							{...switchColors(alertsEnabled)}
+							value={offersPushEnabled}
+							onValueChange={handleToggleOffersAlerts}
+							{...switchColors(offersPushEnabled)}
+							disabled={savingPreference}
 							accessibilityLabel="Alertas de ofertas"
 						/>
 					</View>

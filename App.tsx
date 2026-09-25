@@ -5,6 +5,8 @@ import { ActivityIndicator, BackHandler, Platform, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
+import * as Notifications from "expo-notifications";
+import { registerForPushNotifications } from "./src/notifications/pushRegistration";
 
 import {
 	AuthLoginScreen,
@@ -185,6 +187,15 @@ export default function App() {
 			.catch(() => setOffers([]));
 	}, [session]);
 
+	// Registro silencioso: si el usuario ya habia dado permiso en una sesion
+	// anterior, reengancha el token al volver a abrir la app (puede haber
+	// cambiado, p. ej. tras una reinstalacion). Nunca pide permiso desde
+	// aca — eso solo pasa cuando el usuario prende el switch en Perfil.
+	useEffect(() => {
+		if (!session) return;
+		registerForPushNotifications(session.token, { requestPermission: false }).catch(() => {});
+	}, [session]);
+
 	const historyEntryFromTx = (tx: PointsTransactionResponse): PointsHistoryEntry => ({
 		id: String(tx.id),
 		icon:
@@ -225,6 +236,7 @@ export default function App() {
 
 	useEffect(() => {
 		if (!session) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect -- resets local point state in response to the session being cleared, not a fetch-on-mount pattern
 			setReferralPoints(0);
 			setReferralHistory([]);
 			return;
@@ -233,6 +245,46 @@ export default function App() {
 	}, [session]);
 
 	const goMain = (t: TabKey = "home") => { setTab(t); setScreen("main"); };
+
+	useEffect(() => {
+		Notifications.setNotificationHandler({
+			handleNotification: async () => ({
+				shouldShowBanner: true,
+				shouldShowList: true,
+				shouldPlaySound: true,
+				shouldSetBadge: false,
+			}),
+		});
+
+		const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+			const data = response.notification.request.content.data as { screen?: string; ticketId?: string };
+			if (data.screen === "ticketDetail" && data.ticketId) {
+				setSelectedTicketId(Number(data.ticketId));
+				setScreen("ticketDetail");
+				return;
+			}
+			if (data.screen === "pointsHistory") {
+				setScreen("pointsHistory");
+				return;
+			}
+			if (data.screen === "ticketHistory") {
+				setTab("history");
+				setScreen("ticketHistory");
+				return;
+			}
+			if (data.screen === "scanMethod") {
+				setTab("scan");
+				setScreen("captureTicket");
+				return;
+			}
+			if (data.screen === "offers") {
+				goMain("offers");
+				return;
+			}
+			goMain("home");
+		});
+		return () => sub.remove();
+	}, []);
 
 	/**
 	 * A ticket scanned while the app was closed finishes processing without the
@@ -510,6 +562,7 @@ export default function App() {
 								alternativeBrandsEnabled: true,
 								referralCode: "",
 								points: 0,
+								offersPushEnabled: true,
 								createdAt: "",
 							},
 						});
