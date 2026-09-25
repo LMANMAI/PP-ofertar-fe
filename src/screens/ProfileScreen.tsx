@@ -17,6 +17,7 @@ import { space, typography, radii, useIsDarkMode, useThemeColors, useThemePrefer
 import type { Session } from "../auth/session";
 import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { isBiometricAvailable, useBiometricInfo } from "../auth/biometricAuth";
+import { canUsePush } from "../notifications/loadNotifications";
 import { registerForPushNotifications } from "../notifications/pushRegistration";
 import { updateProfile } from "../services";
 
@@ -96,6 +97,9 @@ export function ProfileScreen({
 	);
 	const [savingPreference, setSavingPreference] = useState(false);
 	const [preferenceError, setPreferenceError] = useState<string | null>(null);
+	// Remote push does not work in Expo Go since SDK 53, so the toggle is shown
+	// as unavailable there instead of failing on tap.
+	const pushAvailable = canUsePush();
 	const { firstName, lastName } = splitName(session.user.name);
 
 	// The default cyan-track/white-thumb pairing is ~1.7:1 when on and the
@@ -154,6 +158,11 @@ export function ProfileScreen({
 					setPreferenceError(
 						"Para activar las notificaciones, andá a Ajustes > Notificaciones > OfertAR y permitilas.",
 					);
+					return;
+				}
+				if (result === "expoGo") {
+					setOffersPushEnabled(false);
+					setPreferenceError("Las notificaciones push requieren un development build, no funcionan en Expo Go.");
 					return;
 				}
 				if (result === "unsupported") {
@@ -302,13 +311,15 @@ export function ProfileScreen({
 						</View>
 						<View style={{ flex: 1, gap: space.xs }}>
 							<Text style={styles.listLabel}>Alertas de ofertas</Text>
-							<Text style={styles.listHint}>Notificaciones push</Text>
+							<Text style={styles.listHint}>
+								{pushAvailable ? "Notificaciones push" : "Requiere un development build"}
+							</Text>
 						</View>
 						<Switch
 							value={offersPushEnabled}
 							onValueChange={handleToggleOffersAlerts}
 							{...switchColors(offersPushEnabled)}
-							disabled={savingPreference}
+							disabled={savingPreference || !pushAvailable}
 							accessibilityLabel="Alertas de ofertas"
 						/>
 					</View>
