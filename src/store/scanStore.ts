@@ -14,7 +14,6 @@ type ScanState = {
 	ocrErrorMsg: string;
 	processingOcr: boolean;
 	processingFileType: ProcessingFileType | null;
-	selectedTicketId: number | null;
 	/**
 	 * Tickets subidos en esta sesión que todavía no avisaron si faltó algo. Viven acá y no en el
 	 * historial para que el aviso siga pendiente si el usuario se va a otra pantalla mientras el
@@ -25,7 +24,6 @@ type ScanState = {
 	setSelectedPdf: (pdf: PickedPdf | null) => void;
 	setScannedTicket: (ticket: TicketResponse | null) => void;
 	setOcrError: (message: string) => void;
-	setSelectedTicketId: (id: number | null) => void;
 	/** Empieza a subir: muestra la pantalla de carga. */
 	startProcessing: (fileType: ProcessingFileType) => void;
 	finishProcessing: () => void;
@@ -44,7 +42,6 @@ const vacio = {
 	ocrErrorMsg: "",
 	processingOcr: false,
 	processingFileType: null,
-	selectedTicketId: null,
 	awaitingTicketIds: [] as number[],
 };
 
@@ -53,7 +50,6 @@ export const useScanStore = create<ScanState>()((set) => ({
 	setSelectedPdf: (selectedPdf) => set({ selectedPdf }),
 	setScannedTicket: (scannedTicket) => set({ scannedTicket }),
 	setOcrError: (ocrErrorMsg) => set({ ocrErrorMsg }),
-	setSelectedTicketId: (selectedTicketId) => set({ selectedTicketId }),
 	startProcessing: (processingFileType) => set({ processingFileType, processingOcr: true }),
 	finishProcessing: () => set({ processingOcr: false, processingFileType: null }),
 	addAwaiting: (ticketId) => set((s) => ({ awaitingTicketIds: [ticketId, ...s.awaitingTicketIds] })),

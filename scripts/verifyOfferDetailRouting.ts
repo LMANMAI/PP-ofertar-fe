@@ -124,21 +124,21 @@ check("ninguna pantalla abre el detalle con el id pelado", () => {
 	}
 });
 
-check("el router resuelve con resolveOffer y no con su propia copia", () => {
-	// La logica vivia inline en App.tsx, donde no habia forma de ejercitarla.
-	// Si vuelve a duplicarse ahi, estos checks dejan de cubrir lo que corre.
-	const app = src("App.tsx");
-	assert.match(app, /resolveOffer\(offers, id, fallbackOffer\)/);
+check("la ruta del detalle resuelve con resolveOffer y no con su propia copia", () => {
+	// La logica vive en resolveOffer, donde se puede ejercitar. Si vuelve a duplicarse en la ruta,
+	// estos checks dejan de cubrir lo que corre.
+	const ruta = src("src", "navigation", "routes", "mainRoutes.tsx");
 	assert.ok(
-		!/offers\.find\(\(o\) => o\.id === id\)/.test(app),
-		"App.tsx volvio a resolver la oferta por su cuenta",
+		ruta.includes("resolveOffer(offers, route.params.offerId, fallbackOffer)"),
+		"la ruta del detalle tiene que resolver con resolveOffer(offers, route.params.offerId, fallbackOffer)",
 	);
+	assert.ok(!ruta.includes("offers.find("), "la ruta del detalle volvio a resolver la oferta por su cuenta");
 });
 
-check("el router sigue aceptando el fallback al abrir", () => {
-	const app = src("App.tsx");
-	assert.match(app, /const openOffer = \(id: string, fallback\?: Offer \| null\)/);
-	assert.ok(app.includes("openOfferInStore(id, fallback)"), "openOffer no le pasa el fallback al store");
+check("abrir una oferta sigue aceptando y guardando el fallback", () => {
+	const acciones = src("src", "navigation", "actions.ts");
+	assert.ok(acciones.includes("export function openOffer(id: string, fallback?: Offer | null)"), "openOffer perdio el fallback");
+	assert.ok(acciones.includes("useOffersStore.getState().open(id, fallback)"), "openOffer no le pasa el fallback al store");
 	const tienda = src("src", "store", "offersStore.ts");
 	assert.ok(
 		tienda.includes("open: (id, fallback) => set({ selectedOfferId: id, fallbackOffer: fallback ?? null })"),

@@ -20,7 +20,7 @@ type SkeletonProps = {
  * the loading layout in one `<Skeleton>` (single opacity loop for the whole
  * block instead of one animation per bar). Respects the OS Reduce Motion
  * setting — the block then renders as a static soft gray instead of pulsing,
- * mirroring `ScreenTransition`'s handling.
+ * mirroring the screen transition's handling.
  */
 export function Skeleton({ style, children }: SkeletonProps) {
 	const [opacity] = useState(() => new Animated.Value(1));
