@@ -1,6 +1,6 @@
 import { displayProductName } from "../utils/productName";
+import { API_BASE_URL } from "../config";
 
-const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
 /** How a campaign discount applies. Mirrors the scraper's `promoMechanic`
  * exactly; anything the scraper cannot classify arrives as null. */
@@ -303,7 +303,7 @@ export async function getOffers(
 	const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
 	if (chains?.length) params.append("chains", chains.join(","));
 	if (categories?.length) params.append("categories", categories.join(","));
-	const response = await fetch(`${BACKEND_URL}/offers?${params.toString()}`, {
+	const response = await fetch(`${API_BASE_URL}/offers?${params.toString()}`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",

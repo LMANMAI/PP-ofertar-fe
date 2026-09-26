@@ -1,8 +1,8 @@
 import { describePromo, type Offer, type PromoMechanic, type PromoWording } from "./offersApi";
 import { describePromoLabel, pickProductPromo, readPromoLabels } from "./promoLabels";
 import { displayProductName, isPromoLine } from "../utils/productName";
+import { API_BASE_URL } from "../config";
 
-const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
 export interface BestOffer {
 	retailerName: string;
@@ -312,7 +312,7 @@ export async function getRecurringProducts(
 	ticketId?: number,
 ): Promise<RecurringProduct[]> {
 	const query = ticketId != null ? `?ticketId=${ticketId}` : "";
-	const response = await fetch(`${BACKEND_URL}/products/recurring${query}`, {
+	const response = await fetch(`${API_BASE_URL}/products/recurring${query}`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",

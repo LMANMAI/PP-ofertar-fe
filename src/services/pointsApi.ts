@@ -1,4 +1,4 @@
-const BASE_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
+import { API_BASE_URL } from "../config";
 
 export type PointsReason =
 	| "REFERRAL_SIGNUP" // vos, al registrarte con un código (inmediato)
@@ -34,7 +34,7 @@ async function parseApiError(res: Response): Promise<string> {
 export async function getPointsBalance(
 	token: string,
 ): Promise<PointsBalanceResponse> {
-	const res = await fetch(`${BASE_URL}/points/me`, {
+	const res = await fetch(`${API_BASE_URL}/points/me`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -49,7 +49,7 @@ export async function getPointsBalance(
 export async function getPointsHistory(
 	token: string,
 ): Promise<PointsTransactionResponse[]> {
-	const res = await fetch(`${BASE_URL}/points/history`, {
+	const res = await fetch(`${API_BASE_URL}/points/history`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -68,7 +68,7 @@ export async function redeemReward(
 	rewardId: string,
 	points: number,
 ): Promise<PointsBalanceResponse> {
-	const res = await fetch(`${BASE_URL}/points/redeem`, {
+	const res = await fetch(`${API_BASE_URL}/points/redeem`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",

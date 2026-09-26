@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
+import { API_BASE_URL } from "../config";
 
 export interface ComercioPrecioResponse {
 	comercioId: string | null;
@@ -48,7 +48,7 @@ async function getJson<T>(path: string): Promise<T> {
 	const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 	let response: Response;
 	try {
-		response = await fetch(`${BACKEND_URL}${path}`, {
+		response = await fetch(`${API_BASE_URL}${path}`, {
 			headers: { Accept: "application/json" },
 			signal: controller.signal,
 		});
