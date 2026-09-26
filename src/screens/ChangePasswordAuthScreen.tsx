@@ -5,7 +5,7 @@ import * as LocalAuthentication from "expo-local-authentication";
 import { space, typography, useThemeColors, type ColorTokens, focusRing } from "../theme/designSystem";
 import { InputField, PasswordStrengthBar, BottomNav, ScreenHeader, type TabKey, InlineNotice, PrimaryButton } from "../components";
 import type { Session } from "../auth/session";
-import { useBiometricInfo } from "../auth/biometricAuth";
+import { storeToken, useBiometricInfo } from "../auth/biometricAuth";
 import { changePassword } from "../services/authApi";
 
 const RULE_LABELS = {
@@ -28,12 +28,13 @@ type Props = {
 	session: Session;
 	biometricEnabled: boolean;
 	onBack: (message?: string) => void;
+	onSessionUpdate?: (session: Session) => void;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
 };
 
-export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, activeTab, onSelectTab, onScanPress }: Props) {
+export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, onSessionUpdate, activeTab, onSelectTab, onScanPress }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -116,7 +117,9 @@ export function ChangePasswordAuthScreen({ session, biometricEnabled, onBack, ac
 		}
 
 		try {
-			await changePassword(session.token, currentPw, newPw);
+			const res = await changePassword(session.token, currentPw, newPw);
+			onSessionUpdate?.({ token: res.token, user: res.user });
+			if (biometricEnabled) await storeToken(res.token);
 			onBack("Contraseña actualizada correctamente");
 		} catch (err) {
 			const message = err instanceof Error ? err.message : "";

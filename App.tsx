@@ -20,9 +20,6 @@ import {
 	ComparePricesScreen,
 	ConfirmRedeemScreen,
 	FavoriteStoresScreen,
-	GoogleChooseAccountScreen,
-	GoogleFirstTimeScreen,
-	GoogleVerifyingScreen,
 	HelpCenterScreen,
 	HomeScreen,
 	LoaderScreen,
@@ -57,7 +54,6 @@ import {
 import type { TabKey } from "./src/components";
 import { LoadingOverlay, OnboardingProvider, ScreenTransition, Toast } from "./src/components";
 import type { PointsHistoryEntry } from "./src/screens/PointsHistoryScreen";
-import { MOCK_USER } from "./src/auth/mockAuth";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
 import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
@@ -69,7 +65,6 @@ import { colors, ThemePreferenceProvider } from "./src/theme/designSystem";
 type Screen =
 	| "biometricLock" | "biometricPrompt" | "welcome" | "login" | "register1" | "register2" | "loader"
 	| "welcomeTransition" | "locationPermission"
-	| "googleChoose" | "googleVerifying" | "googleFirstTime"
 	| "passwordRecovery" | "checkEmail" | "changePassword" | "passwordSuccess" | "changePasswordAuth"
 	| "main"
 	| "captureTicket" | "pdfConfirm" | "scanError" | "ticketProcessed"
@@ -536,41 +531,6 @@ export default function App() {
 				<LoaderScreen onDone={handlePostLogin} />
 			)}
 
-			{screen === "googleChoose" && (
-				<GoogleChooseAccountScreen
-					onBack={() => setScreen("login")}
-					onSelect={() => setScreen("googleVerifying")}
-				/>
-			)}
-
-			{screen === "googleVerifying" && (
-				<GoogleVerifyingScreen onDone={() => setScreen("googleFirstTime")} />
-			)}
-
-			{screen === "googleFirstTime" && (
-				<GoogleFirstTimeScreen
-					onBack={() => setScreen("login")}
-					onComplete={() => {
-						setSession({
-							token: "",
-							user: {
-								id: 0,
-								name: `${MOCK_USER.firstName} ${MOCK_USER.lastName}`,
-								email: MOCK_USER.email,
-								profilePicture: null,
-								address: null,
-								alternativeBrandsEnabled: true,
-								referralCode: "",
-								points: 0,
-								offersPushEnabled: true,
-								createdAt: "",
-							},
-						});
-						setScreen("welcomeTransition");
-					}}
-				/>
-			)}
-
 			{screen === "passwordRecovery" && (
 				<PasswordRecoveryScreen
 					onBack={() => setScreen("login")}
@@ -607,6 +567,7 @@ export default function App() {
 			{screen === "changePasswordAuth" && session && (
 				<ChangePasswordAuthScreen
 					session={session}
+					onSessionUpdate={setSession}
 					biometricEnabled={biometricEnabled}
 					onBack={(msg) => { if (msg) setToastMessage(msg); goMain("profile"); }}
 					activeTab={tab}

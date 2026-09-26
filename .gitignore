@@ -4,7 +4,8 @@
 node_modules/
 .claude
 .agents
-.github
+.github/*
+!.github/workflows/
 # Expo
 .expo/
 dist/

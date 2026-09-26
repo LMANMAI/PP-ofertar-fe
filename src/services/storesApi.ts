@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
+import { API_BASE_URL } from "../config";
 
 export interface StoreChain {
 	slug: string;
@@ -23,7 +23,7 @@ export interface FavoriteStores {
 }
 
 async function authedGet<T>(path: string, token: string): Promise<T> {
-	const res = await fetch(`${BACKEND_URL}${path}`, {
+	const res = await fetch(`${API_BASE_URL}${path}`, {
 		method: "GET",
 		headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
 	});
@@ -62,7 +62,7 @@ export async function updateFavoriteStores(
 	token: string,
 	data: { chainSlugs?: string[]; radiusKm?: number },
 ): Promise<FavoriteStores> {
-	const res = await fetch(`${BACKEND_URL}/stores/favorites`, {
+	const res = await fetch(`${API_BASE_URL}/stores/favorites`, {
 		method: "PUT",
 		headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
 		body: JSON.stringify(data),
