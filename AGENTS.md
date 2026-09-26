@@ -9,13 +9,13 @@ npm run ios        # Launch on iOS (macOS only)
 npm run web        # Launch in browser
 ```
 
-Checks: `npm run typecheck` (tsc), `npm run lint` (eslint), `npm run verify` (runs every `scripts/verify*.ts` via tsx) and `npm test` (vitest, for the API layer under `src/api/__tests__`). CI (`.github/workflows/ci.yml`) runs all four on each PR. There is no formatter.
+Checks: `npm run typecheck` (tsc), `npm run lint` (eslint), `npm run verify` (runs every `scripts/verify*.ts` via tsx) and `npm test` (vitest: the API layer, the stores and the stack semantics of `nav`). Manual regression list: `docs/smoke-test.md`. CI (`.github/workflows/ci.yml`) runs all four on each PR. There is no formatter.
 
 ## Architecture
 
 - **Entry**: `index.ts` → `registerRootComponent(App)` — standard Expo managed workflow.
-- **Navigation**: There is **no navigation library**. All routing is a `screen` state machine in `App.tsx`. Do not add react-navigation unless explicitly asked.
-- **State management**: Zustand stores in `src/store/` (`sessionStore`, `pointsStore`, `offersStore`, `scanStore`, `uiStore`; `resetAllStores()` on logout). Start-up and session effects live in `src/hooks/useAppBootstrap.ts`. `App.tsx` still owns the `screen` and the params of the current screen (compare product, selected store/reward, recovery email…) as local state, and passes what screens need as props. Stores must not import native modules (they are unit-tested with vitest in plain Node); `announcedTickets.ts` is SecureStore persistence, not a Zustand store.
+- **Navigation**: React Navigation (native stack), one route per screen in `src/navigation/RootNavigator.tsx`; the route names and their params are typed in `src/navigation/types.ts`. Screens are still prop-driven: each route in `src/navigation/routes/*.tsx` is a thin adapter that reads the stores and wires the screen's callbacks to `nav` (`src/navigation/nav.ts`): `push` (drill down), `replace` (lateral move), `backTo` (return to a screen already in the stack), `resetTo` (start over), `goMain(tab)` / `selectTab(tab)` (the bottom bar; Home, Offers and Profile share the `Main` route and `uiStore.tab` picks which one shows). Actions that mix navigation with state or the backend live in `src/navigation/actions.ts`. To add a screen: a route component, its name in `types.ts`, one `<Stack.Screen>`.
+- **State management**: Zustand stores in `src/store/` (`sessionStore`, `pointsStore`, `offersStore`, `scanStore`, `uiStore`, `authFlowStore`; `resetAllStores()` on logout). Start-up and session effects live in `src/hooks/useAppBootstrap.ts`, push-notification taps in `src/hooks/useNotificationTaps.ts`. Stores must not import native modules (they are unit-tested with vitest in plain Node); `announcedTickets.ts` is SecureStore persistence, not a Zustand store.
 - **Styling**: React Native `StyleSheet.create` + centralized tokens in `src/theme/designSystem.ts` (`colors`, `typography`). No Tailwind, no styled-components.
 
 ## Screen conventions
@@ -24,7 +24,7 @@ All screens live in `src/screens/`, one component per file. The barrel `src/scre
 
 - **Named exports** are the dominant pattern (e.g. `export function HomeScreen`).
 - A **few screens use default exports** (`RegisterStep1`, `RegisterStep2`). Check the file before adding imports — the barrel handles both but deduping is fragile if you add a duplicate export.
-- Every screen receives callbacks as props (no navigation hooks, no global router).
+- Every screen receives callbacks as props (no navigation hooks inside screens): the route adapters in `src/navigation/routes` provide them.
 - Plus Jakarta Sans is preloaded once in `App.tsx`; a screen that renders text can rely on it (no per-screen `useFonts` needed).
 
 ## Reusable components
