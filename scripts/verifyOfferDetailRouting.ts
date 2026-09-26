@@ -138,7 +138,12 @@ check("el router resuelve con resolveOffer y no con su propia copia", () => {
 check("el router sigue aceptando el fallback al abrir", () => {
 	const app = src("App.tsx");
 	assert.match(app, /const openOffer = \(id: string, fallback\?: Offer \| null\)/);
-	assert.match(app, /setFallbackOffer\(fallback \?\? null\)/);
+	assert.ok(app.includes("openOfferInStore(id, fallback)"), "openOffer no le pasa el fallback al store");
+	const tienda = src("src", "store", "offersStore.ts");
+	assert.ok(
+		tienda.includes("open: (id, fallback) => set({ selectedOfferId: id, fallbackOffer: fallback ?? null })"),
+		"el store no guarda el fallback",
+	);
 });
 
 console.log(failures ? `\n${failures} check(s) failed.` : "\nAll checks passed.");
