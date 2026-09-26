@@ -1,82 +1,27 @@
-import { API_BASE_URL } from "../config";
+import type { components } from "../api/schema";
+import { request } from "../api/client";
+import { PointsBalanceSchema, PointsHistorySchema } from "../api/schemas";
 
-export type PointsReason =
-	| "REFERRAL_SIGNUP" // vos, al registrarte con un código (inmediato)
-	| "REFERRAL_ACTIVATED" // quien invitó, cuando vos escaneaste tu primer ticket
-	| "REFERRAL_RETAINED" // quien invitó, si vos seguís activo 30 días después
-	| "REDEEM";
+export type PointsTransactionResponse = components["schemas"]["PointsHistoryEntryResponse"];
 
-export type PointsTransactionResponse = {
-	id: number;
-	reason: PointsReason;
-	description: string;
-	points: number; // positivo suma, negativo resta (p. ej. un canje)
-	createdAt: string;
-};
+/** REFERRAL_SIGNUP: vos, al registrarte con un código (inmediato). REFERRAL_ACTIVATED: quien
+ * invitó, cuando vos escaneaste tu primer ticket. REFERRAL_RETAINED: quien invitó, si vos
+ * seguís activo 30 días después. REDEEM: un canje. */
+export type PointsReason = PointsTransactionResponse["reason"];
 
-export type PointsBalanceResponse = {
-	balance: number;
-	referralCode: string;
-};
+export type PointsBalanceResponse = components["schemas"]["PointsBalanceResponse"];
 
-async function parseApiError(res: Response): Promise<string> {
-	try {
-		const json = await res.json();
-		if (json.message && typeof json.message === "string") {
-			return json.message;
-		}
-		return `Error del servidor (${res.status})`;
-	} catch {
-		return `Error del servidor (${res.status})`;
-	}
+export function getPointsBalance(token: string): Promise<PointsBalanceResponse> {
+	return request("/points/me", { token, schema: PointsBalanceSchema });
 }
 
-export async function getPointsBalance(
-	token: string,
-): Promise<PointsBalanceResponse> {
-	const res = await fetch(`${API_BASE_URL}/points/me`, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-	});
-
-	if (!res.ok) throw new Error(await parseApiError(res));
-	return res.json() as Promise<PointsBalanceResponse>;
-}
-
-export async function getPointsHistory(
-	token: string,
-): Promise<PointsTransactionResponse[]> {
-	const res = await fetch(`${API_BASE_URL}/points/history`, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-	});
-
-	if (!res.ok) throw new Error(await parseApiError(res));
-	return res.json() as Promise<PointsTransactionResponse[]>;
+/** `points` positivo suma, negativo resta (p. ej. un canje). */
+export function getPointsHistory(token: string): Promise<PointsTransactionResponse[]> {
+	return request("/points/history", { token, schema: PointsHistorySchema });
 }
 
 /** Canjea una recompensa del catálogo local (src/data/rewards.ts) por su id.
  * El backend es la fuente de verdad del saldo: si no alcanza, devuelve 409. */
-export async function redeemReward(
-	token: string,
-	rewardId: string,
-	points: number,
-): Promise<PointsBalanceResponse> {
-	const res = await fetch(`${API_BASE_URL}/points/redeem`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-		body: JSON.stringify({ rewardId, points }),
-	});
-
-	if (!res.ok) throw new Error(await parseApiError(res));
-	return res.json() as Promise<PointsBalanceResponse>;
+export function redeemReward(token: string, rewardId: string, points: number): Promise<PointsBalanceResponse> {
+	return request("/points/redeem", { method: "POST", token, json: { rewardId, points }, schema: PointsBalanceSchema });
 }

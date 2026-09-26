@@ -1,27 +1,14 @@
-import { API_BASE_URL } from "../config";
+import type { components } from "../api/schema";
+import { request, requestVoid } from "../api/client";
+import { AuthResponseSchema, UserProfileSchema } from "../api/schemas";
 
-export type UserProfile = {
-	id: number;
-	name: string;
-	email: string;
-	profilePicture: string | null;
-	address: string | null;
-	/** Show offers on the same product from other brands. */
-	alternativeBrandsEnabled: boolean;
-	createdAt: string;
-	/** Código propio para invitar. Lo genera el backend al crear la cuenta. */
-	referralCode: string;
-	/** Saldo de puntos actual (fuente de verdad: backend, ver src/services/pointsApi.ts). */
-	points: number;
-	/** Alertas de ofertas/reactivación por push. Los pushes de tickets y
-	 * referidos son transaccionales y no dependen de este flag. */
-	offersPushEnabled: boolean;
-};
+/** Perfil del usuario. `points` es el saldo actual (fuente de verdad: backend, ver
+ * src/services/pointsApi.ts); `referralCode` puede ser null en cuentas anteriores al
+ * sistema de referidos; `offersPushEnabled` gobierna solo los pushes de ofertas y
+ * reactivación (los de tickets y referidos son transaccionales). */
+export type UserProfile = components["schemas"]["UserProfileResponse"];
 
-export type AuthResponse = {
-	token: string;
-	user: UserProfile;
-};
+export type AuthResponse = components["schemas"]["AuthResponse"];
 
 export type UpdateProfileData = {
 	name?: string;
@@ -35,29 +22,17 @@ export type UpdateProfileData = {
 	currentPassword?: string;
 };
 
-async function parseApiError(res: Response): Promise<string> {
-	try {
-		const json = await res.json();
-		if (json.message && typeof json.message === "string") {
-			return json.message;
-		}
-		return `Error del servidor (${res.status})`;
-	} catch {
-		return `Error del servidor (${res.status})`;
-	}
-}
-
-export async function register(
+export function register(
 	name: string,
 	email: string,
 	password: string,
 	/** Código de quien invitó, si se completó en RegisterStep1. Opcional. */
 	referralCode?: string,
 ): Promise<AuthResponse> {
-	const res = await fetch(`${API_BASE_URL}/auth/register`, {
+	return request("/auth/register", {
 		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
+		schema: AuthResponseSchema,
+		json: {
 			name,
 			email,
 			password,
@@ -65,120 +40,49 @@ export async function register(
 			// los puntos de bienvenida. Un código mal tipeado o inválido nunca
 			// debe bloquear el alta — el backend lo ignora en ese caso.
 			...(referralCode ? { referralCode } : {}),
-		}),
-	});
-
-	if (!res.ok) {
-		const message = await parseApiError(res);
-		throw new Error(message);
-	}
-
-	return res.json() as Promise<AuthResponse>;
-}
-
-export async function login(
-	email: string,
-	password: string,
-): Promise<AuthResponse> {
-	const res = await fetch(`${API_BASE_URL}/auth/login`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ email, password }),
-	});
-
-	if (!res.ok) {
-		const message = await parseApiError(res);
-		throw new Error(message);
-	}
-
-	return res.json() as Promise<AuthResponse>;
-}
-
-export async function getProfile(token: string): Promise<UserProfile> {
-	const res = await fetch(`${API_BASE_URL}/users/me`, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
 		},
 	});
-
-	if (!res.ok) {
-		const message = await parseApiError(res);
-		throw new Error(message);
-	}
-
-	return res.json() as Promise<UserProfile>;
 }
 
-export async function updateProfile(
-	token: string,
-	data: UpdateProfileData,
-): Promise<AuthResponse> {
-	const res = await fetch(`${API_BASE_URL}/users/profile`, {
-		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-		body: JSON.stringify(data),
-	});
-
-	if (!res.ok) {
-		const message = await parseApiError(res);
-		throw new Error(message);
-	}
-
-	return res.json() as Promise<AuthResponse>;
+export function login(email: string, password: string): Promise<AuthResponse> {
+	return request("/auth/login", { method: "POST", schema: AuthResponseSchema, json: { email, password } });
 }
 
-export async function changePassword(
+export function getProfile(token: string): Promise<UserProfile> {
+	return request("/users/me", { token, schema: UserProfileSchema });
+}
+
+export function updateProfile(token: string, data: UpdateProfileData): Promise<AuthResponse> {
+	return request("/users/profile", { method: "PUT", token, json: data, schema: AuthResponseSchema });
+}
+
+/** New token: changing the password revokes every earlier one. */
+export function changePassword(
 	token: string,
 	currentPassword: string,
 	newPassword: string,
 ): Promise<AuthResponse> {
-	const res = await fetch(`${API_BASE_URL}/users/password`, {
+	return request("/users/password", {
 		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-		body: JSON.stringify({ currentPassword, newPassword }),
+		token,
+		json: { currentPassword, newPassword },
+		schema: AuthResponseSchema,
 	});
-
-	if (!res.ok) {
-		const message = await parseApiError(res);
-		throw new Error(message);
-	}
-
-	// New token: changing the password revokes every earlier one.
-	return res.json() as Promise<AuthResponse>;
-}
-
-async function postNoContent(path: string, body: unknown): Promise<void> {
-	const res = await fetch(`${API_BASE_URL}${path}`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
-	});
-	if (!res.ok) {
-		throw new Error(await parseApiError(res));
-	}
 }
 
 /** Emails a 6-digit code. The server answers the same whether or not the
  * email has an account, so a success here does not mean a mail was sent. */
 export function requestPasswordReset(email: string): Promise<void> {
-	return postNoContent("/auth/forgot-password", { email });
+	return requestVoid("/auth/forgot-password", { method: "POST", json: { email } });
 }
 
 /** Rejects a wrong or expired code before the user types a new password. */
 export function verifyResetCode(email: string, code: string): Promise<void> {
-	return postNoContent("/auth/verify-reset-code", { email, code });
+	return requestVoid("/auth/verify-reset-code", { method: "POST", json: { email, code } });
 }
 
 export function resetPassword(email: string, code: string, newPassword: string): Promise<void> {
-	return postNoContent("/auth/reset-password", { email, code, newPassword });
+	return requestVoid("/auth/reset-password", { method: "POST", json: { email, code, newPassword } });
 }
 
 /** What the user should read for a failed auth call: fetch throws a bare
@@ -195,23 +99,6 @@ export function friendlyAuthError(err: unknown): string {
 	return message;
 }
 
-export async function uploadProfilePicture(
-	token: string,
-	base64: string,
-): Promise<AuthResponse> {
-	const res = await fetch(`${API_BASE_URL}/users/profile`, {
-		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-		body: JSON.stringify({ profilePicture: base64 }),
-	});
-
-	if (!res.ok) {
-		const message = await parseApiError(res);
-		throw new Error(message);
-	}
-
-	return res.json() as Promise<AuthResponse>;
+export function uploadProfilePicture(token: string, base64: string): Promise<AuthResponse> {
+	return updateProfile(token, { profilePicture: base64 });
 }
