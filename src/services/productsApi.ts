@@ -1,7 +1,8 @@
 import { describePromo, type Offer, type PromoMechanic, type PromoWording } from "./offersApi";
 import { describePromoLabel, pickProductPromo, readPromoLabels } from "./promoLabels";
 import { displayProductName, isPromoLine } from "../utils/productName";
-import { API_BASE_URL } from "../config";
+import { request } from "../api/client";
+import { RecurringProductListSchema } from "../api/schemas";
 
 
 export interface BestOffer {
@@ -311,21 +312,11 @@ export async function getRecurringProducts(
 	token: string,
 	ticketId?: number,
 ): Promise<RecurringProduct[]> {
-	const query = ticketId != null ? `?ticketId=${ticketId}` : "";
-	const response = await fetch(`${API_BASE_URL}/products/recurring${query}`, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
+	const products: RecurringProduct[] = await request("/products/recurring", {
+		token,
+		query: { ticketId },
+		schema: RecurringProductListSchema,
 	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${response.status}`);
-	}
-
-	const products = (await response.json()) as RecurringProduct[];
 	// The app ships independently of the backend, and these list fields are
 	// read with `.length` all over the screens. Against a backend that predates
 	// them, an undefined here takes the whole screen down instead of degrading.

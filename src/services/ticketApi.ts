@@ -1,67 +1,16 @@
 import { File as ExpoFile } from "expo-file-system";
 import { displayProductName } from "../utils/productName";
-import { API_BASE_URL } from "../config";
+import type { components } from "../api/schema";
+import { request, requestVoid } from "../api/client";
+import { SavingsReportSchema, TicketListSchema, TicketSchema } from "../api/schemas";
 
+export type TicketItemResponse = components["schemas"]["TicketItemResponse"];
 
-export interface TicketItemResponse {
-	id: number;
-	description: string;
-	rawDescription: string | null;
-	quantity: number;
-	unitPrice: number;
-	originalPrice: number | null;
-	subtotal: number | null;
-	barcode: string | null;
-	category: string | null;
-	discountAmount: number | null;
-	discountDescription: string | null;
-}
+/** `reviewed` es false hasta que el usuario abre el ticket terminado y lo confirma;
+ * recién entonces deja de ser editable. */
+export type TicketResponse = components["schemas"]["TicketResponse"];
 
-export interface TicketResponse {
-	id: number;
-	storeName: string | null;
-	ticketId: string | null;
-	total: number | null;
-	subtotal: number | null;
-	totalDiscounts: number | null;
-	status: "PENDING" | "PROCESSED" | "FAILED";
-	/** False until the user opens the finished ticket and confirms it. Only
-	 * then does it stop being editable. */
-	reviewed: boolean;
-	createdAt: string;
-	items: TicketItemResponse[];
-}
-
-export interface SavingsReportResponse {
-	summary: {
-		totalSavings: number;
-		totalSpent: number;
-		ticketCount: number;
-		averageSavings: number;
-	};
-	byCategory: Array<{
-		category: string;
-		totalDiscounts: number;
-		itemCount: number;
-	}>;
-	byStore: Array<{
-		storeName: string;
-		totalDiscounts: number;
-		ticketCount: number;
-	}>;
-	timeline: Array<{
-		period: string;
-		totalDiscounts: number;
-		ticketCount: number;
-	}>;
-	topProducts: Array<{
-		description: string;
-		barcode: string | null;
-		category: string | null;
-		purchaseCount: number;
-		totalDiscounts: number;
-	}>;
-}
+export type SavingsReportResponse = components["schemas"]["SavingsReportResponse"];
 
 function cleanTicket(ticket: TicketResponse): TicketResponse {
 	return {
@@ -98,55 +47,16 @@ export async function scanTicket(
 		formData.append("file", new ExpoFile(photo.uri) as any, `ticket-${index}.${extension}`);
 	});
 
-	const response = await fetch(`${API_BASE_URL}/tickets/scan`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${token}`,
-		},
-		body: formData,
-	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${response.status}`);
-	}
-
-	return cleanTicket(await response.json());
+	return cleanTicket(await request("/tickets/scan", { method: "POST", token, form: formData, schema: TicketSchema }));
 }
 
 export async function getTickets(token: string): Promise<TicketResponse[]> {
-	const response = await fetch(`${API_BASE_URL}/tickets`, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${response.status}`);
-	}
-
-	const tickets = (await response.json()) as TicketResponse[];
+	const tickets = await request("/tickets", { token, schema: TicketListSchema });
 	return tickets.map(cleanTicket);
 }
 
 export async function getTicket(token: string, id: number): Promise<TicketResponse> {
-	const response = await fetch(`${API_BASE_URL}/tickets/${id}`, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${response.status}`);
-	}
-
-	return cleanTicket(await response.json());
+	return cleanTicket(await request(`/tickets/${id}`, { token, schema: TicketSchema }));
 }
 
 export async function updateTicket(
@@ -154,61 +64,13 @@ export async function updateTicket(
 	id: number,
 	data: UpdateTicketData,
 ): Promise<TicketResponse> {
-	const response = await fetch(`${API_BASE_URL}/tickets/${id}`, {
-		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-		body: JSON.stringify(data),
-	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${response.status}`);
-	}
-
-	return cleanTicket(await response.json());
+	return cleanTicket(await request(`/tickets/${id}`, { method: "PUT", token, json: data, schema: TicketSchema }));
 }
 
-export async function deleteTicket(token: string, id: number): Promise<void> {
-	const response = await fetch(`${API_BASE_URL}/tickets/${id}`, {
-		method: "DELETE",
-		headers: {
-			Authorization: `Bearer ${token}`,
-		},
-	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${response.status}`);
-	}
+export function deleteTicket(token: string, id: number): Promise<void> {
+	return requestVoid(`/tickets/${id}`, { method: "DELETE", token });
 }
 
-export async function getSavingsReport(
-	token: string,
-	from?: string,
-	to?: string,
-): Promise<SavingsReportResponse> {
-	const params = new URLSearchParams();
-	if (from) params.append("from", from);
-	if (to) params.append("to", to);
-
-	const queryString = params.toString();
-	const url = `${API_BASE_URL}/savings/report${queryString ? `?${queryString}` : ""}`;
-
-	const response = await fetch(url, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
-	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${response.status}`);
-	}
-
-	return response.json();
+export function getSavingsReport(token: string, from?: string, to?: string): Promise<SavingsReportResponse> {
+	return request("/savings/report", { token, query: { from, to }, schema: SavingsReportSchema });
 }

@@ -1,4 +1,6 @@
-import { API_BASE_URL } from "../config";
+import type { ZodType } from "zod";
+import { ApiContractError, ApiError, request } from "../api/client";
+import { ProductoDetalleSchema, SucursalesCercanasSchema } from "../api/schemas";
 
 export interface ComercioPrecioResponse {
 	comercioId: string | null;
@@ -43,32 +45,22 @@ export class SepaError extends Error {
 /** Sin esto, un servidor frío dejaba el spinner girando para siempre. */
 const TIMEOUT_MS = 10_000;
 
-async function getJson<T>(path: string): Promise<T> {
-	const controller = new AbortController();
-	const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-	let response: Response;
+async function getJson<T>(path: string, schema: ZodType<T>, query?: Record<string, string | number>): Promise<T> {
 	try {
-		response = await fetch(`${API_BASE_URL}${path}`, {
-			headers: { Accept: "application/json" },
-			signal: controller.signal,
-		});
-	} catch {
-		if (controller.signal.aborted) {
-			throw new SepaError("timeout", "La búsqueda tardó demasiado. Probá de nuevo.");
+		return await request(path, { query, schema, timeoutMs: TIMEOUT_MS });
+	} catch (err) {
+		if (err instanceof ApiContractError) throw err;
+		if (err instanceof ApiError) {
+			if (err.kind === "timeout") {
+				throw new SepaError("timeout", "La búsqueda tardó demasiado. Probá de nuevo.");
+			}
+			if (err.status === 400) {
+				throw new SepaError("invalid", "Ese no es un código de barras válido.");
+			}
+			throw new SepaError("server", "No pudimos consultar el producto. Probá de nuevo.");
 		}
 		throw new SepaError("network", "No hay conexión. Revisá tu internet e intentá de nuevo.");
-	} finally {
-		clearTimeout(timer);
 	}
-
-	if (!response.ok) {
-		if (response.status === 400) {
-			throw new SepaError("invalid", "Ese no es un código de barras válido.");
-		}
-		throw new SepaError("server", "No pudimos consultar el producto. Probá de nuevo.");
-	}
-
-	return response.json();
 }
 
 /**
@@ -80,7 +72,7 @@ async function getJson<T>(path: string): Promise<T> {
  * servidor — el "no hay precios" es un estado normal que renderiza la pantalla.
  */
 export function getProductoPorEan(ean: string): Promise<ProductoDetalleResponse> {
-	return getJson<ProductoDetalleResponse>(`/sepa/productos/${encodeURIComponent(ean)}`);
+	return getJson(`/sepa/productos/${encodeURIComponent(ean)}`, ProductoDetalleSchema);
 }
 
 /** Una sucursal con su precio de lista, y lo necesario para llegar. */
@@ -123,10 +115,9 @@ export function getSucursalesCercanas(
 	longitude: number,
 	radiusKm: number,
 ): Promise<SucursalesCercanas> {
-	const params = new URLSearchParams({
-		lat: String(latitude),
-		lng: String(longitude),
-		radiusKm: String(radiusKm),
+	return getJson(`/sepa/productos/${encodeURIComponent(ean)}/sucursales`, SucursalesCercanasSchema, {
+		lat: latitude,
+		lng: longitude,
+		radiusKm,
 	});
-	return getJson<SucursalesCercanas>(`/sepa/productos/${encodeURIComponent(ean)}/sucursales?${params}`);
 }

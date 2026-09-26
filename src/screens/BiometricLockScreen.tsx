@@ -6,6 +6,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
 import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 import { getStoredToken, clearStoredToken, useBiometricInfo } from "../auth/biometricAuth";
+import { ApiError } from "../api/client";
+import { getProfile } from "../services/authApi";
 import type { Session } from "../auth/session";
 
 type Props = {
@@ -58,24 +60,15 @@ export function BiometricLockScreen({ onSuccess, onFallback }: Props) {
 			}
 
 			try {
-				const res = await fetch(
-					"https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host/users/me",
-					{
-						headers: { Authorization: `Bearer ${token}` },
-					},
-				);
-
-				if (!res.ok) {
+				const user = await getProfile(token);
+				onSuccess({ token, user });
+			} catch (err) {
+				if (err instanceof ApiError) {
 					await clearStoredToken();
 					setError("Tu sesión expiró. Iniciá sesión con tu contraseña.");
-					setLoading(false);
-					return;
+				} else {
+					setError("Error de conexión. Verificá tu internet.");
 				}
-
-				const user = await res.json();
-				onSuccess({ token, user });
-			} catch {
-				setError("Error de conexión. Verificá tu internet.");
 				setLoading(false);
 			}
 		} catch {
