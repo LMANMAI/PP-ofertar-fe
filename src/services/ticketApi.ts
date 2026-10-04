@@ -1,7 +1,7 @@
 import { File as ExpoFile } from "expo-file-system";
 import { displayProductName } from "../utils/productName";
+import { API_BASE_URL } from "../config";
 
-const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
 export interface TicketItemResponse {
 	id: number;
@@ -98,7 +98,7 @@ export async function scanTicket(
 		formData.append("file", new ExpoFile(photo.uri) as any, `ticket-${index}.${extension}`);
 	});
 
-	const response = await fetch(`${BACKEND_URL}/tickets/scan`, {
+	const response = await fetch(`${API_BASE_URL}/tickets/scan`, {
 		method: "POST",
 		headers: {
 			Authorization: `Bearer ${token}`,
@@ -115,7 +115,7 @@ export async function scanTicket(
 }
 
 export async function getTickets(token: string): Promise<TicketResponse[]> {
-	const response = await fetch(`${BACKEND_URL}/tickets`, {
+	const response = await fetch(`${API_BASE_URL}/tickets`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -133,7 +133,7 @@ export async function getTickets(token: string): Promise<TicketResponse[]> {
 }
 
 export async function getTicket(token: string, id: number): Promise<TicketResponse> {
-	const response = await fetch(`${BACKEND_URL}/tickets/${id}`, {
+	const response = await fetch(`${API_BASE_URL}/tickets/${id}`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -154,7 +154,7 @@ export async function updateTicket(
 	id: number,
 	data: UpdateTicketData,
 ): Promise<TicketResponse> {
-	const response = await fetch(`${BACKEND_URL}/tickets/${id}`, {
+	const response = await fetch(`${API_BASE_URL}/tickets/${id}`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
@@ -172,7 +172,7 @@ export async function updateTicket(
 }
 
 export async function deleteTicket(token: string, id: number): Promise<void> {
-	const response = await fetch(`${BACKEND_URL}/tickets/${id}`, {
+	const response = await fetch(`${API_BASE_URL}/tickets/${id}`, {
 		method: "DELETE",
 		headers: {
 			Authorization: `Bearer ${token}`,
@@ -195,7 +195,7 @@ export async function getSavingsReport(
 	if (to) params.append("to", to);
 
 	const queryString = params.toString();
-	const url = `${BACKEND_URL}/savings/report${queryString ? `?${queryString}` : ""}`;
+	const url = `${API_BASE_URL}/savings/report${queryString ? `?${queryString}` : ""}`;
 
 	const response = await fetch(url, {
 		method: "GET",

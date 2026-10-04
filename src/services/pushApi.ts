@@ -1,4 +1,4 @@
-const BASE_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
+import { API_BASE_URL } from "../config";
 
 async function parseApiError(res: Response): Promise<string> {
 	try {
@@ -19,7 +19,7 @@ export async function registerPushToken(
 	expoPushToken: string,
 	platform: "ios" | "android",
 ): Promise<void> {
-	const res = await fetch(`${BASE_URL}/push/register`, {
+	const res = await fetch(`${API_BASE_URL}/push/register`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",

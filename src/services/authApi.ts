@@ -1,4 +1,4 @@
-const BASE_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
+import { API_BASE_URL } from "../config";
 
 export type UserProfile = {
 	id: number;
@@ -54,7 +54,7 @@ export async function register(
 	/** Código de quien invitó, si se completó en RegisterStep1. Opcional. */
 	referralCode?: string,
 ): Promise<AuthResponse> {
-	const res = await fetch(`${BASE_URL}/auth/register`, {
+	const res = await fetch(`${API_BASE_URL}/auth/register`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({
@@ -80,7 +80,7 @@ export async function login(
 	email: string,
 	password: string,
 ): Promise<AuthResponse> {
-	const res = await fetch(`${BASE_URL}/auth/login`, {
+	const res = await fetch(`${API_BASE_URL}/auth/login`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ email, password }),
@@ -95,7 +95,7 @@ export async function login(
 }
 
 export async function getProfile(token: string): Promise<UserProfile> {
-	const res = await fetch(`${BASE_URL}/users/me`, {
+	const res = await fetch(`${API_BASE_URL}/users/me`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -115,7 +115,7 @@ export async function updateProfile(
 	token: string,
 	data: UpdateProfileData,
 ): Promise<AuthResponse> {
-	const res = await fetch(`${BASE_URL}/users/profile`, {
+	const res = await fetch(`${API_BASE_URL}/users/profile`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
@@ -136,8 +136,8 @@ export async function changePassword(
 	token: string,
 	currentPassword: string,
 	newPassword: string,
-): Promise<void> {
-	const res = await fetch(`${BASE_URL}/users/password`, {
+): Promise<AuthResponse> {
+	const res = await fetch(`${API_BASE_URL}/users/password`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
@@ -150,10 +150,13 @@ export async function changePassword(
 		const message = await parseApiError(res);
 		throw new Error(message);
 	}
+
+	// New token: changing the password revokes every earlier one.
+	return res.json() as Promise<AuthResponse>;
 }
 
 async function postNoContent(path: string, body: unknown): Promise<void> {
-	const res = await fetch(`${BASE_URL}${path}`, {
+	const res = await fetch(`${API_BASE_URL}${path}`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify(body),
@@ -196,7 +199,7 @@ export async function uploadProfilePicture(
 	token: string,
 	base64: string,
 ): Promise<AuthResponse> {
-	const res = await fetch(`${BASE_URL}/users/profile`, {
+	const res = await fetch(`${API_BASE_URL}/users/profile`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
