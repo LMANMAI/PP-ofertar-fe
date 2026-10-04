@@ -7,6 +7,11 @@ import type { ShopperContext } from "../hooks/useShopperContext";
 import { useNearbyBranches } from "../hooks/useNearbyBranches";
 import { displayProductName } from "../utils/productName";
 import { directionsUrl } from "../utils/directions";
+import { useNow } from "../hooks/useNow";
+import { rankScopedBranches } from "../utils/branchOrder";
+import { isOpenNow, openingAccessibilityLabel, openingStatus, type OpeningStatus } from "../utils/openingHours";
+import { REFERENCE_NAMES, referenceSummary, type ReferenceKind } from "../location/searchPlaces";
+import { StoreStatusLine } from "./StoreStatusLine";
 import { formatCurrency, formatLongDate } from "../utils/format";
 import {
 	describeDatasetDate,
@@ -42,11 +47,17 @@ type Entry = {
 	/** Address and distance for a branch; the range across branches for a chain. */
 	detail: string;
 	branch: SucursalPrecio | null;
+	/** Dirección de la sucursal (lo que se toca para ir), sin la distancia. */
+	address: string | null;
+	/** "1,2 km", sólo para una sucursal. */
+	distance: string | null;
+	/** Abierta o cerrada ahora; "unknown" sin horarios (backend actual) o para una cadena. */
+	status: OpeningStatus;
 };
 
 const comercioName = (c: ComercioPrecioResponse) => c.bandera || c.razonSocial || "Comercio";
 
-function branchEntry(s: SucursalPrecio): Entry {
+function branchEntry(s: SucursalPrecio, now: number): Entry {
 	const where = [s.direccion, s.localidad].filter((t) => t && t.trim()).join(", ");
 	const km = s.distanciaKm.toLocaleString("es-AR", { maximumFractionDigits: 1 });
 	return {
@@ -55,6 +66,9 @@ function branchEntry(s: SucursalPrecio): Entry {
 		price: s.precio,
 		detail: `${where || s.nombre || "Sucursal"} · a ${km} km`,
 		branch: s,
+		address: where || s.nombre || null,
+		distance: `${km} km`,
+		status: openingStatus(s.horarios, now),
 	};
 }
 
@@ -65,7 +79,16 @@ function comercioEntry(c: ComercioPrecioResponse, index: number): Entry {
 			: c.cantidadSucursales === 1
 				? "1 sucursal"
 				: `${c.cantidadSucursales} sucursales`;
-	return { key: `c${c.comercioId}-${index}`, chain: comercioName(c), price: c.precioMinimo ?? 0, detail: range, branch: null };
+	return {
+		key: `c${c.comercioId}-${index}`,
+		chain: comercioName(c),
+		price: c.precioMinimo ?? 0,
+		detail: range,
+		branch: null,
+		address: null,
+		distance: null,
+		status: { kind: "unknown" },
+	};
 }
 
 /**
@@ -86,6 +109,8 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 	const [showMore, setShowMore] = useState(false);
 	const [imageFailed, setImageFailed] = useState(false);
 	const [mapError, setMapError] = useState(false);
+	// El estado Abierto/Cerrado se recalcula una vez por minuto, no en cada render.
+	const now = useNow(60_000);
 
 	// Only meaningful when both halves were read; an empty list narrows nothing.
 	const chains = useMemo(() => (shopper.favoritesKnown ? shopper.chains : []), [shopper.favoritesKnown, shopper.chains]);
@@ -95,9 +120,14 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 	);
 	const hasNationalPrices = national.best != null || national.otherBest != null;
 	const nearby = useNearbyBranches(producto.ean, shopper.origin, shopper.radiusKm, hasNationalPrices);
+	// A igual precio, primero la que está abierta ahora; nunca por encima de una
+	// más barata (ver `utils/branchOrder`).
 	const branches = useMemo(
-		() => (nearby.status === "ready" ? scopeBranches(nearby.data.sucursales, chains, shopper.favoriteSlugs) : null),
-		[nearby, chains, shopper.favoriteSlugs],
+		() =>
+			nearby.status === "ready"
+				? rankScopedBranches(scopeBranches(nearby.data.sucursales, chains, shopper.favoriteSlugs), now)
+				: null,
+		[nearby, chains, shopper.favoriteSlugs, now],
 	);
 	const nearbyUsable = branches != null && (branches.best != null || branches.otherBest != null);
 
@@ -112,7 +142,7 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 	// care where the numbers came from.
 	const scope = nearbyUsable ? branches : national;
 	const toEntry = (x: SucursalPrecio | ComercioPrecioResponse, i = 0): Entry =>
-		"precio" in x ? branchEntry(x) : comercioEntry(x, i);
+		"precio" in x ? branchEntry(x, now) : comercioEntry(x, i);
 	const best = scope?.best ? toEntry(scope.best) : null;
 	const otherBest = scope?.otherBest ? toEntry(scope.otherBest) : null;
 	const favorites = (scope?.favorites ?? []).map((x, i) => toEntry(x, i));
@@ -127,6 +157,12 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 			: nearbyUsable
 				? `Otras cadenas cerca (${more.length})`
 				: `Otras cadenas (${more.length})`;
+
+	// La más barata puede estar cerrada: sigue arriba (es la más barata), pero se
+	// dice cuál es la más barata que está abierta ahora, si hay una.
+	const heroEntry = best ?? otherBest;
+	const heroList = best ? (mode === "all" ? others : favorites) : others;
+	const cheapestOpen = heroEntry?.status.kind === "closed" ? heroList.find((e) => isOpenNow(e.status)) ?? null : null;
 
 	// What the shelf price is measured against: the lowest in scope, or, when none
 	// of their chains sells it, the lowest anywhere — said as such.
@@ -146,8 +182,18 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 	};
 
 	const radius = shopper.radiusKm;
-	const overline =
-		nearbyUsable ? (mode === "all" ? "CERCA TUYO" : "EN TUS TIENDAS FAVORITAS, CERCA TUYO") : mode === "all" ? "EN TODO EL PAÍS" : "EN TUS TIENDAS FAVORITAS";
+	// La misma referencia que el mapa de "Mis tiendas favoritas": Casa, Trabajo o
+	// donde esté el teléfono.
+	const referenceKind: ReferenceKind = shopper.origin.status === "ready" ? shopper.origin.reference : "current";
+	const near = referenceKind === "current" ? "cerca tuyo" : `cerca de ${REFERENCE_NAMES[referenceKind]}`;
+	const nearTitle = near[0].toUpperCase() + near.slice(1);
+	const overline = nearbyUsable
+		? mode === "all"
+			? near.toUpperCase()
+			: `EN TUS TIENDAS FAVORITAS, ${near.toUpperCase()}`
+		: mode === "all"
+			? "EN TODO EL PAÍS"
+			: "EN TUS TIENDAS FAVORITAS";
 
 	return (
 		<>
@@ -226,11 +272,19 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 							<>
 								<Text style={styles.heroPrice}>{formatCurrency(best.price)}</Text>
 								<Text style={styles.heroChain}>en {best.chain}</Text>
-								<Text style={styles.heroNote}>
-									{best.branch
-										? `${best.detail}${shopper.origin.status === "ready" && shopper.origin.label ? ` de ${shopper.origin.label}` : ""}. Es el precio de lista en esa sucursal.`
-										: "Es el precio más bajo entre las sucursales de esa cadena en todo el país; en la tuya puede ser más alto."}
-								</Text>
+								{best.branch ? (
+									<>
+										<StoreStatusLine status={best.status} />
+										<AddressLink entry={best} onPress={goTo} styles={styles} colors={colors} />
+										<Text style={styles.heroNote}>
+											{`A ${best.distance}${referenceKind !== "current" ? ` de ${REFERENCE_NAMES[referenceKind]}` : ""}. Es el precio de lista en esa sucursal.`}
+										</Text>
+									</>
+								) : (
+									<Text style={styles.heroNote}>
+										Es el precio más bajo entre las sucursales de esa cadena en todo el país; en la tuya puede ser más alto.
+									</Text>
+								)}
 								{best.branch && (
 									<DirectionsButton entry={best} onPress={goTo} styles={styles} colors={colors} prominent />
 								)}
@@ -245,15 +299,43 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 								{otherBest && (
 									<>
 										<Text style={styles.heroNote}>
-											{nearbyUsable ? "Cerca tuyo" : "En otras cadenas"}, desde {formatCurrency(otherBest.price)} en {otherBest.chain}
-											{otherBest.branch ? `. ${otherBest.detail}` : "."}
+											{nearbyUsable ? nearTitle : "En otras cadenas"}, desde {formatCurrency(otherBest.price)} en {otherBest.chain}
+											{otherBest.branch ? `, a ${otherBest.distance}.` : "."}
 										</Text>
 										{otherBest.branch && (
-											<DirectionsButton entry={otherBest} onPress={goTo} styles={styles} colors={colors} prominent />
+											<>
+												<StoreStatusLine status={otherBest.status} />
+												<AddressLink entry={otherBest} onPress={goTo} styles={styles} colors={colors} />
+												<DirectionsButton entry={otherBest} onPress={goTo} styles={styles} colors={colors} prominent />
+											</>
 										)}
 									</>
 								)}
 							</>
+						)}
+
+						{cheapestOpen && (
+							<Text style={styles.heroNote}>
+								Abierta ahora, la más barata es {cheapestOpen.chain}: {formatCurrency(cheapestOpen.price)}, a {cheapestOpen.distance}.
+							</Text>
+						)}
+
+						{/* Qué referencia y qué radio se usaron: los mismos del mapa. */}
+						{nearbyUsable && (
+							<View style={styles.referenceRow}>
+								<Ionicons name="location-outline" size={14} color={colors.mutedText2} accessible={false} />
+								<Text style={styles.noticeText}>{referenceSummary(referenceKind, radius)}</Text>
+								{onOpenFavorites && (
+									<Pressable
+										style={(state) => [styles.referenceChange, isFocused(state) && styles.focusRing]}
+										onPress={onOpenFavorites}
+										accessibilityRole="button"
+										accessibilityLabel={`Cambiar el lugar y el radio de búsqueda. Ahora: ${referenceSummary(referenceKind, radius)}`}
+									>
+										<Text style={styles.linkText}>Cambiar</Text>
+									</Pressable>
+								)}
+							</View>
 						)}
 
 						{!nearbyUsable && (
@@ -261,6 +343,7 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 								shopper={shopper}
 								nearby={nearby}
 								radius={radius}
+								near={near}
 								styles={styles}
 								colors={colors}
 							/>
@@ -358,7 +441,7 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 										]}
 									>
 										{verdict.tone === "good"
-											? `Está igual o por debajo de lo más bajo cerca tuyo: ${reference.chain} (${formatCurrency(reference.price)}).`
+											? `Está igual o por debajo de lo más bajo ${near}: ${reference.chain} (${formatCurrency(reference.price)}).`
 											: `Está ${Math.round(verdict.pct)}% arriba de ${reference.chain} (${formatCurrency(reference.price)}).`}
 										{paid != null && shelf != null && shelf !== paid
 											? ` Vs. tu último ticket: ${formatCurrency(Math.abs(shelf - paid))} ${shelf > paid ? "más caro" : "más barato"}.`
@@ -374,7 +457,7 @@ export function ProductPriceResult({ producto, fallbackName, shopper, onOpenFavo
 							<Text style={styles.sectionTitle} accessibilityRole="header">
 								{mode === "all"
 									? nearbyUsable
-										? "Cerca tuyo"
+										? nearTitle
 										: "Precios por cadena"
 									: "Tus tiendas favoritas"}
 							</Text>
@@ -415,12 +498,15 @@ function NearbyNotice({
 	shopper,
 	nearby,
 	radius,
+	near,
 	styles,
 	colors,
 }: {
 	shopper: ShopperContext;
 	nearby: ReturnType<typeof useNearbyBranches>;
 	radius: number;
+	/** "cerca tuyo", "cerca de Casa": la referencia en uso. */
+	near: string;
 	styles: ReturnType<typeof createStyles>;
 	colors: ColorTokens;
 }) {
@@ -429,7 +515,7 @@ function NearbyNotice({
 	let action: { label: string; onPress: () => void } | null = null;
 
 	if (origin.status === "loading" || nearby.status === "loading") {
-		text = "Buscando las sucursales cerca tuyo…";
+		text = `Buscando las sucursales ${near}…`;
 	} else if (origin.status === "denied") {
 		text = "Activá la ubicación para ver el precio en las sucursales cerca tuyo.";
 		action = {
@@ -440,7 +526,7 @@ function NearbyNotice({
 		text = "No pudimos saber dónde estás.";
 		action = { label: "Probar de nuevo", onPress: shopper.askForLocation };
 	} else if (nearby.status === "error") {
-		text = "No pudimos buscar las sucursales cerca tuyo.";
+		text = `No pudimos buscar las sucursales ${near}.`;
 		action = { label: "Reintentar", onPress: nearby.retry };
 	} else if (nearby.status === "ready") {
 		text = `No encontramos este producto en sucursales a menos de ${radius} km.`;
@@ -486,7 +572,7 @@ function DirectionsButton({
 			style={(state) => [prominent ? styles.directionsProminent : styles.directions, isFocused(state) && styles.focusRing]}
 			onPress={() => onPress(branch)}
 			accessibilityRole="button"
-			accessibilityLabel={`Cómo llegar a ${entry.chain}, ${entry.detail}`}
+			accessibilityLabel={`Cómo llegar a ${entry.chain}, ${entry.address ?? entry.detail}`}
 		>
 			<Ionicons
 				name="navigate-outline"
@@ -495,6 +581,33 @@ function DirectionsButton({
 				accessible={false}
 			/>
 			<Text style={prominent ? styles.directionsProminentText : styles.directionsText}>Cómo llegar</Text>
+		</Pressable>
+	);
+}
+
+/** La dirección de la sucursal, que abre la ruta: el mismo enlace que "Cómo llegar". */
+function AddressLink({
+	entry,
+	onPress,
+	styles,
+	colors,
+}: {
+	entry: Entry;
+	onPress: (branch: SucursalPrecio) => void;
+	styles: ReturnType<typeof createStyles>;
+	colors: ColorTokens;
+}) {
+	if (!entry.branch || !entry.address) return null;
+	const branch = entry.branch;
+	return (
+		<Pressable
+			style={(state) => [styles.addressLink, isFocused(state) && styles.focusRing]}
+			onPress={() => onPress(branch)}
+			accessibilityRole="link"
+			accessibilityLabel={`Cómo llegar a ${entry.chain}, ${entry.address}`}
+		>
+			<Ionicons name="navigate-outline" size={14} color={colors.actionFill} accessible={false} />
+			<Text style={styles.addressText}>{entry.address}</Text>
 		</Pressable>
 	);
 }
@@ -512,18 +625,23 @@ function StoreRow({
 	styles: ReturnType<typeof createStyles>;
 	colors: ColorTokens;
 }) {
+	const statusA11y = openingAccessibilityLabel(e.status);
 	return (
 		<View style={[styles.storeRow, lowest && styles.storeRowLowest]}>
 			<View
 				style={styles.storeMain}
 				accessible
-				accessibilityLabel={`${e.chain}${lowest ? ", el precio más bajo" : ""}. ${formatCurrency(e.price)}. ${e.detail}`}
+				accessibilityLabel={`${e.chain}${lowest ? ", el precio más bajo" : ""}. ${formatCurrency(e.price)}. ${
+					e.address ? `A ${e.distance}` : e.detail
+				}${statusA11y ? `. ${statusA11y}` : ""}`}
 			>
 				<View style={styles.storeInfo}>
 					<Text style={styles.storeName} numberOfLines={1}>
 						{e.chain}
 					</Text>
-					<Text style={styles.storeRange}>{e.detail}</Text>
+					{/* Una sucursal: la distancia acá y la dirección abajo, como enlace. */}
+					<Text style={styles.storeRange}>{e.address ? `A ${e.distance}` : e.detail}</Text>
+					<StoreStatusLine status={e.status} />
 				</View>
 				<View style={styles.storePriceWrap}>
 					{lowest && (
@@ -535,7 +653,11 @@ function StoreRow({
 					<Text style={styles.storePrice}>{formatCurrency(e.price)}</Text>
 				</View>
 			</View>
-			<DirectionsButton entry={e} onPress={onDirections} styles={styles} colors={colors} />
+			{e.address ? (
+				<AddressLink entry={e} onPress={onDirections} styles={styles} colors={colors} />
+			) : (
+				<DirectionsButton entry={e} onPress={onDirections} styles={styles} colors={colors} />
+			)}
 		</View>
 	);
 }
@@ -634,6 +756,17 @@ function createStyles(colors: ColorTokens) {
 			backgroundColor: colors.actionFill,
 		},
 		directionsProminentText: { color: colors.actionText, fontFamily: typography.family.bold, fontSize: sizes.label },
+		addressLink: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: space.xs, minHeight: 44 },
+		addressText: {
+			flexShrink: 1,
+			color: colors.actionFill,
+			fontFamily: typography.family.medium,
+			fontSize: sizes.caption,
+			lineHeight: lineHeights.caption,
+			textDecorationLine: "underline",
+		},
+		referenceRow: { flexDirection: "row", alignItems: "center", gap: space.xs, marginTop: space.xs },
+		referenceChange: { minHeight: 44, justifyContent: "center", paddingHorizontal: space.xs },
 		moreHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
 		moreTitle: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: sizes.caption },
 

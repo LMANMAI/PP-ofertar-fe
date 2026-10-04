@@ -16,19 +16,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
 import {
 	bestKnownDiscount,
-	campaignOfferToOffer,
-	describeCampaignDiscount,
 	getRecurringProducts,
 	offerSavings,
 	sortByOfferRelevance,
 	summarizeOfferPromos,
 } from "../services";
-import type { CampaignOffer, FeaturedPromo, Offer, RecurringProduct } from "../services";
+import type { Offer, RecurringProduct } from "../services";
 import { friendlyAuthError } from "../services/authApi";
 import type { Session } from "../auth/session";
 import { BottomNav, EmptyState, ErrorBanner, ScreenHeader, Skeleton, type TabKey } from "../components";
 import { OffersSortSheet } from "../components/OffersSortSheet";
-import { ProductOfferLine, offerSummary } from "../components/ProductOfferLine";
+import { ProductOfferLine, PromoHero, offerSummary } from "../components/ProductOfferLine";
+import { ConditionsButton, PromoConditionsSheet } from "../components/PromoConditionsSheet";
+import { productConditions, productOfferHero, type PromoConditions } from "../components/promoConditions";
 import { formatCurrency, formatLongDate } from "../utils/format";
 import { isLooseMatch } from "../utils/productMatch";
 
@@ -37,26 +37,10 @@ function formatFrequency(purchaseCount: number, ticketCount: number): string {
 	return purchaseCount > ticketCount ? `En ${tickets} · ${purchaseCount} veces` : `En ${tickets}`;
 }
 
-function daysUntil(iso: string | null): number | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return Math.ceil((d.getTime() - Date.now()) / 86_400_000);
-}
-
 // The old architecture's bridge needs this opt-in per-platform; the New
 // Architecture (Fabric) ignores it and LayoutAnimation just works.
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
 	UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-/** Whether any shown promotion carries OCR-read percentages, which is what the
- * "verificá en el local" disclaimer qualifies. */
-function hasGuessedPercentages(offers: CampaignOffer[]): boolean {
-	// Only the OCR-only ones. A percentage taken from the campaign's own
-	// metadata is not a guess, and warning about it would undersell a number
-	// that is in fact reliable.
-	return offers.some((c) => c.percentagesUnverified && c.discountPercentages.length > 0);
 }
 
 type SortKey = "relevance" | "discount" | "purchases" | "expiry";
@@ -141,6 +125,8 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 	const [showNoOffer, setShowNoOffer] = useState(false);
 	const [sort, setSort] = useState<SortKey>("relevance");
 	const [sortVisible, setSortVisible] = useState(false);
+	// La hoja de condiciones abierta, o null. Una sola para toda la lista.
+	const [conditions, setConditions] = useState<PromoConditions | null>(null);
 	const reduceMotion = useRef(false);
 
 	useEffect(() => {
@@ -174,6 +160,20 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 			});
 		},
 		[animateNext],
+	);
+
+	// Estables por lo mismo que `handleToggle`: van como props de una card
+	// memoizada.
+	const openConditions = useCallback((next: PromoConditions) => setConditions(next), []);
+	const closeConditions = useCallback(() => setConditions(null), []);
+	// La hoja se cierra antes de navegar: si no, al volver del detalle la
+	// pantalla la encontraría abierta tapando la lista.
+	const openFullOffer = useCallback(
+		(full: Offer) => {
+			setConditions(null);
+			onOpenOffer?.(full.id, full);
+		},
+		[onOpenOffer],
 	);
 
 	const load = useCallback(
@@ -346,7 +346,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 							item={item}
 							isExpanded={expanded.has(item.id)}
 							onToggle={handleToggle}
-							onOpenOffer={onOpenOffer}
+							onOpenConditions={openConditions}
 							colors={colors}
 							styles={styles}
 						/>
@@ -357,9 +357,15 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 				/>
 			)}
 
-			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+			<View style={{ marginTop: "auto", paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
+
+			<PromoConditionsSheet
+				conditions={conditions}
+				onClose={closeConditions}
+				onOpenFull={onOpenOffer ? openFullOffer : undefined}
+			/>
 
 			<OffersSortSheet
 				visible={sortVisible}
@@ -379,76 +385,26 @@ function ItemSeparator() {
 	return <View style={{ height: space.smPlus }} />;
 }
 
-/** The promotion's mechanic in its own block: the number, what it applies to,
- * and the condition. Same anatomy as the offer cards on Inicio and Ofertas. */
-function PromoBody({
-	featured,
-	price,
-	colors,
-	styles,
-}: {
-	featured: FeaturedPromo;
-	price: number;
-	colors: ColorTokens;
-	styles: ReturnType<typeof createStyles>;
-}) {
-	return (
-		<View style={styles.promoBody}>
-			{featured.wording.amount ? (
-				<View style={styles.amountTile}>
-					<View style={styles.amountKickerRow}>
-						<Ionicons name={featured.wording.icon} size={11} color={colors.cyan} />
-						{featured.wording.capped && <Text style={styles.amountKicker}>HASTA</Text>}
-					</View>
-					<Text style={styles.amountValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
-						{featured.wording.amount}
-					</Text>
-				</View>
-			) : (
-				<View style={[styles.amountTile, styles.amountTileFlat]}>
-					<Ionicons name={featured.wording.icon} size={24} color={colors.cyan} />
-				</View>
-			)}
-			<View style={styles.promoBodyRight}>
-				<View style={[styles.appliesChip, featured.wording.conditional && styles.appliesChipWarm]}>
-					<Text style={[styles.appliesText, featured.wording.conditional && styles.appliesTextWarm]}>
-						{featured.wording.applies}
-					</Text>
-				</View>
-				<Text style={styles.promoDetail}>{featured.wording.detail}</Text>
-				{/* El punto de toda la tarea: con una sola unidad el precio no
-				    baja. Se dice con el número al lado para que no quede como
-				    una advertencia genérica que nadie lee. */}
-				{featured.requiredQuantity > 1 && (
-					<Text style={styles.promoCondition}>
-						Llevando 1 sola unidad pagás {formatCurrency(price)}
-						{featured.unitPrice != null
-							? `; llevando ${featured.requiredQuantity}, ${formatCurrency(featured.unitPrice)} por unidad`
-							: ""}
-						.
-					</Text>
-				)}
-			</View>
-		</View>
-	);
-}
-
 /** One card in the list, split out and memoized so toggling one product's
  * expanded detail doesn't re-render every other card — with the campaign and
  * alternative-offer sub-lists this screen can carry, re-running that JSX for
- * every product on every single tap was the actual jank source. */
+ * every product on every single tap was the actual jank source.
+ *
+ * `onOpenConditions` llega estable desde la pantalla (un `useCallback` sobre
+ * un setState) y la hoja es una sola para toda la lista: una `Modal` por
+ * tarjeta montaría decenas de hojas cerradas para abrir una. */
 const ProductCard = memo(function ProductCard({
 	item,
 	isExpanded,
 	onToggle,
-	onOpenOffer,
+	onOpenConditions,
 	colors,
 	styles,
 }: {
 	item: Item;
 	isExpanded: boolean;
 	onToggle: (id: string) => void;
-	onOpenOffer?: (id: string, fallback?: Offer | null) => void;
+	onOpenConditions: (conditions: PromoConditions) => void;
 	colors: ColorTokens;
 	styles: ReturnType<typeof createStyles>;
 }) {
@@ -456,15 +412,18 @@ const ProductCard = memo(function ProductCard({
 	const offer = p.bestOffer;
 	const savings = offer ? offerSavings(offer) : null;
 	// Qué promoción aplica, no sólo cuánto baja la unidad en el catálogo: la
-	// mecánica (3x2, 2da unidad, llevando N) va arriba y las bancarias aparte.
+	// mecánica (3x2, 2da unidad, llevando N) la dibuja `ProductOfferLine`
+	// arriba; acá quedan las bancarias y lo que no se pudo clasificar.
 	const promos = offer ? summarizeOfferPromos(offer) : null;
-	const featured = promos?.featured ?? null;
-	// A flat "X% de descuento" is what the badge beside the price already says;
-	// the block earns its space only for a mechanic that is not obvious.
-	const showPromo = featured != null && (featured.wording.conditional || featured.requiredQuantity > 1);
-	const campaigns = p.campaignOffers.slice(0, 3);
-	const hasAnything = offer != null || campaigns.length > 0;
+	// Con el precio de otro producto, su promoción tampoco va en el titular:
+	// queda en el detalle, dicha igual que arriba pero bajo "ESTE PRECIO".
+	const looseHero = offer && loose ? productOfferHero(offer, false) : null;
+	// Las campañas se detallan en la hoja de condiciones, así que lo único que
+	// se despliega es el precio de catálogo.
+	const hasAnything = offer != null;
 	const summary = offerSummary(p, loose);
+	// Null cuando no hay letra chica que mostrar: entonces no hay botón.
+	const conditions = productConditions(p, loose);
 
 	return (
 		<View style={styles.card}>
@@ -490,18 +449,14 @@ const ProductCard = memo(function ProductCard({
 				)}
 			</Pressable>
 
-			{/* La queja que esto arregla: "Mejor en X supermercado" no dice QUÉ
-			    promoción aplica. La mecánica va acá, con el mismo tile + chip que usan
-			    las cards de oferta, y no escondida en el detalle desplegado. Si el
-			    precio es de otro producto, la promoción también: queda en el detalle,
-			    no en el titular. */}
-			<ProductOfferLine product={p} loose={loose}>
-				{offer && featured && showPromo && !loose && (
-					<PromoBody featured={featured} price={offer.price} colors={colors} styles={styles} />
-				)}
-			</ProductOfferLine>
+			{/* La queja que esto arregló primero: "Mejor en X supermercado" no decía
+			    QUÉ promoción aplica. Ahora la tarjeta dice cuánto se paga y en qué
+			    súper (con su logo), con la condición pegada al número cuando la
+			    promo la tiene. Todo eso vive en `ProductOfferLine`, que lo dibuja
+			    siempre y no sólo con la tarjeta desplegada. */}
+			<ProductOfferLine product={p} loose={loose} />
 
-			{!offer && campaigns.length === 0 &&
+			{!offer && p.campaignOffers.length === 0 &&
 				(p.alternativeOffers.length > 0 ? (
 					// Saying "sin ofertas" while listing one right below it was a
 					// straight contradiction.
@@ -510,161 +465,117 @@ const ProductCard = memo(function ProductCard({
 					<Text style={styles.noOffer}>Sin ofertas activas por ahora</Text>
 				))}
 
-			{isExpanded && hasAnything && (
+			{/* Hermano del encabezado y no hijo: el encabezado lleva un
+			    `accessibilityLabel` propio y lo que quede adentro el lector de
+			    pantalla no lo ve. */}
+			{conditions !== null && (
+				<ConditionsButton
+					onPress={() => onOpenConditions(conditions)}
+					accessibilityLabel={`Condiciones de las promociones de ${p.description}`}
+				/>
+			)}
+
+			{isExpanded && hasAnything && offer && (
 				<View style={styles.detailBlock}>
 					{/* Everything about the one offer this card already shows — price
 					    comparison, which promo it comes from, how it compares to what
-					    you actually paid last time — grouped under one heading instead
-					    of running straight into "other promotions" below with nothing
-					    to mark where one ends and the next begins. */}
-					{offer && (
-						<View style={styles.detailGroup}>
-							<Text style={styles.detailGroupTitle}>ESTE PRECIO</Text>
-							{loose && (
-								<Text style={styles.detailNote}>
-									Es el precio de otro producto de la misma marca o tipo, no del que comprás vos. Puede
-									cambiar la presentación, el tamaño o incluso qué es.
-								</Text>
-							)}
-							{featured && showPromo && loose && (
-								<PromoBody featured={featured} price={offer.price} colors={colors} styles={styles} />
-							)}
-							{savings ? (
-								<>
-									<View style={styles.detailRow}>
-										<Text style={styles.detailLabel}>Precio de lista</Text>
-										<Text style={styles.strikePrice}>{formatCurrency(offer.listPrice)}</Text>
-									</View>
-									<View style={styles.detailRow}>
-										<Text style={styles.detailLabel}>Precio con la oferta</Text>
-										<Text style={styles.detailValue}>{formatCurrency(offer.price)}</Text>
-									</View>
-									<View style={styles.savingsRow}>
-										<Ionicons name="pricetag" size={13} color={colors.successSoftText} />
-										<Text style={styles.savingsText}>
-											{loose ? "Ese producto tiene" : "Ahorrás"} {formatCurrency(savings.amount)} ({Math.round(savings.pct)}%){" "}
-											{loose ? "de descuento sobre" : "sobre"} el precio de lista
-										</Text>
-									</View>
-								</>
-							) : (
-								<Text style={styles.detailNote}>
-									{offer.retailerName} no publicó precio de lista para este producto, así que no
-									podemos calcular cuánto representa el descuento.
-								</Text>
-							)}
-
-							{/* Bancarias, dichas como bancarias. Antes caían en el mismo
-							    renglón que un 3x2 y se leían como descuento del producto,
-							    cuando en realidad hay que pagar con esa tarjeta para
-							    conseguirlas. Atribuidas a la cadena: sin atribuir, quedaban
-							    al lado de la promoción de otro súper y parecían la misma.
-
-							    "tarjeta o programa" y no "medio de pago": este renglón no
-							    trae sólo tarjetas. COTO manda "Miembros Comunidad", que es
-							    un beneficio de socios y no se paga con nada — leerlo como
-							    medio de pago quedaba raro. Lo que las une es que hay que
-							    cumplir algo que no es llevar más unidades. */}
-							{promos && promos.payment.length > 0 && (
-								<View style={styles.promoRow}>
-									<Ionicons name="card-outline" size={13} color={colors.infoSoftText} />
-									<Text style={styles.promoText}>
-										Con tarjeta o programa de {offer.retailerName}: {promos.payment.join(" · ")}
+					    you actually paid last time — grouped under one heading. */}
+					<View style={styles.detailGroup}>
+						<Text style={styles.detailGroupTitle}>ESTE PRECIO</Text>
+						{loose && (
+							<Text style={styles.detailNote}>
+								Es el precio de otro producto de la misma marca o tipo, no del que comprás vos. Puede
+								cambiar la presentación, el tamaño o incluso qué es.
+							</Text>
+						)}
+						{looseHero && looseHero.kind !== "price" && <PromoHero hero={looseHero} />}
+						{savings ? (
+							<>
+								<View style={styles.detailRow}>
+									<Text style={styles.detailLabel}>Precio de lista</Text>
+									<Text style={styles.strikePrice}>{formatCurrency(offer.listPrice)}</Text>
+								</View>
+								<View style={styles.detailRow}>
+									<Text style={styles.detailLabel}>Precio con la oferta</Text>
+									<Text style={styles.detailValue}>{formatCurrency(offer.price)}</Text>
+								</View>
+								<View style={styles.savingsRow}>
+									<Ionicons name="pricetag" size={13} color={colors.successSoftText} />
+									<Text style={styles.savingsText}>
+										{loose ? "Ese producto tiene" : "Ahorrás"} {formatCurrency(savings.amount)} ({Math.round(savings.pct)}%){" "}
+										{loose ? "de descuento sobre" : "sobre"} el precio de lista
 									</Text>
 								</View>
-							)}
+							</>
+						) : (
+							<Text style={styles.detailNote}>
+								{offer.retailerName} no publicó precio de lista para este producto, así que no
+								podemos calcular cuánto representa el descuento.
+							</Text>
+						)}
 
-							{/* Lo que no pudimos clasificar, crudo. Perderlo sería peor que
-							    mostrarlo sin interpretar. */}
-							{promos && promos.other.length > 0 && (
-								<View style={styles.promoRow}>
-									<Ionicons name="megaphone-outline" size={13} color={colors.infoSoftText} />
-									<Text style={styles.promoText}>
-										{offer.retailerName}: {promos.other.join(" · ")}
-									</Text>
-								</View>
-							)}
+						{/* Bancarias, dichas como bancarias. Antes caían en el mismo
+						    renglón que un 3x2 y se leían como descuento del producto,
+						    cuando en realidad hay que pagar con esa tarjeta para
+						    conseguirlas. Atribuidas a la cadena: sin atribuir, quedaban
+						    al lado de la promoción de otro súper y parecían la misma.
 
-							{p.lastPaidPrice != null && (
-								<View style={styles.paidBlock}>
-									<View style={styles.detailRow}>
-										{/* The date is when the receipt was scanned, not when the
-										    purchase happened — the ticket carries no emission date.
-										    Worded so it stays true either way, including when an old
-										    receipt is scanned today. */}
-										<Text style={styles.detailLabel}>
-											En tu último ticket escaneado
-											{formatLongDate(p.lastPaidAt) ? ` (${formatLongDate(p.lastPaidAt)})` : ""}
-										</Text>
-										<Text style={styles.detailValue}>{formatCurrency(p.lastPaidPrice)}</Text>
-									</View>
-									{/* Comparing what you paid with the price of a different
-									    product proves nothing, so a loose match gets no verdict. */}
-									{loose ? null : p.lastPaidPrice > offer.price ? (
-										<Text style={styles.paidBetter}>
-											La oferta está {formatCurrency(p.lastPaidPrice - offer.price)} por debajo de lo
-											que pagaste
-										</Text>
-									) : (
-										<Text style={styles.paidWorse}>
-											La última vez lo conseguiste más barato que esta oferta
-										</Text>
-									)}
-								</View>
-							)}
-						</View>
-					)}
+						    "tarjeta o programa" y no "medio de pago": este renglón no
+						    trae sólo tarjetas. COTO manda "Miembros Comunidad", que es
+						    un beneficio de socios y no se paga con nada — leerlo como
+						    medio de pago quedaba raro. Lo que las une es que hay que
+						    cumplir algo que no es llevar más unidades.
 
-					{campaigns.length > 0 && (
-						<View style={offer ? styles.campaignBlock : styles.detailGroup}>
-							<Text style={styles.detailGroupTitle}>{offer ? "OTRAS PROMOCIONES VIGENTES" : "PROMOCIONES VIGENTES"}</Text>
-							{campaigns.map((c, i) => {
-								const until = formatLongDate(c.activeTo);
-								const days = daysUntil(c.activeTo);
-								const discount = describeCampaignDiscount(c);
-								const full = campaignOfferToOffer(c);
-								const openable = full != null && onOpenOffer != null;
-								return (
-									<Pressable
-										key={`${c.retailerName}-${i}`}
-										style={(state) => [styles.campaignRow, isFocused(state) && styles.focusRing]}
-										disabled={!openable}
-										onPress={() => full && onOpenOffer?.(full.id, full)}
-										accessibilityRole={openable ? "button" : undefined}
-										accessibilityLabel={`${discount ? `${discount} en ` : ""}${c.retailerName}${c.province ? `, ${c.province}` : ""}${until ? `. Vigente hasta el ${until}` : ""}`}
-										accessibilityHint={openable ? "Ver la promoción completa" : undefined}
-									>
-										<Ionicons name="time-outline" size={14} color={colors.defaultText} />
-										<View style={{ flex: 1 }}>
-											<Text style={styles.campaignHeadline}>
-												{discount ? `${discount} · ` : ""}
-												{c.retailerName}
-												{c.province ? ` · ${c.province}` : ""}
-											</Text>
-											{until && (
-												<Text style={styles.campaignUntil}>
-													Vigente hasta el {until}
-													{days != null && days >= 0 && days <= 7 && (
-														<Text style={styles.campaignUrgent}>
-															{days === 0 ? " · vence hoy" : ` · quedan ${days} día${days === 1 ? "" : "s"}`}
-														</Text>
-													)}
-												</Text>
-											)}
-											{openable && <Text style={styles.campaignLink}>Ver la promoción completa</Text>}
-										</View>
-										{openable && <Ionicons name="chevron-forward" size={16} color={colors.defaultText} />}
-									</Pressable>
-								);
-							})}
-							{hasGuessedPercentages(campaigns) && (
-								<Text style={styles.campaignDisclaimer}>
-									Algún porcentaje se leyó de la imagen de la promoción y puede no ser exacto,
-									confirmalo en el local.
+						    No se mudan a la hoja de condiciones: no son la letra chica
+						    de la promo de arriba, son otra promoción. */}
+						{promos && promos.payment.length > 0 && (
+							<View style={styles.promoRow}>
+								<Ionicons name="card-outline" size={13} color={colors.infoSoftText} />
+								<Text style={styles.promoText}>
+									Con tarjeta o programa de {offer.retailerName}: {promos.payment.join(" · ")}
 								</Text>
-							)}
-						</View>
-					)}
+							</View>
+						)}
+
+						{/* Lo que no pudimos clasificar, crudo. Perderlo sería peor que
+						    mostrarlo sin interpretar. */}
+						{promos && promos.other.length > 0 && (
+							<View style={styles.promoRow}>
+								<Ionicons name="megaphone-outline" size={13} color={colors.infoSoftText} />
+								<Text style={styles.promoText}>
+									{offer.retailerName}: {promos.other.join(" · ")}
+								</Text>
+							</View>
+						)}
+
+						{p.lastPaidPrice != null && (
+							<View style={styles.paidBlock}>
+								<View style={styles.detailRow}>
+									{/* The date is when the receipt was scanned, not when the
+									    purchase happened — the ticket carries no emission date.
+									    Worded so it stays true either way, including when an old
+									    receipt is scanned today. */}
+									<Text style={styles.detailLabel}>
+										En tu último ticket escaneado
+										{formatLongDate(p.lastPaidAt) ? ` (${formatLongDate(p.lastPaidAt)})` : ""}
+									</Text>
+									<Text style={styles.detailValue}>{formatCurrency(p.lastPaidPrice)}</Text>
+								</View>
+								{/* Comparing what you paid with the price of a different
+								    product proves nothing, so a loose match gets no verdict. */}
+								{loose ? null : p.lastPaidPrice > offer.price ? (
+									<Text style={styles.paidBetter}>
+										La oferta está {formatCurrency(p.lastPaidPrice - offer.price)} por debajo de lo
+										que pagaste
+									</Text>
+								) : (
+									<Text style={styles.paidWorse}>
+										La última vez lo conseguiste más barato que esta oferta
+									</Text>
+								)}
+							</View>
+						)}
+					</View>
 				</View>
 			)}
 
@@ -739,47 +650,9 @@ function createStyles(colors: ColorTokens) {
 		detailNote: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: 17 },
 		promoRow: { flexDirection: "row", alignItems: "center", gap: space.xsPlus },
 		promoText: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.micro },
-		// Misma anatomía que las cards de oferta (OffersScreen/HomeScreen): el número
-		// en su propio bloque y el "a qué se aplica" en un chip, para que la promo se
-		// lea igual en las dos pantallas. Más angosto porque acá el tile convive con
-		// el precio y el nombre del producto de catálogo.
-		promoBody: { flexDirection: "row", alignItems: "stretch", gap: space.smPlus },
-		amountTile: {
-			width: 68,
-			borderRadius: radii.md,
-			paddingVertical: space.sm,
-			paddingHorizontal: space.xs,
-			alignItems: "center",
-			justifyContent: "center",
-			gap: space.xs / 2,
-			backgroundColor: colors.navy,
-			// The tile is a fixed navy: on a dark card it needs an edge to be seen.
-			borderWidth: 1,
-			borderColor: colors.navyHairline,
-		},
-		amountTileFlat: { paddingVertical: space.smPlus },
-		amountKickerRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
-		amountKicker: { color: colors.cyan, fontFamily: typography.family.medium, fontSize: sizes.overline },
-		amountValue: { color: colors.buttonText, fontFamily: typography.family.bold, fontSize: sizes.h3 },
-		promoBodyRight: { flex: 1, justifyContent: "center", gap: space.xs },
-		appliesChip: { alignSelf: "flex-start", maxWidth: "100%", paddingHorizontal: space.smPlus, paddingVertical: space.xs, borderRadius: radii.sm, backgroundColor: colors.softNavy },
-		// Cálido para todo lo que no sea una rebaja lisa sobre el precio, así un
-		// "70% en la 2da unidad" nunca parece un 70% a secas.
-		appliesChipWarm: { backgroundColor: colors.warmChip },
-		appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: sizes.micro, lineHeight: lineHeights.micro },
-		appliesTextWarm: { color: colors.warmChipText },
-		promoDetail: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro },
-		promoCondition: { color: colors.warmChipText, fontFamily: typography.family.medium, fontSize: sizes.micro, lineHeight: lineHeights.micro },
 		paidBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.sm, gap: space.xs },
 		paidBetter: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: sizes.micro, lineHeight: 17 },
 		paidWorse: { color: colors.warningSoftText, fontFamily: typography.family.medium, fontSize: sizes.micro, lineHeight: 17 },
-		campaignBlock: { borderTopWidth: 1, borderTopColor: colors.softWarm, paddingTop: space.smPlus, gap: space.sm },
-		campaignRow: { flexDirection: "row", alignItems: "flex-start", gap: space.xsPlus, minHeight: 44 },
-		campaignHeadline: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.micro },
-		campaignUntil: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, marginTop: space.xs / 2 },
-		campaignUrgent: { color: colors.warningSoftText, fontFamily: typography.family.medium },
-		campaignLink: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.micro, marginTop: space.xs, textDecorationLine: "underline" },
-		campaignDisclaimer: { color: colors.warningSoftText, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro },
 		altBlock: { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: space.smPlus, gap: space.xsPlus },
 		altRow: { flexDirection: "row", alignItems: "flex-start", gap: space.xsPlus },
 		altName: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro },

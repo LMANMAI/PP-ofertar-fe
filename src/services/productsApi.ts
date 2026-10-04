@@ -224,6 +224,13 @@ export interface FeaturedPromo {
 	unitPrice: number | null;
 	/** La etiqueta cruda de la que salió, para no perderla de vista. */
 	label: string;
+	/** El tope de unidades que admite la promo ("Max 8 unidades"), o null.
+	 *
+	 * Viaja hasta acá para la hoja de condiciones y para nada más: en la
+	 * tarjeta, un segundo número de unidades al lado de "llevando 3" es la
+	 * confusión que `readPromoLabel` se cuida de no provocar (ver `maxUnits`
+	 * allá). En la hoja se lee como lo que es, un techo. */
+	maxUnits: number | null;
 }
 
 /** Las promos de una oferta de catálogo, separadas por lo que realmente son. */
@@ -289,11 +296,38 @@ export function summarizeOfferPromos(offer: BestOffer): OfferPromoSummary {
 					requiredQuantity: featured.best.requiredQuantity,
 					unitPrice,
 					label: featured.best.label,
+					maxUnits: featured.best.maxUnits,
 				}
 			: null,
 		payment,
 		other,
 	};
+}
+
+/**
+ * El slug de cadena a partir del nombre que manda el backend, para buscarle el
+ * logo.
+ *
+ * Hace falta porque `BestOffer` —el precio de catálogo de un producto
+ * recurrente— trae `retailerName` y no `retailerSlug`, a diferencia de las
+ * ofertas del feed. Sin esto, "Productos recurrentes" y "Tu compra habitual"
+ * no podían mostrar el logo del súper y el usuario tenía que leer el nombre.
+ *
+ * La normalización es la misma forma que tienen las claves de
+ * `CHAIN_LOGOS`/`CHAIN_MARKERS`: minúsculas, sin acentos, sin espacios ni
+ * signos y sin el "Argentina" que algunas cadenas llevan en la razón social
+ * (el mismo sufijo que ya saca `offerBadge`). "La Anónima" -> "laanonima",
+ * "ChangoMâs" -> "changomas". Un nombre que no cae en ninguna clave no es un
+ * error: `chainLogo` devuelve null y el badge dibuja las iniciales.
+ */
+export function retailerSlugFromName(name: string | null | undefined): string | null {
+	const slug = (name ?? "")
+		.normalize("NFD")
+		.replace(/[̀-ͯ]/g, "")
+		.replace(/\s+argentina$/i, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "");
+	return slug === "" ? null : slug;
 }
 
 /** What the offer saves against that retailer's own list price. Null when the
