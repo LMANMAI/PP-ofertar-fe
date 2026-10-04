@@ -9,7 +9,7 @@ npm run ios        # Launch on iOS (macOS only)
 npm run web        # Launch in browser
 ```
 
-Checks: `npm run typecheck` (tsc), `npm run lint` (eslint) and `npm run verify` (runs every `scripts/verify*.ts` via tsx). CI (`.github/workflows/ci.yml`) runs all three on each PR. There is no unit-test runner and no formatter.
+Checks: `npm run typecheck` (tsc), `npm run lint` (eslint), `npm run verify` (runs every `scripts/verify*.ts` via tsx) and `npm test` (vitest, for the API layer under `src/api/__tests__`). CI (`.github/workflows/ci.yml`) runs all four on each PR. There is no formatter.
 
 ## Architecture
 
@@ -34,6 +34,7 @@ All screens live in `src/screens/`, one component per file. The barrel `src/scre
 ## Backend
 
 - The backend base URL lives in one place, `src/config.ts` (`API_BASE_URL`); every service and `src/constants/legal.ts` import it. To point at another environment set `EXPO_PUBLIC_API_URL`, no code edit needed.
+- **API contract.** Response types come from the backend's OpenAPI (`src/api/openapi.json`, copied from the backend repo with `npm run api:sync`, types generated with `npm run api:types` into `src/api/schema.d.ts`). Every call goes through `request()` in `src/api/client.ts`, which validates the response against the zod schemas in `src/api/schemas.ts` (typed against the generated types, so a contract drift does not compile). `EXPO_PUBLIC_CONTRACT_MODE=strict` makes a mismatch throw `ApiContractError`; the default only logs it. When the backend changes a DTO: `api:sync`, `api:types`, then fix what `tsc` flags. New endpoints need a schema there.
 - OCR runs on the backend: the app only uploads the ticket photos (`src/services/ticketApi.ts`, `POST /tickets/scan`) and never talks to the OCR service.
 - Login and register go through the real API (`src/services/authApi.ts`). The session token is kept in `expo-secure-store` for biometric sign-in (`src/auth/biometricAuth.ts`). `Session` holds a token and a `UserProfile`.
 - `src/data/` holds static data only (`plans.ts`, `rewards.ts`).

@@ -1,5 +1,6 @@
 import { displayProductName } from "../utils/productName";
-import { API_BASE_URL } from "../config";
+import { request } from "../api/client";
+import { OfferFeedSchema } from "../api/schemas";
 
 
 /** How a campaign discount applies. Mirrors the scraper's `promoMechanic`
@@ -300,23 +301,11 @@ export async function getOffers(
 	chains?: string[],
 	categories?: string[],
 ): Promise<OfferPage> {
-	const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
-	if (chains?.length) params.append("chains", chains.join(","));
-	if (categories?.length) params.append("categories", categories.join(","));
-	const response = await fetch(`${API_BASE_URL}/offers?${params.toString()}`, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		},
+	const body = await request("/offers", {
+		token,
+		query: { page, pageSize, chains: chains?.join(","), categories: categories?.join(",") },
+		schema: OfferFeedSchema,
 	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${response.status}`);
-	}
-
-	const body = (await response.json()) as OfferPage;
 	// The app ships independently of the backend; an older one has no /offers
 	// at all, and a partial payload should degrade rather than crash a screen.
 	const items = (body.items ?? []).map((o) => ({

@@ -9,7 +9,10 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "verify": "node scripts/runVerify.mjs"
+    "verify": "node scripts/runVerify.mjs",
+    "api:sync": "node scripts/apiSync.mjs",
+    "api:types": "openapi-typescript src/api/openapi.json -o src/api/schema.d.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
@@ -36,13 +39,21 @@
     "react-native": "0.86.3",
     "react-native-maps": "1.27.2",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-web": "^0.21.2"
+    "react-native-web": "^0.21.2",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/react": "~19.2.4",
     "eslint": "^9.39.4",
     "eslint-config-expo": "~57.0.2",
-    "typescript": "~6.0.3"
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.2"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
+  }
 }
