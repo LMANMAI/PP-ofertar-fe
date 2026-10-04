@@ -5,7 +5,6 @@ export { LoadingOverlay } from "./ui/LoadingOverlay";
 export { PasswordStrengthBar } from "./ui/PasswordStrengthBar";
 export { Toast } from "./ui/Toast";
 export { LegalLink } from "./ui/LegalLink";
-export { ScreenTransition } from "./ui/ScreenTransition";
 export { ScreenHeader } from "./ui/ScreenHeader";
 export { ScanModeSwitch } from "./ui/ScanModeSwitch";
 export { EmptyState } from "./ui/EmptyState";

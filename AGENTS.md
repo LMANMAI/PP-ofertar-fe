@@ -9,13 +9,13 @@ npm run ios        # Launch on iOS (macOS only)
 npm run web        # Launch in browser
 ```
 
-No `lint`, `test`, `typecheck`, or `format` scripts are defined. ESLint config exists but must be run manually via `npx eslint .`.
+Checks: `npm run typecheck` (tsc), `npm run lint` (eslint), `npm run verify` (runs every `scripts/verify*.ts` via tsx) and `npm test` (vitest: the API layer, the stores and the stack semantics of `nav`). Manual regression list: `docs/smoke-test.md`. CI (`.github/workflows/ci.yml`) runs all four on each PR. There is no formatter.
 
 ## Architecture
 
 - **Entry**: `index.ts` → `registerRootComponent(App)` — standard Expo managed workflow.
-- **Navigation**: There is **no navigation library**. All routing is a `screen` state machine in `App.tsx`. The `src/navigation/` dir is a placeholder (empty barrel). Do not add react-navigation unless explicitly asked.
-- **State management**: None. The `src/store/` dir is a placeholder. All state lives in `App.tsx` useState hooks and is passed down as props.
+- **Navigation**: React Navigation (native stack), one route per screen in `src/navigation/RootNavigator.tsx`; the route names and their params are typed in `src/navigation/types.ts`. Screens are still prop-driven: each route in `src/navigation/routes/*.tsx` is a thin adapter that reads the stores and wires the screen's callbacks to `nav` (`src/navigation/nav.ts`): `push` (drill down), `replace` (lateral move), `backTo` (return to a screen already in the stack), `resetTo` (start over), `goMain(tab)` / `selectTab(tab)` (the bottom bar; Home, Offers and Profile share the `Main` route and `uiStore.tab` picks which one shows). Actions that mix navigation with state or the backend live in `src/navigation/actions.ts`. To add a screen: a route component, its name in `types.ts`, one `<Stack.Screen>`.
+- **State management**: Zustand stores in `src/store/` (`sessionStore`, `pointsStore`, `offersStore`, `scanStore`, `uiStore`, `authFlowStore`; `resetAllStores()` on logout). Start-up and session effects live in `src/hooks/useAppBootstrap.ts`, push-notification taps in `src/hooks/useNotificationTaps.ts`. Stores must not import native modules (they are unit-tested with vitest in plain Node); `announcedTickets.ts` is SecureStore persistence, not a Zustand store.
 - **Styling**: React Native `StyleSheet.create` + centralized tokens in `src/theme/designSystem.ts` (`colors`, `typography`). No Tailwind, no styled-components.
 
 ## Screen conventions
@@ -24,8 +24,8 @@ All screens live in `src/screens/`, one component per file. The barrel `src/scre
 
 - **Named exports** are the dominant pattern (e.g. `export function HomeScreen`).
 - A **few screens use default exports** (`RegisterStep1`, `RegisterStep2`). Check the file before adding imports — the barrel handles both but deduping is fragile if you add a duplicate export.
-- Every screen receives callbacks as props (no navigation hooks, no global router).
-- Screens that show text content must load Plus Jakarta Sans via `useFonts` inline (the font is not loaded globally).
+- Every screen receives callbacks as props (no navigation hooks inside screens): the route adapters in `src/navigation/routes` provide them.
+- Plus Jakarta Sans is preloaded once in `App.tsx`; a screen that renders text can rely on it (no per-screen `useFonts` needed).
 
 ## Reusable components
 
@@ -33,10 +33,11 @@ All screens live in `src/screens/`, one component per file. The barrel `src/scre
 
 ## Backend
 
-- OCR API base URL is hardcoded in `src/services/api.ts` (`BASE_URL`).
-- Auth uses a hardcoded `admin/changeme` login to get a bearer token for OCR requests.
-- Mock data for offers, rewards, and tracked products lives in `src/data/`.
-- App auth (`src/auth/`) consists of mock user data + biometric helpers via `expo-secure-store` / `expo-local-authentication`. `Session` type includes a token and a `UserProfile`.
+- The backend base URL lives in one place, `src/config.ts` (`API_BASE_URL`); every service and `src/constants/legal.ts` import it. To point at another environment set `EXPO_PUBLIC_API_URL`, no code edit needed.
+- **API contract.** Response types come from the backend's OpenAPI (`src/api/openapi.json`, copied from the backend repo with `npm run api:sync`, types generated with `npm run api:types` into `src/api/schema.d.ts`). Every call goes through `request()` in `src/api/client.ts`, which validates the response against the zod schemas in `src/api/schemas.ts` (typed against the generated types, so a contract drift does not compile). `EXPO_PUBLIC_CONTRACT_MODE=strict` makes a mismatch throw `ApiContractError`; the default only logs it. When the backend changes a DTO: `api:sync`, `api:types`, then fix what `tsc` flags. New endpoints need a schema there.
+- OCR runs on the backend: the app only uploads the ticket photos (`src/services/ticketApi.ts`, `POST /tickets/scan`) and never talks to the OCR service.
+- Login and register go through the real API (`src/services/authApi.ts`). The session token is kept in `expo-secure-store` for biometric sign-in (`src/auth/biometricAuth.ts`). `Session` holds a token and a `UserProfile`.
+- `src/data/` holds static data only (`plans.ts`, `rewards.ts`).
 
 ## TypeScript
 
@@ -50,6 +51,6 @@ All screens live in `src/screens/`, one component per file. The barrel `src/scre
 
 ## Gotchas
 
-- `src/services/api.ts` imports `expo-file-system/legacy` in `App.tsx` for base64 reads — be aware the project uses the legacy FileSystem API.
+- `App.tsx` and `PersonalDataScreen.tsx` import `expo-file-system/legacy` for base64 reads, while `ticketApi.ts` uses the new `expo-file-system` API — be aware both are in use.
 - Biometric auth gracefully degrades: `SecureStore` may throw in some environments and the app catches silently in a boot useEffect.
 - Camera permission strings are duplicated in `app.json` (both the `expo-camera` plugin entry and the top-level iOS `infoPlist`).

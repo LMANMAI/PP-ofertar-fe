@@ -1,6 +1,7 @@
+import type { components } from "../api/schema";
+import { request } from "../api/client";
+import { FavoriteStoresSchema, NearbyStoreListSchema, StoreChainListSchema } from "../api/schemas";
 import type { Horarios } from "../utils/openingHours";
-
-const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
 export interface StoreChain {
 	slug: string;
@@ -22,25 +23,10 @@ export interface NearbyStore {
 	horarios?: Horarios | null;
 }
 
-export interface FavoriteStores {
-	chainSlugs: string[];
-	radiusKm: number;
-}
-
-async function authedGet<T>(path: string, token: string): Promise<T> {
-	const res = await fetch(`${BACKEND_URL}${path}`, {
-		method: "GET",
-		headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-	});
-	if (!res.ok) {
-		const error = await res.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${res.status}`);
-	}
-	return res.json();
-}
+export type FavoriteStores = components["schemas"]["FavoriteStoresResponse"];
 
 export function getStoreChains(token: string): Promise<StoreChain[]> {
-	return authedGet<StoreChain[]>("/stores/chains", token);
+	return request("/stores/chains", { token, schema: StoreChainListSchema });
 }
 
 export function getNearbyStores(
@@ -50,31 +36,20 @@ export function getNearbyStores(
 	radiusKm: number,
 	onlyFavorites = false,
 ): Promise<NearbyStore[]> {
-	const params = new URLSearchParams({
-		lat: String(lat),
-		lng: String(lng),
-		radiusKm: String(radiusKm),
+	return request("/stores/nearby", {
+		token,
+		query: { lat, lng, radiusKm, onlyFavorites: onlyFavorites ? true : undefined },
+		schema: NearbyStoreListSchema,
 	});
-	if (onlyFavorites) params.append("onlyFavorites", "true");
-	return authedGet<NearbyStore[]>(`/stores/nearby?${params}`, token);
 }
 
 export function getFavoriteStores(token: string): Promise<FavoriteStores> {
-	return authedGet<FavoriteStores>("/stores/favorites", token);
+	return request("/stores/favorites", { token, schema: FavoriteStoresSchema });
 }
 
-export async function updateFavoriteStores(
+export function updateFavoriteStores(
 	token: string,
 	data: { chainSlugs?: string[]; radiusKm?: number },
 ): Promise<FavoriteStores> {
-	const res = await fetch(`${BACKEND_URL}/stores/favorites`, {
-		method: "PUT",
-		headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-		body: JSON.stringify(data),
-	});
-	if (!res.ok) {
-		const error = await res.json().catch(() => ({ message: "Error desconocido" }));
-		throw new Error(error.message || `Error ${res.status}`);
-	}
-	return res.json();
+	return request("/stores/favorites", { method: "PUT", token, json: data, schema: FavoriteStoresSchema });
 }
