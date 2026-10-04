@@ -15,7 +15,7 @@ Checks: `npm run typecheck` (tsc), `npm run lint` (eslint), `npm run verify` (ru
 
 - **Entry**: `index.ts` → `registerRootComponent(App)` — standard Expo managed workflow.
 - **Navigation**: There is **no navigation library**. All routing is a `screen` state machine in `App.tsx`. Do not add react-navigation unless explicitly asked.
-- **State management**: No store library. All state lives in `App.tsx` useState hooks and is passed down as props.
+- **State management**: Zustand stores in `src/store/` (`sessionStore`, `pointsStore`, `offersStore`, `scanStore`, `uiStore`; `resetAllStores()` on logout). Start-up and session effects live in `src/hooks/useAppBootstrap.ts`. `App.tsx` still owns the `screen` and the params of the current screen (compare product, selected store/reward, recovery email…) as local state, and passes what screens need as props. Stores must not import native modules (they are unit-tested with vitest in plain Node); `announcedTickets.ts` is SecureStore persistence, not a Zustand store.
 - **Styling**: React Native `StyleSheet.create` + centralized tokens in `src/theme/designSystem.ts` (`colors`, `typography`). No Tailwind, no styled-components.
 
 ## Screen conventions

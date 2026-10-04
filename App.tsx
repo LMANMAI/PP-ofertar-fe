@@ -6,7 +6,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Notifications from "expo-notifications";
-import { registerForPushNotifications } from "./src/notifications/pushRegistration";
+import { useAppBootstrap } from "./src/hooks/useAppBootstrap";
+import { resetAllStores, useOffersStore, usePointsStore, useScanStore, useSessionStore, useUiStore } from "./src/store";
 
 import {
 	AuthLoginScreen,
@@ -53,12 +54,11 @@ import {
 } from "./src/screens";
 import type { TabKey } from "./src/components";
 import { LoadingOverlay, OnboardingProvider, ScreenTransition, Toast } from "./src/components";
-import type { PointsHistoryEntry } from "./src/screens/PointsHistoryScreen";
 import type { Session } from "./src/auth/session";
 import { splitName } from "./src/auth/session";
-import { storeToken, clearStoredToken, getStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
-import { getOffers, getTicket, resolveOffer, scanTicket, getPointsBalance, getPointsHistory, redeemReward } from "./src/services";
-import type { Offer, NearbyStore, TicketResponse, PointsTransactionResponse } from "./src/services";
+import { storeToken, clearStoredToken, getBiometricPreference, setBiometricPreference, getPromptDismissed, setPromptDismissed, isBiometricAvailable } from "./src/auth/biometricAuth";
+import { getTicket, resolveOffer, scanTicket } from "./src/services";
+import type { Offer, NearbyStore, TicketResponse } from "./src/services";
 import { REWARDS } from "./src/data/rewards";
 import { colors, ThemePreferenceProvider } from "./src/theme/designSystem";
 
@@ -80,11 +80,9 @@ export default function App() {
 	// Preload once so each screen's own useFonts resolves from cache (no per-screen spinner).
 	useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_700Bold });
 	const [screen, setScreen] = useState<Screen>("welcome");
-	const [tab, setTab] = useState<TabKey>("home");
 	// Where "Mis tiendas favoritas" was opened from, so back returns there: the
 	// scan screens send people there to pick the chains their prices are read for.
 	const [favoritesFrom, setFavoritesFrom] = useState<"profile" | "scanBarcode" | "compare">("profile");
-	const [session, setSession] = useState<Session | null>(null);
 	// Password recovery: the email the code went to, and the code once verified.
 	const [recoveryEmail, setRecoveryEmail] = useState("");
 	const [recoveryCode, setRecoveryCode] = useState("");
@@ -93,39 +91,36 @@ export default function App() {
 	const [compareBarcode, setCompareBarcode] = useState<string | null>(null);
 	const [selectedStore, setSelectedStore] = useState<NearbyStore | null>(null);
 	const [compareOrigin, setCompareOrigin] = useState<"main" | "ticketProcessed">("main");
-	const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
-	/** An offer opened from somewhere other than the feed — the feed is paged
-	 * and filtered by favourite chains, so the promotion a product matched is
-	 * often not in it. */
-	const [fallbackOffer, setFallbackOffer] = useState<Offer | null>(null);
-	// Ofertas reales derivadas de /products/recurring. Viven aca porque la
-	// pantalla de detalle se resuelve por id desde el router.
-	const [offers, setOffers] = useState<Offer[]>([]);
 	const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
-	const [redeemRemaining, setRedeemRemaining] = useState<number>(0);
-	// Saldo e historial de puntos: antes vivían solo en memoria (se sumaban a
-	// mano cuando alguien completaba el paso 2 con un código, y se restaban al
-	// canjear). Ahora el backend es la fuente de verdad — ver src/services/pointsApi.ts
-	// — así que estos dos estados son un espejo de lo que devuelve /points/me y
-	// /points/history, no un contador que la app lleva por su cuenta.
-	const [referralPoints, setReferralPoints] = useState<number>(0);
-	const [referralHistory, setReferralHistory] = useState<PointsHistoryEntry[]>([]);
-	const [redeemingReward, setRedeemingReward] = useState(false);
 
-	const [selectedPdf, setSelectedPdf] = useState<{ name: string; uri: string; base64: string } | null>(null);
-	const [scannedTicket, setScannedTicket] = useState<TicketResponse | null>(null);
-	const [ocrErrorMsg, setOcrErrorMsg] = useState<string>("");
-	const [processingOcr, setProcessingOcr] = useState(false);
-	const [processingFileType, setProcessingFileType] = useState<"pdf" | "image" | null>(null);
-	const [biometricEnabled, setBiometricEnabled] = useState(false);
-	const [showBiometricOnWelcome, setShowBiometricOnWelcome] = useState(false);
-	const [booted, setBooted] = useState(false);
-	const [toastMessage, setToastMessage] = useState<string | null>(null);
-	const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
-	// Tickets subidos en esta sesion que todavia no avisaron si faltó algo.
-	// Viven aca y no en el historial para que el aviso siga pendiente si el
-	// usuario se va a otra pantalla mientras el OCR corre en el servidor.
-	const [awaitingTicketIds, setAwaitingTicketIds] = useState<number[]>([]);
+	// El resto del estado compartido vive en src/store (sesión, puntos, ofertas, escaneo, interfaz).
+	const session = useSessionStore((s) => s.session);
+	const setSession = useSessionStore((s) => s.setSession);
+	const biometricEnabled = useSessionStore((s) => s.biometricEnabled);
+	const setBiometricEnabled = useSessionStore((s) => s.setBiometricEnabled);
+	const showBiometricOnWelcome = useSessionStore((s) => s.showBiometricOnWelcome);
+	const booted = useSessionStore((s) => s.booted);
+	const tab = useUiStore((s) => s.tab);
+	const setTab = useUiStore((s) => s.setTab);
+	const toastMessage = useUiStore((s) => s.toastMessage);
+	const showToast = useUiStore((s) => s.showToast);
+	const dismissToast = useUiStore((s) => s.dismissToast);
+	const offers = useOffersStore((s) => s.offers);
+	const fallbackOffer = useOffersStore((s) => s.fallbackOffer);
+	const selectedOfferId = useOffersStore((s) => s.selectedOfferId);
+	const openOfferInStore = useOffersStore((s) => s.open);
+	const referralPoints = usePointsStore((s) => s.balance);
+	const referralHistory = usePointsStore((s) => s.history);
+	const redeemRemaining = usePointsStore((s) => s.lastRedeemBalance);
+	const selectedPdf = useScanStore((s) => s.selectedPdf);
+	const scannedTicket = useScanStore((s) => s.scannedTicket);
+	const ocrErrorMsg = useScanStore((s) => s.ocrErrorMsg);
+	const processingOcr = useScanStore((s) => s.processingOcr);
+	const processingFileType = useScanStore((s) => s.processingFileType);
+	const selectedTicketId = useScanStore((s) => s.selectedTicketId);
+	const awaitingTicketIds = useScanStore((s) => s.awaitingTicketIds);
+	// Acciones del escaneo: se leen al usarlas, no suscriben a App a cada cambio.
+	const scan = useScanStore.getState;
 
 	// Historial de pantallas visitadas, para que el botón físico Back de
 	// Android navegue hacia atrás en vez de cerrar la app directamente.
@@ -151,93 +146,7 @@ export default function App() {
 		return () => sub.remove();
 	}, []);
 
-	useEffect(() => {
-		(async () => {
-			try {
-				const [pref, available, token] = await Promise.all([
-					getBiometricPreference(),
-					isBiometricAvailable(),
-					getStoredToken(),
-				]);
-				if (pref) setBiometricEnabled(true);
-				if (available && token) setShowBiometricOnWelcome(true);
-			} catch {
-				// SecureStore puede fallar en algunos entornos
-			} finally {
-				setBooted(true);
-			}
-		})();
-	}, []);
-
-	// The offer-detail screen is routed by id, so the list has to live above the
-	// screens rather than inside each one.
-	useEffect(() => {
-		if (!session) {
-			// eslint-disable-next-line react-hooks/set-state-in-effect -- resets state in response to a prop change, not a fetch-on-mount pattern
-			setOffers([]);
-			return;
-		}
-		getOffers(session.token, 1, 50)
-			.then((p) => setOffers(p.items))
-			.catch(() => setOffers([]));
-	}, [session]);
-
-	// Registro silencioso: si el usuario ya habia dado permiso en una sesion
-	// anterior, reengancha el token al volver a abrir la app (puede haber
-	// cambiado, p. ej. tras una reinstalacion). Nunca pide permiso desde
-	// aca — eso solo pasa cuando el usuario prende el switch en Perfil.
-	useEffect(() => {
-		if (!session) return;
-		registerForPushNotifications(session.token, { requestPermission: false }).catch(() => {});
-	}, [session]);
-
-	const historyEntryFromTx = (tx: PointsTransactionResponse): PointsHistoryEntry => ({
-		id: String(tx.id),
-		icon:
-			tx.reason === "REDEEM"
-				? "gift-outline"
-				: tx.reason === "REFERRAL_ACTIVATED"
-					? "people"
-					: tx.reason === "REFERRAL_RETAINED"
-						? "heart-outline"
-						: "people-outline",
-		title: tx.description,
-		date: new Date(tx.createdAt).toLocaleDateString("es-AR", {
-			day: "numeric",
-			month: "short",
-			hour: "2-digit",
-			minute: "2-digit",
-		}),
-		pts: tx.points,
-	});
-
-	// Saldo e historial de puntos viven en el backend (ver PRODUCT.md: antes
-	// era frontend-only y se perdía al cerrar la app). Se traen apenas hay
-	// sesión y se vuelven a pedir después de cada canje.
-	const refreshPoints = async (token: string) => {
-		try {
-			const [balanceRes, historyRes] = await Promise.all([
-				getPointsBalance(token),
-				getPointsHistory(token),
-			]);
-			setReferralPoints(balanceRes.balance);
-			setReferralHistory(historyRes.map(historyEntryFromTx));
-		} catch {
-			// Si el backend de puntos no responde, no rompemos el resto de la app:
-			// el usuario simplemente ve 0 puntos y un historial vacío hasta que
-			// se pueda reintentar (por ejemplo, al volver a la pestaña Puntos).
-		}
-	};
-
-	useEffect(() => {
-		if (!session) {
-			// eslint-disable-next-line react-hooks/set-state-in-effect -- resets local point state in response to the session being cleared, not a fetch-on-mount pattern
-			setReferralPoints(0);
-			setReferralHistory([]);
-			return;
-		}
-		refreshPoints(session.token);
-	}, [session]);
+	useAppBootstrap();
 
 	const goMain = (t: TabKey = "home") => { setTab(t); setScreen("main"); };
 
@@ -254,7 +163,7 @@ export default function App() {
 		const sub = Notifications.addNotificationResponseReceivedListener((response) => {
 			const data = response.notification.request.content.data as { screen?: string; ticketId?: string };
 			if (data.screen === "ticketDetail" && data.ticketId) {
-				setSelectedTicketId(Number(data.ticketId));
+				scan().setSelectedTicketId(Number(data.ticketId));
 				setScreen("ticketDetail");
 				return;
 			}
@@ -279,6 +188,8 @@ export default function App() {
 			goMain("home");
 		});
 		return () => sub.remove();
+		// goMain, setTab y scan solo usan setters estables: el listener se registra una vez.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	/**
@@ -289,17 +200,17 @@ export default function App() {
 	 */
 	const handleSelectTicket = async (t: TicketResponse) => {
 		if (t.status !== "PROCESSED" || t.reviewed || !session) {
-			setSelectedTicketId(t.id);
+			scan().setSelectedTicketId(t.id);
 			setScreen("ticketDetail");
 			return;
 		}
 		try {
 			const full = await getTicket(session.token, t.id);
-			setScannedTicket(full);
+			scan().setScannedTicket(full);
 			setScreen("ticketProcessed");
 		} catch {
 			// Showing it read-only beats showing nothing.
-			setSelectedTicketId(t.id);
+			scan().setSelectedTicketId(t.id);
 			setScreen("ticketDetail");
 		}
 	};
@@ -311,13 +222,8 @@ export default function App() {
 		setScreen("main");
 	};
 	const handleLogout = () => {
-		setSession(null); setTab("home"); setOffers([]); setAwaitingTicketIds([]); setBiometricEnabled(false); setScreen("welcome");
-		// El sistema de puntos por referidos es solo-frontend (sin backend
-		// todavía), así que sin este reset el saldo y el historial de una
-		// cuenta quedarían visibles para la próxima que inicie sesión en el
-		// mismo dispositivo.
-		setReferralPoints(0);
-		setReferralHistory([]);
+		resetAllStores();
+		setScreen("welcome");
 		clearStoredToken();
 	};
 
@@ -344,8 +250,7 @@ export default function App() {
 	};
 
 	const openOffer = (id: string, fallback?: Offer | null) => {
-		setSelectedOfferId(id);
-		setFallbackOffer(fallback ?? null);
+		openOfferInStore(id, fallback);
 		setScreen("offerDetail");
 	};
 
@@ -365,61 +270,54 @@ export default function App() {
 				encoding: "base64" as const,
 			});
 
-		setSelectedPdf({ name: asset.name ?? "ticket.pdf", uri: asset.uri, base64 });
+		scan().setSelectedPdf({ name: asset.name ?? "ticket.pdf", uri: asset.uri, base64 });
 			setScreen("pdfConfirm");
 		} catch (error) {
-			setOcrErrorMsg(error instanceof Error ? error.message : "No se pudo leer el PDF");
+			scan().setOcrError(error instanceof Error ? error.message : "No se pudo leer el PDF");
 			setScreen("scanError");
 		}
 	};
 
 	const handleSendPhotos = async (photos: { id: string; uri: string; base64?: string }[]) => {
 		if (photos.length === 0 || !session) return;
-		setProcessingFileType("image");
-		setProcessingOcr(true);
+		scan().startProcessing("image");
 		try {
 			// The upload returns as soon as the images are stored; the OCR runs
 			// on the server, so the user is free to navigate (and it finishes
 			// even if they lose connection or close the app).
 			const uploaded = await scanTicket(session.token, photos);
-			setAwaitingTicketIds((prev) => [uploaded.id, ...prev]);
+			scan().addAwaiting(uploaded.id);
 			setScreen("ticketHistory");
 		} catch (error) {
-			setOcrErrorMsg(error instanceof Error ? error.message : "Error al subir el ticket");
+			scan().setOcrError(error instanceof Error ? error.message : "Error al subir el ticket");
 			setScreen("scanError");
 		} finally {
-			setProcessingOcr(false);
-			setProcessingFileType(null);
+			scan().finishProcessing();
 		}
 	};
 
 	const handleSendPdf = async () => {
 		if (!selectedPdf || !session) return;
-		setProcessingFileType("pdf");
-		setProcessingOcr(true);
+		scan().startProcessing("pdf");
 		try {
 			const uploaded = await scanTicket(
 				session.token,
 				[{ uri: selectedPdf.uri, base64: selectedPdf.base64 }],
 				"application/pdf",
 			);
-			setAwaitingTicketIds((prev) => [uploaded.id, ...prev]);
-			setSelectedPdf(null);
+			scan().addAwaiting(uploaded.id);
+			scan().setSelectedPdf(null);
 			setScreen("ticketHistory");
 		} catch (error) {
-			setOcrErrorMsg(error instanceof Error ? error.message : "Error al subir el PDF");
+			scan().setOcrError(error instanceof Error ? error.message : "Error al subir el PDF");
 			setScreen("scanError");
 		} finally {
-			setProcessingOcr(false);
-			setProcessingFileType(null);
+			scan().finishProcessing();
 		}
 	};
 
 	const handleOcrRetry = () => {
-		setScannedTicket(null);
-		setOcrErrorMsg("");
-		setSelectedPdf(null);
-		setProcessingFileType(null);
+		scan().resetForRetry();
 		setScreen("captureTicket");
 	};
 
@@ -569,7 +467,7 @@ export default function App() {
 					session={session}
 					onSessionUpdate={setSession}
 					biometricEnabled={biometricEnabled}
-					onBack={(msg) => { if (msg) setToastMessage(msg); goMain("profile"); }}
+					onBack={(msg) => { if (msg) showToast(msg); goMain("profile"); }}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
@@ -669,7 +567,7 @@ export default function App() {
 				<PdfConfirmScreen
 					pdfName={selectedPdf.name}
 					onSend={handleSendPdf}
-					onCancel={() => { setSelectedPdf(null); setScreen("captureTicket"); }}
+					onCancel={() => { scan().setSelectedPdf(null); setScreen("captureTicket"); }}
 				/>
 			)}
 
@@ -755,25 +653,15 @@ export default function App() {
 					pointsBalance={referralPoints}
 					onCancel={() => setScreen("rewardDetail")}
 					onConfirm={async () => {
-						// El saldo posta vive en el backend: /points/redeem valida ahí
-						// mismo que alcancen los puntos (409 si no) y devuelve el saldo
-						// actualizado, en vez de restar optimista del lado del cliente
-						// como antes (que podía desincronizarse si había otro canje en
-						// paralelo, p. ej. en dos dispositivos con la misma cuenta).
-						if (redeemingReward) return;
+						// El saldo posta vive en el backend: /points/redeem valida ahí mismo que alcancen
+						// los puntos (409 si no) y devuelve el saldo actualizado (ver usePointsStore.redeem).
 						const reward = findReward(selectedRewardId);
-						setRedeemingReward(true);
 						try {
-							const result = await redeemReward(session.token, reward.id, reward.points);
-							setReferralPoints(result.balance);
-							setRedeemRemaining(result.balance);
-							refreshPoints(session.token);
-							setScreen("redeemSuccess");
+							const redeemed = await usePointsStore.getState().redeem(session.token, reward.id, reward.points);
+							if (redeemed) setScreen("redeemSuccess");
 						} catch (err) {
-							setToastMessage(err instanceof Error ? err.message : "No se pudo canjear. Probá de nuevo.");
+							showToast(err instanceof Error ? err.message : "No se pudo canjear. Probá de nuevo.");
 							setScreen("rewardDetail");
-						} finally {
-							setRedeemingReward(false);
 						}
 					}}
 				/>
@@ -804,7 +692,7 @@ export default function App() {
 			{screen === "personalData" && session && (
 				<PersonalDataScreen
 					session={session}
-					onBack={(msg) => { if (msg) setToastMessage(msg); goMain("profile"); }}
+					onBack={(msg) => { if (msg) showToast(msg); goMain("profile"); }}
 					activeTab={tab}
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
@@ -874,9 +762,7 @@ export default function App() {
 					onSelectTab={handleSelectTab}
 					onScanPress={handleScanPress}
 					awaitingTicketIds={awaitingTicketIds}
-					onTicketAnnounced={(id) =>
-						setAwaitingTicketIds((prev) => prev.filter((x) => x !== id))
-					}
+					onTicketAnnounced={(id) => scan().announce(id)}
 				/>
 			)}
 
@@ -929,7 +815,7 @@ export default function App() {
 			)}
 
 			{toastMessage && (
-				<Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
+				<Toast message={toastMessage} onDismiss={dismissToast} />
 			)}
 			</OnboardingProvider>
 		</SafeAreaProvider>
