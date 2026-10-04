@@ -115,7 +115,7 @@ OfertAR reads like a well-kept receipt: itemized, precise, and never dressed up 
 
 Visually, that honesty translates into restraint. Ledger Navy is the app's authority color — headers, primary buttons, the summary card on every ticket — and it stays fixed whether the phone is in light or dark mode, because it's the anchor the rest of the palette is judged against, not a surface that shifts with context. Highlighter Cyan is reserved for the thing worth marking: a discount, a focused input, an active filter, the scan action. Alert Coral appears sparingly, for warmth and conditional emphasis. Everything else — near-white backgrounds, muted grays, soft pastel status pills — exists to keep those three colors legible, not to compete with them.
 
-The app is built with Expo/React Native and TypeScript, using a manual screen-state machine in `App.tsx` rather than a navigation library — a deliberate architectural choice for an app this size, not a gap to fill. Every screen reads its colors through a `useThemeColors()` hook, so light and dark mode are both first-class from the start, not a light design with a dark mode bolted on afterward.
+The app is built with Expo/React Native and TypeScript, using React Navigation (a native stack, one route per screen in `src/navigation`) with shared state in Zustand stores (`src/store`). Every screen reads its colors through a `useThemeColors()` hook, so light and dark mode are both first-class from the start, not a light design with a dark mode bolted on afterward.
 
 **Key Characteristics:**
 - Itemized and precise — numbers earn their own visual space, never buried in prose

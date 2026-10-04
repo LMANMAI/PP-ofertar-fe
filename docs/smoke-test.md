@@ -50,8 +50,10 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Cerrar sesión: al entrar con otra cuenta no queda nada de la anterior (puntos, ofertas, tickets).
 
 ## 8. Navegación
-- [ ] Botón físico "atrás" de Android en cada pantalla: vuelve a la anterior y nunca cierra la app salvo en Inicio.
-- [ ] Cambiar entre las pestañas de la barra inferior y volver.
+- [ ] Botón físico "atrás" de Android en cada pantalla: vuelve a la pantalla anterior (la de la que se vino) y solo en Inicio cierra la app.
+- [ ] Los botones "Volver" de la pantalla llevan a donde corresponde: detalle de oferta a donde se abrió, detalle de ticket al historial, canje a Puntos, Comparar a la revisión del ticket.
+- [ ] Cambiar entre las pestañas de la barra inferior (Inicio, Ofertas, Tickets, Perfil y el botón de escaneo) y volver; la pestaña marcada es la correcta, también después de subir un ticket.
+- [ ] En web/tablet o con el tema oscuro, el cambio de pantalla no muestra destellos blancos.
 - [ ] Rotar o pasar la app a segundo plano y volver: se mantiene la pantalla.
 
 ## 9. Notificaciones push (con la app cerrada y abierta)
@@ -60,3 +62,4 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Recordatorio de historial → abre el historial de tickets.
 - [ ] Recordatorio de escaneo → abre la captura.
 - [ ] Ofertas → abre Ofertas.
+- [ ] Tocar una notificación con la sesión cerrada no rompe nada (se ignora).
