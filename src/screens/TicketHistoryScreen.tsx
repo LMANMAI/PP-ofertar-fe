@@ -347,7 +347,7 @@ export function TicketHistoryScreen({
 				onClose={() => setForgottenVisible(false)}
 			/>
 
-			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+			<View style={{ marginTop: "auto", paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
 		</View>
