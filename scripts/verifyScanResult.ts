@@ -8,7 +8,9 @@
  *   - SEPA llama distinto a algunas cadenas (Cencosud, Maxi) y aun así coinciden;
  *   - una estación de servicio nunca cuenta como súper;
  *   - sin favoritas, o sin poder leerlas, no se inventa un recorte;
- *   - la fecha de SEPA se lee como día local, no como medianoche UTC.
+ *   - la fecha de SEPA se lee como día local, no como medianoche UTC;
+ *   - con horarios, el precio sigue mandando: a igual precio va primero la
+ *     abierta, y nunca una cerrada más barata queda debajo de una abierta más cara.
  */
 import assert from "node:assert/strict";
 
@@ -21,6 +23,8 @@ import {
 	scopePrices,
 	verdictFor,
 } from "../src/utils/scanResult";
+import { compareBranchesAt, rankScopedBranches } from "../src/utils/branchOrder";
+import { openingStatus, type Horarios } from "../src/utils/openingHours";
 import type { ComercioPrecioResponse, SucursalPrecio } from "../src/services/sepaApi";
 import type { StoreChain } from "../src/services/storesApi";
 import type { RecurringProduct } from "../src/services";
@@ -231,6 +235,89 @@ check("el enlace de navegación usa Apple Maps en iOS y Google Maps en el resto"
 	assert.equal(directionsUrl("ios", -34.6, -58.4), "https://maps.apple.com/?daddr=-34.6,-58.4&dirflg=d");
 	assert.equal(directionsUrl("android", -34.6, -58.4), "https://www.google.com/maps/dir/?api=1&destination=-34.6,-58.4");
 	assert.equal(directionsUrl("web", -34.6, -58.4), "https://www.google.com/maps/dir/?api=1&destination=-34.6,-58.4");
+});
+
+console.log("\nEl orden con el horario de cada sucursal");
+
+// Lunes 28/9/2026 a las 10:00 en Argentina (13:00 UTC).
+const LUNES_10 = Date.UTC(2026, 8, 28, 13, 0);
+// Sólo lunes y domingo: el lunes dice el estado, y el domingo vacío descarta un
+// turno de la noche anterior que dejaría el estado en duda.
+const ABIERTA: Horarios = { domingo: [], lunes: [{ desde: "08:00", hasta: "22:00" }] };
+const CERRADA: Horarios = { domingo: [], lunes: [{ desde: "16:00", hasta: "22:00" }] };
+const ranked = (list: SucursalPrecio[], slugs: string[] = []) => rankScopedBranches(scopeBranches(list, CHAINS, slugs), LUNES_10);
+
+check("los horarios de prueba dicen lo que dicen", () => {
+	assert.equal(openingStatus(ABIERTA, LUNES_10).kind, "open");
+	assert.equal(openingStatus(CERRADA, LUNES_10).kind, "closed");
+});
+
+check("una cerrada más barata sigue arriba de una abierta más cara (el precio manda)", () => {
+	const s = ranked([b("DIA", 4900, 0.5, { horarios: ABIERTA }), b("COTO CICSA", 4800, 3, { horarios: CERRADA })]);
+	assert.deepEqual(s.others.map((x) => x.bandera), ["COTO CICSA", "DIA"]);
+	assert.equal(s.best?.bandera, "COTO CICSA");
+});
+
+check("a igual precio, primero la abierta aunque la cerrada esté más cerca", () => {
+	const s = ranked([b("COTO CICSA", 4800, 0.5, { horarios: CERRADA }), b("DIA", 4800, 3, { horarios: ABIERTA })]);
+	assert.deepEqual(s.others.map((x) => x.bandera), ["DIA", "COTO CICSA"]);
+	assert.equal(s.best?.bandera, "DIA");
+});
+
+check("a igual precio, una sin horario va después de la abierta; entre dos no abiertas, la más cerca", () => {
+	const s = ranked([
+		b("Maxi", 4800, 0.2),
+		b("COTO CICSA", 4800, 0.5, { horarios: CERRADA }),
+		b("DIA", 4800, 3, { horarios: ABIERTA }),
+	]);
+	assert.deepEqual(s.others.map((x) => x.bandera), ["DIA", "Maxi", "COTO CICSA"]);
+});
+
+check("sin horarios (backend actual) el orden es el de siempre: precio y distancia", () => {
+	const list = [b("DIA", 4800, 3), b("COTO CICSA", 4800, 0.5), b("Maxi", 3795, 2.1)];
+	const s = ranked(list);
+	assert.deepEqual(
+		s.others.map((x) => x.bandera),
+		scopeBranches(list, CHAINS, []).others.map((x) => x.bandera),
+	);
+	assert.deepEqual(s.others.map((x) => x.bandera), ["Maxi", "COTO CICSA", "DIA"]);
+});
+
+check("con favoritas, el mejor es la cabeza de la lista reordenada y el de afuera, la de la otra", () => {
+	const s = ranked(
+		[
+			b("COTO CICSA", 4800, 0.5, { horarios: CERRADA }),
+			b("DIA", 4800, 3, { horarios: ABIERTA }),
+			b("Maxi", 3000, 1, { horarios: CERRADA }),
+			b("Changomas", 3000, 4, { horarios: ABIERTA }),
+		],
+		["coto", "dia"],
+	);
+	assert.equal(s.mode, "favorites");
+	assert.equal(s.best?.bandera, "DIA");
+	assert.equal(s.otherBest?.bandera, "Changomas");
+});
+
+check("no se inventa un mejor precio donde no había", () => {
+	const s = ranked([b("Maxi", 3795, 2.1, { horarios: ABIERTA })], ["lanonima"]);
+	assert.equal(s.mode, "none-in-favorites");
+	assert.equal(s.best, null);
+	assert.equal(s.otherBest?.bandera, "Maxi");
+});
+
+check("el comparador nunca antepone el horario al precio (todas las combinaciones)", () => {
+	const cmp = compareBranchesAt(LUNES_10);
+	const horarios = [ABIERTA, CERRADA, undefined];
+	for (const ha of horarios)
+		for (const hb of horarios)
+			for (const [pa, pb] of [
+				[100, 200],
+				[200, 100],
+			]) {
+				const a = b("A", pa, 5, { horarios: ha });
+				const z = b("Z", pb, 0.1, { horarios: hb });
+				assert.equal(Math.sign(cmp(a, z)), Math.sign(pa - pb));
+			}
 });
 
 if (failures > 0) {

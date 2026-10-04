@@ -1,3 +1,5 @@
+import type { Horarios } from "../utils/openingHours";
+
 const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
 export interface StoreChain {
@@ -15,6 +17,9 @@ export interface NearbyStore {
 	lat: number;
 	lng: number;
 	distanceKm: number;
+	/** Horario de atención (ver `utils/openingHours`). Opcional: el backend
+	 * todavía no lo manda, y sin él no se muestra ningún estado. */
+	horarios?: Horarios | null;
 }
 
 export interface FavoriteStores {

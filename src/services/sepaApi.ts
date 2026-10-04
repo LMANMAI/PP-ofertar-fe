@@ -1,3 +1,5 @@
+import type { Horarios } from "../utils/openingHours";
+
 const BACKEND_URL = "https://ofertar-backend-ofertar-backend.qr2vg3.easypanel.host";
 
 export interface ComercioPrecioResponse {
@@ -101,6 +103,9 @@ export interface SucursalPrecio {
 	distanciaKm: number;
 	/** Precio de lista en ESA sucursal, no el mínimo de la cadena. */
 	precio: number;
+	/** Horario de atención (ver `utils/openingHours`). Opcional: el backend
+	 * todavía no lo manda, y sin él no se muestra ningún estado. */
+	horarios?: Horarios | null;
 }
 
 export interface SucursalesCercanas {
