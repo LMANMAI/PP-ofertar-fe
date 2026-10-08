@@ -268,6 +268,9 @@ type Props = {
 	onOpenAnalysis: () => void;
 	onOpenRecurring: () => void;
 	onOpenHabitual: () => void;
+	/** Lo que se guardó desde el escáner de códigos de barras. */
+	onOpenShoppingList: () => void;
+	onOpenFollowed: () => void;
 	/** La oferta entera, por el mismo motivo que en OffersScreen: el carrusel
 	 * sale de su propio fetch y no del que resuelve el detalle. */
 	onOpenOffer: (offerId: string, fallback?: Offer | null) => void;
@@ -285,6 +288,8 @@ export function HomeScreen({
 	onOpenAnalysis,
 	onOpenRecurring,
 	onOpenHabitual,
+	onOpenShoppingList,
+	onOpenFollowed,
 	onOpenOffer,
 }: Props) {
 	const insets = useSafeAreaInsets();
@@ -704,6 +709,40 @@ export function HomeScreen({
 						</Pressable>
 					</>
 				)}
+
+				{/* Lo que se guarda desde el escáner de códigos. Fuera del bloque de arriba a
+				    propósito: no dependen de haber escaneado un ticket, así que alguien que
+				    recién empieza también los tiene. */}
+				<View style={styles.savedRow}>
+					<Pressable
+						style={(state) => [styles.smartListCard, styles.savedCard, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+						onPress={onOpenShoppingList}
+						accessibilityRole="button"
+						accessibilityLabel="Mi lista. Los productos que escaneaste para comprar"
+					>
+						<View style={styles.smartListIcon}>
+							<Ionicons name="list-outline" size={20} color={colors.cyan} />
+						</View>
+						<View style={styles.savedCopy}>
+							<Text style={styles.smartListTitle}>Mi lista</Text>
+							<Text style={styles.smartListBody}>Lo que escaneaste para comprar.</Text>
+						</View>
+					</Pressable>
+					<Pressable
+						style={(state) => [styles.smartListCard, styles.savedCard, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+						onPress={onOpenFollowed}
+						accessibilityRole="button"
+						accessibilityLabel="Productos que seguís. Te avisamos cuando estén en promo"
+					>
+						<View style={styles.smartListIcon}>
+							<Ionicons name="notifications-outline" size={20} color={colors.cyan} />
+						</View>
+						<View style={styles.savedCopy}>
+							<Text style={styles.smartListTitle}>Seguidos</Text>
+							<Text style={styles.smartListBody}>Te avisamos si entran en promo.</Text>
+						</View>
+					</Pressable>
+				</View>
 
 				{/* Ofertas vigentes en los súper que sigue el usuario. El backend ya
 				    restringe el match a sus cadenas favoritas, así que todo lo que
@@ -1213,6 +1252,12 @@ function createStyles(colors: ColorTokens) {
 		borderColor: colors.border,
 		padding: space.mdPlus,
 	},
+	// Two entries side by side: stacked they pushed the offers a full card further down.
+	// Icon over the words, not beside them: at half the width the text column was
+	// left with room for two words a line.
+	savedRow: { flexDirection: "row", gap: space.smPlus },
+	savedCard: { flex: 1, flexDirection: "column", alignItems: "flex-start", gap: space.smPlus },
+	savedCopy: { alignSelf: "stretch", gap: 2 },
 	smartListIcon: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.navy, borderWidth: 1, borderColor: colors.navyHairline, alignItems: "center", justifyContent: "center" },
 	smartListCopy: { flex: 1, gap: 2 },
 	smartListTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.body },

@@ -36,6 +36,12 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Escanear uno que no está: dice que no hay precios, sin error.
 - [ ] Comparar precios y ver la sucursal más barata cerca (pedir ubicación).
 - [ ] Mis tiendas favoritas: cambiar cadenas y radio, y que persista.
+- [ ] Tras escanear un producto, "A mi lista": el botón pasa a "En tu lista" y al tocarlo abre la lista con el producto.
+- [ ] Mi lista (desde Inicio y desde Perfil): cambiar la cantidad, tildar un producto (baja a "Ya en el carrito"), destildarlo, sacarlo, "Sacarlos de la lista" y "Ver precios". Cerrar la app y volver: la lista sigue igual.
+- [ ] Volver a escanear un producto que está tildado y agregarlo: vuelve a quedar pendiente, sin duplicarse.
+- [ ] Tras escanear un producto, "Seguir": pasa a "Siguiendo" (la primera vez pide el permiso de notificaciones) y aparece en Productos que seguís; tocar "Siguiendo" lo deja de seguir.
+- [ ] Productos que seguís: muestra cuáles están en promo y dónde; dejar de seguir uno lo saca de la lista. Con las notificaciones de ofertas apagadas en Perfil, lo avisa arriba.
+- [ ] Un producto sin nombre (código que no está en SEPA ni en los proveedores) no ofrece "A mi lista" ni "Seguir".
 
 ## 6. Puntos
 - [ ] Ver el saldo y el historial.
@@ -47,7 +53,7 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Cambiar nombre y correo (pide la contraseña actual).
 - [ ] Cambiar contraseña: al terminar la app sigue con la sesión abierta.
 - [ ] Activar y desactivar las notificaciones de ofertas.
-- [ ] Cerrar sesión: al entrar con otra cuenta no queda nada de la anterior (puntos, ofertas, tickets).
+- [ ] Cerrar sesión: al entrar con otra cuenta no queda nada de la anterior (puntos, ofertas, tickets, lista de compras, productos seguidos).
 
 ## 8. Navegación
 - [ ] Botón físico "atrás" de Android en cada pantalla: vuelve a la pantalla anterior (la de la que se vino) y solo en Inicio cierra la app.
@@ -62,4 +68,5 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Recordatorio de historial → abre el historial de tickets.
 - [ ] Recordatorio de escaneo → abre la captura.
 - [ ] Ofertas → abre Ofertas.
+- [ ] Producto seguido en promo → abre Productos que seguís, con la promo a la vista.
 - [ ] Tocar una notificación con la sesión cerrada no rompe nada (se ignora).

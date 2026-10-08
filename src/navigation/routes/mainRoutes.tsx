@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { setBiometricPreference, storeToken } from "../../auth/biometricAuth";
 import {
 	CaptureTicketScreen,
 	ComparePricesScreen,
 	FavoriteStoresScreen,
+	FollowedProductsScreen,
 	HabitualPurchaseScreen,
 	HomeScreen,
 	MonthlyAnalysisScreen,
@@ -14,26 +16,53 @@ import {
 	RecurringProductsScreen,
 	ScanBarcodeScreen,
 	ScanErrorScreen,
+	ShoppingListScreen,
 	StoreDetailScreen,
 	TicketDetailScreen,
 	TicketHistoryScreen,
 	TicketProcessedScreen,
 } from "../../screens";
 import { resolveOffer } from "../../services";
-import { useOffersStore, usePointsStore, useScanStore, useSessionStore } from "../../store";
 import {
+	isFollowing,
+	isOnShoppingList,
+	useOffersStore,
+	usePointsStore,
+	useSavedProductsStore,
+	useScanStore,
+	useSessionStore,
+} from "../../store";
+import {
+	addScannedToList,
+	clearCheckedListItems,
+	followScannedProduct,
 	handleChoosePdf,
 	handleOcrRetry,
 	handleSelectTicket,
 	handleSendPdf,
 	handleSendPhotos,
+	loadSavedProducts,
 	openOffer,
+	removeListItem,
+	setListItemChecked,
+	setListItemQuantity,
+	unfollowProduct,
 } from "../actions";
-import { nav } from "../nav";
+import { nav, navigationRef } from "../nav";
 import type { RootStackParamList } from "../types";
 import { useSession, useTabProps } from "./useRouteProps";
 
 type Props<K extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, K>;
+
+/**
+ * "Atrás" para pantallas a las que se llega desde varios lados (Inicio, Perfil, el escáner, una
+ * notificación): vuelve a la anterior y, si no hay ninguna —la app se abrió desde la
+ * notificación—, va a Inicio en vez de no hacer nada.
+ */
+function backOrHome(): void {
+	if (navigationRef.isReady() && navigationRef.canGoBack()) nav.goBack();
+	else nav.goMain("home");
+}
 
 /** Pestañas Inicio, Ofertas y Perfil: la que se ve la decide uiStore.tab, así cambiar de pestaña es instantáneo. */
 export function MainRoute() {
@@ -59,6 +88,8 @@ export function MainRoute() {
 				onOpenPayment={() => nav.push("PaymentMethods")}
 				onOpenPlans={() => nav.push("Plans")}
 				onOpenStores={() => nav.push("FavoriteStores", { from: "profile" })}
+				onOpenShoppingList={() => nav.push("ShoppingList")}
+				onOpenFollowed={() => nav.push("FollowedProducts")}
 				onOpenPoints={() => nav.push("Points")}
 				onOpenHelp={() => nav.push("HelpCenter")}
 				onChangePassword={() => nav.push("ChangePasswordAuth")}
@@ -85,6 +116,8 @@ export function MainRoute() {
 			onOpenAnalysis={() => nav.push("MonthlyAnalysis")}
 			onOpenRecurring={() => nav.push("RecurringProducts")}
 			onOpenHabitual={() => nav.push("HabitualPurchase")}
+			onOpenShoppingList={() => nav.push("ShoppingList")}
+			onOpenFollowed={() => nav.push("FollowedProducts")}
 			onOpenOffer={openOffer}
 		/>
 	);
@@ -205,6 +238,12 @@ export function ScanErrorRoute() {
 
 export function ScanBarcodeRoute() {
 	const session = useSession();
+	const list = useSavedProductsStore((s) => s.list);
+	const followedEans = useSavedProductsStore((s) => s.followedEans);
+	const token = session?.token;
+	useEffect(() => {
+		if (token) loadSavedProducts();
+	}, [token]);
 	if (!session) return null;
 	return (
 		<ScanBarcodeScreen
@@ -212,6 +251,61 @@ export function ScanBarcodeRoute() {
 			onBack={() => nav.goMain("home")}
 			onChooseTicket={() => nav.replace("CaptureTicket")}
 			onOpenFavorites={() => nav.push("FavoriteStores", { from: "scanBarcode" })}
+			isOnList={(ean) => isOnShoppingList(list, ean)}
+			isFollowing={(ean) => isFollowing(followedEans, ean)}
+			onAddToList={addScannedToList}
+			onSetFollowing={async (product, follow) => {
+				await (follow ? followScannedProduct(product) : unfollowProduct(product.ean));
+			}}
+			// Si la lista ya está abajo en la pila (se llegó al escáner desde ella), se vuelve a esa.
+			onOpenList={() => nav.backTo("ShoppingList")}
+		/>
+	);
+}
+
+// ── Productos guardados desde el escáner ─────────────────────────────
+
+export function ShoppingListRoute() {
+	const session = useSession();
+	const tabProps = useTabProps();
+	const list = useSavedProductsStore((s) => s.list);
+	const status = useSavedProductsStore((s) => s.listStatus);
+	const token = session?.token;
+	useEffect(() => {
+		if (token) void useSavedProductsStore.getState().loadList(token);
+	}, [token]);
+	if (!session) return null;
+	return (
+		<ShoppingListScreen
+			{...tabProps}
+			list={list}
+			status={status}
+			onBack={backOrHome}
+			onRetry={() => void useSavedProductsStore.getState().loadList(session.token)}
+			onScanProduct={() => nav.push("ScanBarcode")}
+			onSetChecked={(item, checked) => void setListItemChecked(item.id, checked)}
+			onSetQuantity={(item, quantity) => void setListItemQuantity(item.id, quantity)}
+			onRemove={(item) => void removeListItem(item.id)}
+			onClearChecked={() => void clearCheckedListItems()}
+			onSeePrices={(item) => nav.push("Compare", { productName: item.description, barcode: item.ean, origin: "shoppingList" })}
+		/>
+	);
+}
+
+export function FollowedProductsRoute() {
+	const session = useSession();
+	const tabProps = useTabProps();
+	if (!session) return null;
+	return (
+		<FollowedProductsScreen
+			{...tabProps}
+			session={session}
+			onBack={backOrHome}
+			onScanProduct={() => nav.push("ScanBarcode")}
+			onUnfollow={(product) => unfollowProduct(product.ean)}
+			onSeePrices={(product) =>
+				nav.push("Compare", { productName: product.description, barcode: product.ean, origin: "followedProducts" })
+			}
 		/>
 	);
 }
@@ -228,7 +322,12 @@ export function CompareRoute({ route }: Props<"Compare">) {
 			barcode={barcode}
 			session={session}
 			onOpenFavorites={() => nav.push("FavoriteStores", { from: "compare" })}
-			onBack={() => (origin === "ticketProcessed" ? nav.backTo("TicketProcessed") : nav.goMain("home"))}
+			onBack={() => {
+				if (origin === "ticketProcessed") nav.backTo("TicketProcessed");
+				else if (origin === "shoppingList") nav.backTo("ShoppingList");
+				else if (origin === "followedProducts") nav.backTo("FollowedProducts");
+				else nav.goMain("home");
+			}}
 			onScanBarcode={() => nav.push("ScanBarcode")}
 		/>
 	);

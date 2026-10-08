@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
 	AuthResponseSchema,
 	FavoriteStoresSchema,
+	FollowedProductsSchema,
 	OfferFeedSchema,
 	PointsBalanceSchema,
 	PointsHistorySchema,
 	ProductoDetalleSchema,
 	RecurringProductListSchema,
 	SavingsReportSchema,
+	ShoppingListSchema,
 	SucursalesCercanasSchema,
 	TicketListSchema,
 	TicketSchema,
@@ -27,6 +29,8 @@ describe("cada schema acepta una respuesta con la forma del contrato", () => {
 		["OfferFeed", OfferFeedSchema, f.offerFeed],
 		["RecurringProducts", RecurringProductListSchema, f.recurringProducts],
 		["FavoriteStores", FavoriteStoresSchema, f.favoriteStores],
+		["ShoppingList", ShoppingListSchema, f.shoppingList],
+		["FollowedProducts", FollowedProductsSchema, f.followedProducts],
 		["ProductoDetalle", ProductoDetalleSchema, f.productoDetalle],
 		["SucursalesCercanas", SucursalesCercanasSchema, f.sucursalesCercanas],
 	] as const)("%s", (_nombre, schema, ejemplo) => {

@@ -1,9 +1,11 @@
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { clearStoredToken, getBiometricPreference, getPromptDismissed, isBiometricAvailable } from "../auth/biometricAuth";
+import { registerForPushNotifications, type PushRegistrationResult } from "../notifications/pushRegistration";
 import { getTicket, scanTicket } from "../services";
-import type { Offer, TicketResponse } from "../services";
-import { resetAllStores, useOffersStore, useScanStore, useSessionStore } from "../store";
+import type { Offer, SavedProductInput, TicketResponse } from "../services";
+import { friendlyAuthError } from "../services/authApi";
+import { resetAllStores, useOffersStore, useSavedProductsStore, useScanStore, useSessionStore, useUiStore } from "../store";
 import { nav } from "./nav";
 
 /**
@@ -117,4 +119,85 @@ export async function handleSendPdf(): Promise<void> {
 export function handleOcrRetry(): void {
 	useScanStore.getState().resetForRetry();
 	nav.backTo("CaptureTicket");
+}
+
+// ── Productos guardados desde el escáner ─────────────────────────────
+
+/** Lo que el escáner necesita para dibujar "En tu lista" y "Siguiendo" sobre lo que lee. */
+export function loadSavedProducts(): void {
+	const session = useSessionStore.getState().session;
+	if (!session) return;
+	const saved = useSavedProductsStore.getState();
+	void saved.loadList(session.token);
+	void saved.loadFollowedEans(session.token);
+}
+
+/**
+ * Un cambio sobre la lista o los productos seguidos. El store ya lo deshace si falla; acá se le
+ * cuenta al usuario, que si no vería el tilde volver solo sin saber por qué.
+ */
+async function savedChange(change: (token: string) => Promise<void>, done?: string): Promise<boolean> {
+	const session = useSessionStore.getState().session;
+	if (!session) return false;
+	try {
+		await change(session.token);
+		if (done) useUiStore.getState().showToast(done);
+		return true;
+	} catch (error) {
+		useUiStore.getState().showToast(friendlyAuthError(error), "error");
+		return false;
+	}
+}
+
+export async function addScannedToList(product: SavedProductInput): Promise<void> {
+	await savedChange((token) => useSavedProductsStore.getState().addToList(token, product), "Lo agregamos a tu lista.");
+}
+
+export function setListItemChecked(itemId: number, checked: boolean): Promise<boolean> {
+	return savedChange((token) => useSavedProductsStore.getState().setChecked(token, itemId, checked));
+}
+
+export function setListItemQuantity(itemId: number, quantity: number): Promise<boolean> {
+	return savedChange((token) => useSavedProductsStore.getState().setQuantity(token, itemId, quantity));
+}
+
+export function removeListItem(itemId: number): Promise<boolean> {
+	return savedChange((token) => useSavedProductsStore.getState().removeFromList(token, itemId));
+}
+
+export function clearCheckedListItems(): Promise<boolean> {
+	return savedChange((token) => useSavedProductsStore.getState().clearChecked(token));
+}
+
+/**
+ * Seguir un producto es pedir que te avisen, así que es el momento de pedirle el permiso de
+ * notificaciones al teléfono (mismo criterio que el interruptor de Perfil). Y el aviso de
+ * confirmación solo promete avisar si de verdad se puede: con las notificaciones de ofertas
+ * apagadas o sin el permiso, el producto queda seguido igual y se dice qué falta.
+ */
+export async function followScannedProduct(product: SavedProductInput): Promise<boolean> {
+	const session = useSessionStore.getState().session;
+	if (!session) return false;
+	const followed = await savedChange((token) => useSavedProductsStore.getState().follow(token, product));
+	if (!followed) return false;
+
+	let push: PushRegistrationResult = "unsupported";
+	try {
+		push = await registerForPushNotifications(session.token, { requestPermission: true });
+	} catch {
+		// Sin token de push no hay aviso, pero el producto ya quedó seguido.
+	}
+	const offersPushEnabled = useSessionStore.getState().session?.user.offersPushEnabled ?? true;
+	useUiStore.getState().showToast(
+		!offersPushEnabled
+			? "Lo seguís, pero tenés apagadas las notificaciones de ofertas. Activalas desde Perfil para que te avisemos."
+			: push === "denied"
+				? "Lo seguís, pero OfertAR no tiene permiso para notificarte. Activalo en los ajustes del teléfono para que te avisemos."
+				: "Lo seguís. Te avisamos cuando esté en promo.",
+	);
+	return true;
+}
+
+export function unfollowProduct(ean: string): Promise<boolean> {
+	return savedChange((token) => useSavedProductsStore.getState().unfollow(token, ean), "Dejaste de seguirlo.");
 }

@@ -26,6 +26,7 @@ function AppShell() {
 	const session = useSessionStore((s) => s.session);
 	const booted = useSessionStore((s) => s.booted);
 	const toastMessage = useUiStore((s) => s.toastMessage);
+	const toastKind = useUiStore((s) => s.toastKind);
 	const dismissToast = useUiStore((s) => s.dismissToast);
 	const processingOcr = useScanStore((s) => s.processingOcr);
 	const processingFileType = useScanStore((s) => s.processingFileType);
@@ -46,7 +47,9 @@ function AppShell() {
 
 			{processingOcr && processingFileType && <LoadingOverlay fileType={processingFileType} />}
 
-			{toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} />}
+			{/* Con key: un aviso nuevo mientras hay otro arranca su propia cuenta de 3 segundos, en
+			    vez de heredar la del anterior y desaparecer antes de poder leerse. */}
+			{toastMessage && <Toast key={`${toastKind}:${toastMessage}`} message={toastMessage} kind={toastKind} onDismiss={dismissToast} />}
 		</OnboardingProvider>
 	);
 }

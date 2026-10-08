@@ -74,7 +74,7 @@ export function ConfirmRedeemRoute({ route }: Props<"ConfirmRedeem">) {
 					const redeemed = await usePointsStore.getState().redeem(session.token, reward.id, reward.points);
 					if (redeemed) nav.replace("RedeemSuccess", { rewardId: reward.id });
 				} catch (err) {
-					useUiStore.getState().showToast(err instanceof Error ? err.message : "No se pudo canjear. Probá de nuevo.");
+					useUiStore.getState().showToast(err instanceof Error ? err.message : "No se pudo canjear. Probá de nuevo.", "error");
 					nav.goBack();
 				}
 			}}

@@ -37,10 +37,14 @@ export type RootStackParamList = {
 
 	// Códigos de barras y precios
 	ScanBarcode: undefined;
-	Compare: { productName: string; barcode: string | null; origin: "main" | "ticketProcessed" };
+	Compare: { productName: string; barcode: string | null; origin: "main" | "ticketProcessed" | "shoppingList" | "followedProducts" };
 	FavoriteStores: { from: "profile" | "scanBarcode" | "compare" };
 	StoreDetail: { store: NearbyStore };
 	OfferDetail: { offerId: string };
+
+	// Productos guardados desde el escáner
+	ShoppingList: undefined;
+	FollowedProducts: undefined;
 
 	// Puntos
 	Points: undefined;
