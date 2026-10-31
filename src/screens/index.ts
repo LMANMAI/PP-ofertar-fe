@@ -28,6 +28,7 @@ export { FavoriteStoresScreen } from "./FavoriteStoresScreen";
 export { HelpCenterScreen } from "./HelpCenterScreen";
 export { LogoutConfirmScreen } from "./LogoutConfirmScreen";
 export { ScanBarcodeScreen } from "./ScanBarcodeScreen";
+export { FollowedProductsScreen } from "./FollowedProductsScreen";
 export { CaptureTicketScreen } from "./CaptureTicketScreen";
 export { PdfConfirmScreen } from "./PdfConfirmScreen";
 export { TicketProcessedScreen } from "./TicketProcessedScreen";

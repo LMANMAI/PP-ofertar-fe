@@ -36,11 +36,15 @@ export type RootStackParamList = {
 	HabitualPurchase: undefined;
 
 	// Códigos de barras y precios
-	ScanBarcode: undefined;
-	Compare: { productName: string; barcode: string | null; origin: "main" | "ticketProcessed" };
+	/** De dónde se abrió el escáner: "atrás" vuelve ahí (desde la pestaña Escanear, a Inicio). */
+	ScanBarcode: { origin: "scan" | "compare" | "followedProducts" };
+	Compare: { productName: string; barcode: string | null; origin: "main" | "ticketProcessed" | "followedProducts" };
 	FavoriteStores: { from: "profile" | "scanBarcode" | "compare" };
 	StoreDetail: { store: NearbyStore };
 	OfferDetail: { offerId: string };
+
+	// Productos seguidos desde el escáner
+	FollowedProducts: undefined;
 
 	// Puntos
 	Points: undefined;

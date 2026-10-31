@@ -137,6 +137,9 @@ export interface RecurringProduct {
 	bestOffer: BestOffer | null;
 	campaignOffers: CampaignOffer[];
 	alternativeOffers: AlternativeOffer[];
+	/** Also followed from the scanner: same product by normalized EAN, so the
+	 * app shows it once, marked "Lo seguís". False without a barcode. */
+	followed: boolean;
 }
 
 /**

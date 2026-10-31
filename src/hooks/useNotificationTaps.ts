@@ -54,6 +54,12 @@ export function useNotificationTaps(): void {
 						nav.goMain("offers");
 						return;
 					}
+					if (data.screen === "followedProducts") {
+						// push y no backTo: si la pantalla ya estaba abierta abajo en la pila, tendría las
+						// promos de cuando se abrió, sin la que este aviso acaba de anunciar.
+						nav.push("FollowedProducts");
+						return;
+					}
 					nav.goMain("home");
 				});
 			})

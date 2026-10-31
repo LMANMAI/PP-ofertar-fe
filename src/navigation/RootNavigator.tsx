@@ -19,6 +19,7 @@ import {
 	CaptureTicketRoute,
 	CompareRoute,
 	FavoriteStoresRoute,
+	FollowedProductsRoute,
 	HabitualPurchaseRoute,
 	MainRoute,
 	MonthlyAnalysisRoute,
@@ -98,6 +99,9 @@ export function RootNavigator() {
 			<Stack.Screen name="FavoriteStores" component={FavoriteStoresRoute} />
 			<Stack.Screen name="StoreDetail" component={StoreDetailRoute} />
 			<Stack.Screen name="OfferDetail" component={OfferDetailRoute} />
+
+			{/* Productos seguidos desde el escáner */}
+			<Stack.Screen name="FollowedProducts" component={FollowedProductsRoute} />
 
 			{/* Puntos */}
 			<Stack.Screen name="Points" component={PointsRoute} />

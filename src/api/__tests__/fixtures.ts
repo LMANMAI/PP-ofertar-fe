@@ -119,8 +119,38 @@ export const recurringProducts = [
 		campaignOffers: [],
 		alternativeOffers: [],
 		promoMechanics: [],
+		followed: true,
 	},
 ] satisfies S["RecurringProductResponse"][];
+
+export const followedProducts = {
+	promosChecked: true,
+	items: [
+		{
+			ean: "7790895000997",
+			description: "Gaseosa Coca Cola 2.25 L",
+			brand: "Coca Cola",
+			imageUrl: null,
+			followedAt: "2026-10-07T20:20:41",
+			lastPurchasedAt: "2026-10-12T18:05:00",
+			inPromo: true,
+			bestOffer: null,
+			campaignOffers: [],
+			promoMechanics: [
+				{
+					retailerName: "Coto",
+					productName: "Gaseosa Coca Cola 2.25 l",
+					imageUrl: null,
+					unitPrice: 3500,
+					listPrice: null,
+					promoLabels: ["3x2"],
+					requiredQuantity: 3,
+					promoUnitPrice: 2333.33,
+				},
+			],
+		},
+	],
+} satisfies S["FollowedProductsResponse"];
 
 export const favoriteStores = { chainSlugs: ["carrefour"], radiusKm: 5 } satisfies S["FavoriteStoresResponse"];
 

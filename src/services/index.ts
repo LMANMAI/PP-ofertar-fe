@@ -100,3 +100,7 @@ export type {
 } from "./pointsApi";
 
 export { registerPushToken } from "./pushApi";
+
+export { followProduct, getFollowedEans, getFollowedProducts, unfollowProduct } from "./followedProductsApi";
+
+export type { FollowedProduct, FollowedProducts, FollowProductInput } from "./followedProductsApi";

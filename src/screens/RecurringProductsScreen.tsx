@@ -24,11 +24,12 @@ import {
 import type { Offer, RecurringProduct } from "../services";
 import { friendlyAuthError } from "../services/authApi";
 import type { Session } from "../auth/session";
-import { BottomNav, EmptyState, ErrorBanner, ScreenHeader, Skeleton, type TabKey } from "../components";
+import { BottomNav, EmptyState, ErrorBanner, FollowedChip, ScreenHeader, Skeleton, type TabKey } from "../components";
 import { OffersSortSheet } from "../components/OffersSortSheet";
 import { ProductOfferLine, PromoHero, offerSummary } from "../components/ProductOfferLine";
 import { ConditionsButton, PromoConditionsSheet } from "../components/PromoConditionsSheet";
 import { productConditions, productOfferHero, type PromoConditions } from "../components/promoConditions";
+import { isFollowedPurchase } from "../utils/ean";
 import { formatCurrency, formatLongDate } from "../utils/format";
 import { isLooseMatch } from "../utils/productMatch";
 
@@ -111,9 +112,12 @@ type Props = {
 	 * The second argument carries the rebuilt offer because the feed may not
 	 * contain this promotion. */
 	onOpenOffer?: (id: string, fallback?: Offer | null) => void;
+	/** The codes followed from the scanner, null until read: newer than each
+	 * product's `followed` (see isFollowedPurchase). */
+	followedEans: string[] | null;
 };
 
-export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTab, onScanPress, onOpenOffer }: Props) {
+export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTab, onScanPress, onOpenOffer, followedEans }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -175,6 +179,9 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 		},
 		[onOpenOffer],
 	);
+
+	// The list redraws a card when it opens or closes, and when what is followed changes.
+	const listExtra = useMemo(() => ({ expanded, followedEans }), [expanded, followedEans]);
 
 	const load = useCallback(
 		(mode: "initial" | "refresh") => {
@@ -295,9 +302,15 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 				</Pressable>
 				{showNoOffer &&
 					withoutOffer.map(({ id, product: p }) => (
-						<View key={id} style={styles.noOfferRow}>
+						<View
+							key={id}
+							style={styles.noOfferRow}
+							accessible
+							accessibilityLabel={`${p.description}. ${formatFrequency(p.purchaseCount, p.ticketCount)}${isFollowedPurchase(p, followedEans) ? ". Lo seguís" : ""}`}
+						>
 							<Text style={styles.name}>{p.description}</Text>
 							<Text style={styles.freq}>{formatFrequency(p.purchaseCount, p.ticketCount)}</Text>
+							{isFollowedPurchase(p, followedEans) && <FollowedChip style={styles.followedChip} />}
 						</View>
 					))}
 			</View>
@@ -332,7 +345,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 			{items.length > 0 && (
 				<FlatList
 					data={withOffer}
-					extraData={expanded}
+					extraData={listExtra}
 					keyExtractor={(i) => i.id}
 					contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + space.xxl }}
 					refreshControl={
@@ -344,6 +357,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 					renderItem={({ item }) => (
 						<ProductCard
 							item={item}
+							followed={isFollowedPurchase(item.product, followedEans)}
 							isExpanded={expanded.has(item.id)}
 							onToggle={handleToggle}
 							onOpenConditions={openConditions}
@@ -395,6 +409,7 @@ function ItemSeparator() {
  * tarjeta montaría decenas de hojas cerradas para abrir una. */
 const ProductCard = memo(function ProductCard({
 	item,
+	followed,
 	isExpanded,
 	onToggle,
 	onOpenConditions,
@@ -402,6 +417,8 @@ const ProductCard = memo(function ProductCard({
 	styles,
 }: {
 	item: Item;
+	/** Also followed from the scanner. */
+	followed: boolean;
 	isExpanded: boolean;
 	onToggle: (id: string) => void;
 	onOpenConditions: (conditions: PromoConditions) => void;
@@ -435,7 +452,7 @@ const ProductCard = memo(function ProductCard({
 				onPress={() => hasAnything && onToggle(id)}
 				disabled={!hasAnything}
 				accessibilityRole={hasAnything ? "button" : undefined}
-				accessibilityLabel={`${p.description}. ${formatFrequency(p.purchaseCount, p.ticketCount)}. ${summary}`}
+				accessibilityLabel={`${p.description}. ${formatFrequency(p.purchaseCount, p.ticketCount)}.${followed ? " Lo seguís." : ""} ${summary}`}
 				accessibilityHint={hasAnything ? (isExpanded ? "Toca para contraer el detalle" : "Toca para ver el detalle") : undefined}
 				accessibilityState={hasAnything ? { expanded: isExpanded } : undefined}
 				aria-expanded={hasAnything ? isExpanded : undefined}
@@ -443,6 +460,10 @@ const ProductCard = memo(function ProductCard({
 				<View style={{ flex: 1 }}>
 					<Text style={styles.name}>{p.description}</Text>
 					<Text style={styles.freq}>{formatFrequency(p.purchaseCount, p.ticketCount)}</Text>
+					{/* Seguido desde el escáner y comprado en un ticket: es el mismo producto
+					    (el backend los compara por EAN normalizado), así que queda una sola
+					    tarjeta que lo dice, no una por cada lado. */}
+					{followed && <FollowedChip style={styles.followedChip} />}
 				</View>
 				{hasAnything && (
 					<Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={20} color={colors.mutedText2} />
@@ -632,6 +653,7 @@ function createStyles(colors: ColorTokens) {
 		cardHeader: { flexDirection: "row", alignItems: "center", gap: space.smPlus, minHeight: 44 },
 		name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.label, lineHeight: lineHeights.label },
 		freq: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro, marginTop: space.xs / 2 },
+		followedChip: { marginTop: space.xs },
 		noOffer: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro },
 		noOfferGroup: { marginTop: space.lg, gap: space.xs },
 		noOfferHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
