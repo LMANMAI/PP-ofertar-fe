@@ -9,8 +9,8 @@ import { isOpenNow, openingStatus, type OpeningStatus } from "./openingHours";
  * abierta más cara, porque la lista dice "de la más barata a la más cara" y
  * bajarla cambiaría lo que significa. El horario sólo desempata: a igual precio
  * va primero la que está abierta ahora (una cerrada o una sin horario no sirve
- * para ir ya), y después la más cercana. Sin horarios, que es lo que manda hoy
- * el backend, el orden es exactamente el de `scopeBranches`: precio y distancia.
+ * para ir ya), y después la más cercana. Sin horarios (SEPA no los informa en
+ * todas), el orden es exactamente el de `scopeBranches`: precio y distancia.
  */
 export function compareBranchesAt(now: Date | number): (a: SucursalPrecio, b: SucursalPrecio) => number {
 	const cache = new Map<SucursalPrecio, number>();

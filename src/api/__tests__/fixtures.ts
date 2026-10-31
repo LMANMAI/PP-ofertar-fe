@@ -170,6 +170,21 @@ export const productoDetalle = {
 	comercios: [],
 } satisfies S["SepaProductoDetalleResponse"];
 
+/** Una semana con los tres estados de un día: franjas (una o dos, por turno partido, o que
+ * cruzan la medianoche), [] cerrado y null no informado. */
+export const horarios = {
+	lunes: [{ desde: "08:00", hasta: "22:00" }],
+	martes: [
+		{ desde: "08:30", hasta: "13:00" },
+		{ desde: "16:00", hasta: "20:30" },
+	],
+	miercoles: [],
+	jueves: null,
+	viernes: [{ desde: "00:00", hasta: "24:00" }],
+	sabado: [{ desde: "18:00", hasta: "02:00" }],
+	domingo: null,
+} satisfies S["HorariosResponse"];
+
 export const sucursalesCercanas = {
 	ean: "7791337007253",
 	radioKm: 5,
@@ -189,6 +204,52 @@ export const sucursalesCercanas = {
 			longitud: -58.4,
 			distanciaKm: 1.2,
 			precio: 2499,
+			horarios,
+		},
+		{
+			comercioId: "15",
+			banderaId: "1",
+			bandera: "DIA",
+			sucursalId: 87,
+			nombre: null,
+			tipo: null,
+			direccion: "Av. Corrientes 1234",
+			localidad: null,
+			provincia: "AR-C",
+			latitud: -34.6,
+			longitud: -58.38,
+			distanciaKm: 2.4,
+			precio: 2550,
+			// SEPA no informa ningún día: va null, no un objeto con siete null.
+			horarios: null,
 		},
 	],
 } satisfies S["SepaSucursalesCercanasResponse"];
+
+/** /stores/nearby no está en openapi.json (reenvía al localizador de tiendas): la forma es la
+ * de NearbyStoreListSchema. `horarios` sólo viene en las que se cruzaron con SEPA. */
+export const nearbyStores = [
+	{
+		chainSlug: "jumbo",
+		chainName: "Jumbo",
+		externalId: "j-12",
+		name: "Jumbo Palermo",
+		address: "Av. Siempreviva 742",
+		city: "CABA",
+		lat: -34.6,
+		lng: -58.4,
+		distanceKm: 1.2,
+		horarios,
+	},
+	{
+		chainSlug: "dia",
+		chainName: "DIA",
+		externalId: "d-87",
+		name: "DIA Corrientes",
+		address: null,
+		city: null,
+		lat: -34.6,
+		lng: -58.38,
+		distanceKm: 2.4,
+	},
+];

@@ -10,7 +10,7 @@
  *   - los bordes: a la hora de apertura está abierta, a la de cierre ya no;
  *   - un día no informado, o un dato raro, es "no se sabe" y no se muestra: nunca
  *     "Abierto" sin certeza;
- *   - sin `horarios` (el backend de hoy) no se dice nada.
+ *   - sin `horarios` (SEPA no los informa) no se dice nada.
  */
 import assert from "node:assert/strict";
 
@@ -129,7 +129,7 @@ function suite(): void {
 	check("día sin la clave es igual que null", () => {
 		assert.equal(openingStatus({ lunes: [{ desde: "08:00", hasta: "22:00" }] }, ar("martes", "10:00")).kind, "unknown");
 	});
-	check("sin horarios (backend actual): desconocido y sin texto", () => {
+	check("sin horarios: desconocido y sin texto", () => {
 		for (const h of [undefined, null, {} as Horarios]) {
 			assert.equal(openingStatus(h, ar("lunes", "10:00")).kind, "unknown");
 			assert.equal(label(h, ar("lunes", "10:00")), null);

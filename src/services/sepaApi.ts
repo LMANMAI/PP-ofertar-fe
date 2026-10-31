@@ -94,9 +94,10 @@ export interface SucursalPrecio {
 	distanciaKm: number;
 	/** Precio de lista en ESA sucursal, no el mínimo de la cadena. */
 	precio: number;
-	/** Horario de atención (ver `utils/openingHours`). Opcional: el backend
-	 * todavía no lo manda, y sin él no se muestra ningún estado. */
-	horarios?: Horarios | null;
+	/** Horario de atención (ver `utils/openingHours`): viene siempre, null cuando
+	 * SEPA no informa ningún día, y entonces no se muestra ningún estado. Es
+	 * `HorariosResponse` del contrato; `Horarios` es más laxo (tolera claves ausentes). */
+	horarios: Horarios | null;
 }
 
 export interface SucursalesCercanas {

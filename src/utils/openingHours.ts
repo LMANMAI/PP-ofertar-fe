@@ -11,8 +11,10 @@
  *     "sabado": [{ "desde": "18:00", "hasta": "02:00" }]   ← cruza la medianoche
  *   }
  *
- * `horarios` ausente o null es "sin datos": el backend actual todavía no lo manda
- * y la pantalla no tiene que mostrar nada. La regla de fondo es no decir nunca
+ * `horarios` ausente o null es "sin datos" (SEPA no lo informa, o en /stores/nearby
+ * la tienda no se cruzó con una sucursal de SEPA) y la pantalla no tiene que
+ * mostrar nada. El contrato (`HorariosResponse`) manda las siete claves; acá se
+ * toleran ausentes igual. La regla de fondo es no decir nunca
  * "Abierto" sin certeza: alguien puede cruzar la ciudad por ese cartel. Ante un
  * día no informado o un dato raro, el estado es "desconocido" y no se muestra.
  */

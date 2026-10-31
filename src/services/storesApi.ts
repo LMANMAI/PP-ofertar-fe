@@ -18,8 +18,9 @@ export interface NearbyStore {
 	lat: number;
 	lng: number;
 	distanceKm: number;
-	/** Horario de atención (ver `utils/openingHours`). Opcional: el backend
-	 * todavía no lo manda, y sin él no se muestra ningún estado. */
+	/** Horario de atención (ver `utils/openingHours`). Sólo viene en las tiendas
+	 * que el backend pudo cruzar con una sucursal de SEPA; sin él no se muestra
+	 * ningún estado. */
 	horarios?: Horarios | null;
 }
 

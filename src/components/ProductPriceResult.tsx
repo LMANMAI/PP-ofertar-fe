@@ -51,7 +51,7 @@ type Entry = {
 	address: string | null;
 	/** "1,2 km", sólo para una sucursal. */
 	distance: string | null;
-	/** Abierta o cerrada ahora; "unknown" sin horarios (backend actual) o para una cadena. */
+	/** Abierta o cerrada ahora; "unknown" sin horarios (SEPA no los informa) o para una cadena. */
 	status: OpeningStatus;
 };
 

@@ -12,7 +12,7 @@ type Props = {
  * "Abierto · cierra 22:00" / "Cierra pronto · 21:30" / "Cerrado · abre 8:00".
  *
  * Sin horario no dibuja nada: un "Horario no disponible" repetido en cada fila
- * sólo agrega ruido, y hoy el backend no manda horarios.
+ * sólo agrega ruido, y muchas sucursales no los informan en SEPA.
  *
  * Lo dice el texto; el ícono y el color acompañan. El texto de "pronto" y
  * "cerrado" va en el color de texto normal y no en naranja o gris: sobre los

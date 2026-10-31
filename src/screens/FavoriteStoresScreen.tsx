@@ -476,7 +476,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 		for (const s of stores) map.set(s, openingStatus(s.horarios, now));
 		return map;
 	}, [stores, now]);
-	// Sin ningún horario (el backend de hoy), el filtro no tiene sentido y no se ofrece.
+	// Sin ningún horario (ninguna tienda cruzada con SEPA), el filtro no tiene sentido y no se ofrece.
 	const anyKnownHours = useMemo(() => [...statuses.values()].some((st) => st.kind !== "unknown"), [statuses]);
 	const filterOpen = onlyOpen && anyKnownHours;
 	const statusOf = (s: NearbyStore): OpeningStatus => statuses.get(s) ?? { kind: "unknown" };

@@ -273,7 +273,7 @@ check("a igual precio, una sin horario va después de la abierta; entre dos no a
 	assert.deepEqual(s.others.map((x) => x.bandera), ["DIA", "Maxi", "COTO CICSA"]);
 });
 
-check("sin horarios (backend actual) el orden es el de siempre: precio y distancia", () => {
+check("sin horarios el orden es el de siempre: precio y distancia", () => {
 	const list = [b("DIA", 4800, 3), b("COTO CICSA", 4800, 0.5), b("Maxi", 3795, 2.1)];
 	const s = ranked(list);
 	assert.deepEqual(
