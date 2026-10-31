@@ -1,9 +1,11 @@
+import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { setBiometricPreference, storeToken } from "../../auth/biometricAuth";
 import {
 	CaptureTicketScreen,
 	ComparePricesScreen,
 	FavoriteStoresScreen,
+	FollowedProductsScreen,
 	HabitualPurchaseScreen,
 	HomeScreen,
 	MonthlyAnalysisScreen,
@@ -20,14 +22,16 @@ import {
 	TicketProcessedScreen,
 } from "../../screens";
 import { resolveOffer } from "../../services";
-import { useOffersStore, usePointsStore, useScanStore, useSessionStore } from "../../store";
+import { isFollowing, useFollowedProductsStore, useOffersStore, usePointsStore, useScanStore, useSessionStore } from "../../store";
 import {
+	followScannedProduct,
 	handleChoosePdf,
 	handleOcrRetry,
 	handleSelectTicket,
 	handleSendPdf,
 	handleSendPhotos,
 	openOffer,
+	unfollowProduct,
 } from "../actions";
 import { nav } from "../nav";
 import type { RootStackParamList } from "../types";
@@ -41,6 +45,7 @@ export function MainRoute() {
 	const tabProps = useTabProps();
 	const referralPoints = usePointsStore((s) => s.balance);
 	const biometricEnabled = useSessionStore((s) => s.biometricEnabled);
+	const followedEans = useFollowedProductsStore((s) => s.followedEans);
 	if (!session) return null;
 
 	if (tabProps.activeTab === "offers") {
@@ -59,6 +64,7 @@ export function MainRoute() {
 				onOpenPayment={() => nav.push("PaymentMethods")}
 				onOpenPlans={() => nav.push("Plans")}
 				onOpenStores={() => nav.push("FavoriteStores", { from: "profile" })}
+				onOpenFollowed={() => nav.push("FollowedProducts")}
 				onOpenPoints={() => nav.push("Points")}
 				onOpenHelp={() => nav.push("HelpCenter")}
 				onChangePassword={() => nav.push("ChangePasswordAuth")}
@@ -85,7 +91,9 @@ export function MainRoute() {
 			onOpenAnalysis={() => nav.push("MonthlyAnalysis")}
 			onOpenRecurring={() => nav.push("RecurringProducts")}
 			onOpenHabitual={() => nav.push("HabitualPurchase")}
+			onOpenFollowed={() => nav.push("FollowedProducts")}
 			onOpenOffer={openOffer}
+			followedEans={followedEans}
 		/>
 	);
 }
@@ -145,8 +153,17 @@ export function MonthlyAnalysisRoute() {
 export function RecurringProductsRoute() {
 	const session = useSession();
 	const tabProps = useTabProps();
+	const followedEans = useFollowedProductsStore((s) => s.followedEans);
 	if (!session) return null;
-	return <RecurringProductsScreen {...tabProps} session={session} onOpenOffer={openOffer} onBack={() => nav.goMain("home")} />;
+	return (
+		<RecurringProductsScreen
+			{...tabProps}
+			session={session}
+			onOpenOffer={openOffer}
+			onBack={() => nav.goMain("home")}
+			followedEans={followedEans}
+		/>
+	);
 }
 
 export function HabitualPurchaseRoute() {
@@ -171,7 +188,7 @@ export function CaptureTicketRoute() {
 			onBack={() => nav.goMain("home")}
 			onSend={handleSendPhotos}
 			onChoosePdf={handleChoosePdf}
-			onChooseBarcode={() => nav.replace("ScanBarcode")}
+			onChooseBarcode={() => nav.replace("ScanBarcode", { origin: "scan" })}
 		/>
 	);
 }
@@ -203,15 +220,51 @@ export function ScanErrorRoute() {
 	);
 }
 
-export function ScanBarcodeRoute() {
+export function ScanBarcodeRoute({ route }: Props<"ScanBarcode">) {
 	const session = useSession();
+	const followedEans = useFollowedProductsStore((s) => s.followedEans);
 	if (!session) return null;
+	const { origin } = route.params;
 	return (
 		<ScanBarcodeScreen
 			session={session}
-			onBack={() => nav.goMain("home")}
+			onBack={() => {
+				// Desde la lista de seguidos o desde Compare se vuelve a esa pantalla (antes iba a
+				// Inicio y sacaba la lista de la pila); desde la pestaña Escanear, a Inicio.
+				if (origin === "followedProducts") nav.backTo("FollowedProducts");
+				else if (origin === "compare") nav.goBack();
+				else nav.goMain("home");
+			}}
 			onChooseTicket={() => nav.replace("CaptureTicket")}
 			onOpenFavorites={() => nav.push("FavoriteStores", { from: "scanBarcode" })}
+			isFollowing={(ean) => isFollowing(followedEans, ean)}
+			onSetFollowing={async (product, follow) => {
+				await (follow ? followScannedProduct(product) : unfollowProduct(product.ean));
+			}}
+		/>
+	);
+}
+
+// ── Productos seguidos ───────────────────────────────────────────────
+
+export function FollowedProductsRoute() {
+	const session = useSession();
+	const tabProps = useTabProps();
+	// Al volver del escáner la lista tiene que mostrar lo que se acaba de seguir.
+	const focused = useIsFocused();
+	if (!session) return null;
+	return (
+		<FollowedProductsScreen
+			{...tabProps}
+			session={session}
+			focused={focused}
+			// Se llega desde Inicio, Perfil o una notificación: "atrás" vuelve a donde estaba.
+			onBack={nav.goBack}
+			onScanProduct={() => nav.push("ScanBarcode", { origin: "followedProducts" })}
+			onUnfollow={(product) => unfollowProduct(product.ean)}
+			onSeePrices={(product) =>
+				nav.push("Compare", { productName: product.description, barcode: product.ean, origin: "followedProducts" })
+			}
 		/>
 	);
 }
@@ -228,8 +281,12 @@ export function CompareRoute({ route }: Props<"Compare">) {
 			barcode={barcode}
 			session={session}
 			onOpenFavorites={() => nav.push("FavoriteStores", { from: "compare" })}
-			onBack={() => (origin === "ticketProcessed" ? nav.backTo("TicketProcessed") : nav.goMain("home"))}
-			onScanBarcode={() => nav.push("ScanBarcode")}
+			onBack={() => {
+				if (origin === "ticketProcessed") nav.backTo("TicketProcessed");
+				else if (origin === "followedProducts") nav.backTo("FollowedProducts");
+				else nav.goMain("home");
+			}}
+			onScanBarcode={() => nav.push("ScanBarcode", { origin: "compare" })}
 		/>
 	);
 }
@@ -243,7 +300,9 @@ export function FavoriteStoresRoute({ route }: Props<"FavoriteStores">) {
 		<FavoriteStoresScreen
 			{...tabProps}
 			session={session}
-			onBack={() => (from === "profile" ? nav.goMain("profile") : nav.backTo(from === "scanBarcode" ? "ScanBarcode" : "Compare"))}
+			// Desde el escáner o Compare siempre se llega con push: goBack vuelve a esa pantalla con sus
+			// parámetros. popTo sin parámetros (backTo) se los borraba, y Compare los necesita.
+			onBack={() => (from === "profile" ? nav.goMain("profile") : nav.goBack())}
 			onSelectStore={(store) => nav.push("StoreDetail", { store })}
 		/>
 	);

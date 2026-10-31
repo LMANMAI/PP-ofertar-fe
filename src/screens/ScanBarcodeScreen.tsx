@@ -7,7 +7,9 @@ import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, 
 import { InputField, ProductPriceResult, ScanModeSwitch, ScreenHeader } from "../components";
 import { useShopperContext } from "../hooks/useShopperContext";
 import { getProductoPorEan, SepaError } from "../services";
-import type { ProductoDetalleResponse } from "../services";
+import type { FollowProductInput, ProductoDetalleResponse } from "../services";
+import { isFollowableEan } from "../utils/ean";
+import { displayProductName } from "../utils/productName";
 import type { Session } from "../auth/session";
 
 /** The camera keeps seeing the product it just read. Ignoring the same code for
@@ -21,7 +23,29 @@ type Props = {
 	onChooseTicket: () => void;
 	/** Opens "Mis tiendas favoritas": the prices are read for those chains. */
 	onOpenFavorites: () => void;
+	isFollowing: (ean: string) => boolean;
+	/** Settles once the backend answered, whichever way it went: telling the
+	 * user is the caller's job, this screen only holds the button meanwhile. */
+	onSetFollowing: (product: FollowProductInput, follow: boolean) => Promise<void>;
 };
+
+/**
+ * What gets saved of a scanned product to follow it, or null when there is
+ * nothing to call it: a push about "7790895000997" says nothing, and the offer
+ * alert matches on the name. Also null for a code the backend does not take:
+ * the camera reads UPC-E, and a 6-digit code finds prices but following it was
+ * a 400 shown as a generic error.
+ */
+function followable(producto: ProductoDetalleResponse, scanned: string | null): FollowProductInput | null {
+	const name = producto.descripcion?.trim();
+	if (!name) return null;
+	if (!isFollowableEan(producto.ean) || (scanned != null && !isFollowableEan(scanned))) return null;
+	return {
+		ean: producto.ean,
+		description: displayProductName(name),
+		brand: producto.marca?.trim() ? displayProductName(producto.marca.trim()) : null,
+	};
+}
 
 type Estado = "escaneando" | "manual" | "buscando" | "resultado" | "error";
 
@@ -42,7 +66,7 @@ const ERROR_TITLE: Record<SepaError["kind"], string> = {
 /** A barcode is 8 to 14 digits. Anything else is a typo, said before asking. */
 const isPlausibleCode = (code: string) => /^\d{8,14}$/.test(code);
 
-export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavorites }: Props) {
+export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavorites, isFollowing, onSetFollowing }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -55,6 +79,8 @@ export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavor
 	const [manual, setManual] = useState("");
 	const [manualError, setManualError] = useState<string | null>(null);
 	const lastScan = useRef<{ ean: string; at: number } | null>(null);
+	/** "Seguir" is waiting on the backend. */
+	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
 		if (permission && !permission.granted && permission.canAskAgain) {
@@ -97,6 +123,19 @@ export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavor
 		}
 		setManualError(null);
 		buscar(code);
+	};
+
+	const toFollow = producto ? followable(producto, ean) : null;
+	const following = toFollow != null && isFollowing(toFollow.ean);
+
+	const toggleFollowing = async () => {
+		if (!toFollow || saving) return;
+		setSaving(true);
+		try {
+			await onSetFollowing(toFollow, !following);
+		} finally {
+			setSaving(false);
+		}
 	};
 
 	const cameraOn = permission?.granted === true;
@@ -258,6 +297,44 @@ export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavor
 					{/* Fixed: with a list of stores under the product, "scan another" used to
 					    sit a full scroll away, and the next product is what comes next. */}
 					<View style={[styles.pie, { paddingBottom: insets.bottom + space.md }]}>
+						{/* Next to "scan another" and not under the prices: both are about
+						    this product, and after reading a price the next thing is either
+						    to keep an eye on it or to move on. */}
+						{toFollow && (
+							<Pressable
+								style={(state) => [
+									styles.botonSecundario,
+									styles.seguirBoton,
+									following && styles.seguirBotonActivo,
+									isFocused(state) && styles.focusRing,
+								]}
+								onPress={toggleFollowing}
+								disabled={saving}
+								accessibilityRole="button"
+								accessibilityLabel={
+									following
+										? "Seguís este producto. Tocá para dejar de seguirlo"
+										: "Seguir este producto para que te avisemos cuando esté en promo"
+								}
+								accessibilityState={{ busy: saving, disabled: saving, selected: following }}
+							>
+								{saving ? (
+									<ActivityIndicator size="small" color={colors.defaultText} />
+								) : (
+									<>
+										<Ionicons
+											name={following ? "notifications" : "notifications-outline"}
+											size={18}
+											color={following ? colors.successSoftText : colors.defaultText}
+											accessible={false}
+										/>
+										<Text style={[styles.botonSecundarioTexto, following && styles.seguirTextoActivo]} numberOfLines={1}>
+											{following ? "Siguiendo" : "Seguir"}
+										</Text>
+									</>
+								)}
+							</Pressable>
+						)}
 						<Pressable
 							style={(state) => [styles.botonPrimario, styles.botonPie, isFocused(state) && styles.focusRing]}
 							onPress={volverAEscanear}
@@ -319,6 +396,9 @@ function createStyles(colors: ColorTokens) {
 			backgroundColor: colors.actionFill,
 		},
 		botonPie: { alignSelf: "stretch" },
+		seguirBoton: { alignSelf: "stretch", flexDirection: "row", gap: space.xsPlus, marginBottom: space.sm },
+		seguirBotonActivo: { backgroundColor: colors.successSoft, borderColor: colors.success },
+		seguirTextoActivo: { color: colors.successSoftText },
 		botonPrimarioTexto: { color: colors.actionText, fontFamily: typography.family.bold, fontSize: sizes.body },
 		botonSecundario: {
 			minHeight: 48,

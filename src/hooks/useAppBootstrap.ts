@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import { getBiometricPreference, getStoredToken, isBiometricAvailable } from "../auth/biometricAuth";
 import { registerForPushNotifications } from "../notifications/pushRegistration";
-import { useOffersStore, usePointsStore, useSessionStore } from "../store";
+import { useFollowedProductsStore, useOffersStore, usePointsStore, useSessionStore } from "../store";
 
 /**
  * Efectos de arranque y de sesión de la app, que antes vivían sueltos en App.tsx.
  *
  *  - Al abrir: lee las preferencias de biometría guardadas y marca la app como iniciada.
- *  - Cuando hay sesión: carga las ofertas y los puntos y reengancha el token de push.
+ *  - Cuando hay sesión: carga las ofertas, los puntos y los productos seguidos, y reengancha el
+ *    token de push.
  *  - Cuando no la hay: vacía lo que dependía de la cuenta.
  */
 export function useAppBootstrap(): void {
@@ -36,12 +37,15 @@ export function useAppBootstrap(): void {
 		if (!session) {
 			useOffersStore.getState().reset();
 			usePointsStore.getState().reset();
+			useFollowedProductsStore.getState().reset();
 			return;
 		}
 		// El detalle de una oferta se resuelve por id, así que la lista vive arriba de las pantallas.
 		void useOffersStore.getState().load(session.token);
 		// El saldo y el historial vienen del backend: se traen apenas hay sesión y de nuevo tras cada canje.
 		void usePointsStore.getState().refresh(session.token);
+		// Solo los códigos, para que el escáner ya sepa qué productos dice "Siguiendo".
+		void useFollowedProductsStore.getState().loadFollowedEans(session.token);
 		// Registro silencioso: si el usuario ya había dado permiso en una sesión anterior, reengancha el
 		// token al volver a abrir la app (puede haber cambiado, p. ej. tras una reinstalación). Nunca pide
 		// permiso desde acá: eso solo pasa cuando prende el switch en Perfil.

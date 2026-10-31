@@ -70,4 +70,13 @@ describe("verbos de nav sobre la pila", () => {
 	it("goBack cierra la pantalla de arriba", () => {
 		expect(nombres(aplicar(desde("Main", "Points"), CommonActions.goBack()))).toEqual(["Main"]);
 	});
+
+	// Por esto Tiendas favoritas vuelve al escáner o a Compare con goBack y no con backTo: los dos
+	// tienen parámetros obligatorios (de dónde se abrió el escáner, qué producto compara).
+	it("popTo sin parámetros le borra los suyos a la pantalla a la que vuelve; goBack los conserva", () => {
+		const base = desde("Main", "Points", "RewardDetail");
+		const conParams = { ...base, routes: base.routes.map((r, i) => (i === 1 ? { ...r, params: { origen: "lista" } } : r)) } as State;
+		expect(aplicar(conParams, StackActions.popTo("Points")).routes[1].params).toBeUndefined();
+		expect(aplicar(conParams, CommonActions.goBack()).routes[1].params).toEqual({ origen: "lista" });
+	});
 });

@@ -148,6 +148,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/products/followed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post: operations["follow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/followed/eans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listEans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/followed/{ean}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["unfollow"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/products/recurring": {
         parameters: {
             query?: never;
@@ -522,6 +570,29 @@ export interface components {
             /** Format: int32 */
             radiusKm: number;
         };
+        FollowProductRequest: {
+            brand?: string;
+            description?: string;
+            ean?: string;
+        };
+        FollowedProductResponse: {
+            bestOffer: components["schemas"]["BestOffer"] | null;
+            brand: string | null;
+            campaignOffers: components["schemas"]["CampaignOffer"][];
+            description: string;
+            ean: string;
+            /** Format: date-time */
+            followedAt: string;
+            imageUrl: string | null;
+            inPromo: boolean;
+            /** Format: date-time */
+            lastPurchasedAt: string | null;
+            promoMechanics: components["schemas"]["PromoMechanic"][];
+        };
+        FollowedProductsResponse: {
+            items: components["schemas"]["FollowedProductResponse"][];
+            promosChecked: boolean;
+        };
         ForgotPasswordRequest: {
             email?: string;
         };
@@ -634,6 +705,7 @@ export interface components {
             campaignOffers: components["schemas"]["CampaignOffer"][];
             category: string | null;
             description: string;
+            followed: boolean;
             inReferenceTicket: boolean;
             /** Format: date-time */
             lastPaidAt: string | null;
@@ -1092,6 +1164,88 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["PointsBalanceResponse"];
                 };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FollowedProductsResponse"];
+                };
+            };
+        };
+    };
+    follow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowProductRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listEans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string[];
+                };
+            };
+        };
+    };
+    unfollow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ean: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
