@@ -596,6 +596,19 @@ export interface components {
         ForgotPasswordRequest: {
             email?: string;
         };
+        FranjaHorariaResponse: {
+            desde: string;
+            hasta: string;
+        };
+        HorariosResponse: {
+            domingo: components["schemas"]["FranjaHorariaResponse"][] | null;
+            jueves: components["schemas"]["FranjaHorariaResponse"][] | null;
+            lunes: components["schemas"]["FranjaHorariaResponse"][] | null;
+            martes: components["schemas"]["FranjaHorariaResponse"][] | null;
+            miercoles: components["schemas"]["FranjaHorariaResponse"][] | null;
+            sabado: components["schemas"]["FranjaHorariaResponse"][] | null;
+            viernes: components["schemas"]["FranjaHorariaResponse"][] | null;
+        };
         LoginRequest: {
             email?: string;
             password?: string;
@@ -854,6 +867,7 @@ export interface components {
             direccion: string | null;
             /** Format: double */
             distanciaKm: number;
+            horarios: components["schemas"]["HorariosResponse"] | null;
             /** Format: double */
             latitud: number;
             localidad: string | null;

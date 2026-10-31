@@ -1,10 +1,10 @@
-import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { registerPushToken } from "../services";
+import { canUsePush, loadNotifications } from "./loadNotifications";
 
-export type PushRegistrationResult = "granted" | "denied" | "unsupported";
+export type PushRegistrationResult = "granted" | "denied" | "unsupported" | "expoGo";
 
 /**
  * Requests push permission (if not already granted) and, once granted,
@@ -15,16 +15,24 @@ export type PushRegistrationResult = "granted" | "denied" | "unsupported";
  * user with a system prompt they didn't ask for. The Profile toggle passes
  * `true` since turning it on *is* the explicit ask.
  *
- * Returns `"unsupported"` on simulators/web (no real push token to fetch),
- * `"denied"` when the OS permission is missing (and the caller asked), and
- * `"granted"` once the token was registered with the backend.
+ * Returns `"expoGo"` when running inside Expo Go (remote push is unsupported
+ * there since SDK 53), `"unsupported"` on simulators/web (no real push token
+ * to fetch), `"denied"` when the OS permission is missing (and the caller
+ * asked), and `"granted"` once the token was registered with the backend.
  */
 export async function registerForPushNotifications(
 	sessionToken: string,
 	{ requestPermission }: { requestPermission: boolean },
 ): Promise<PushRegistrationResult> {
+	// Must bail out before importing expo-notifications: evaluating that module
+	// throws in Expo Go on Android.
+	if (!canUsePush()) return "expoGo";
+
 	// Simulators and the web preview have no real push token to fetch.
 	if (!Device.isDevice) return "unsupported";
+
+	const Notifications = await loadNotifications();
+	if (!Notifications) return "expoGo";
 
 	const current = await Notifications.getPermissionsAsync();
 	let status = current.status;

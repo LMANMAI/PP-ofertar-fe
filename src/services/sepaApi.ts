@@ -1,6 +1,7 @@
 import type { ZodType } from "zod";
 import { ApiContractError, ApiError, request } from "../api/client";
 import { ProductoDetalleSchema, SucursalesCercanasSchema } from "../api/schemas";
+import type { Horarios } from "../utils/openingHours";
 
 export interface ComercioPrecioResponse {
 	comercioId: string | null;
@@ -93,6 +94,10 @@ export interface SucursalPrecio {
 	distanciaKm: number;
 	/** Precio de lista en ESA sucursal, no el mínimo de la cadena. */
 	precio: number;
+	/** Horario de atención (ver `utils/openingHours`): viene siempre, null cuando
+	 * SEPA no informa ningún día, y entonces no se muestra ningún estado. Es
+	 * `HorariosResponse` del contrato; `Horarios` es más laxo (tolera claves ausentes). */
+	horarios: Horarios | null;
 }
 
 export interface SucursalesCercanas {

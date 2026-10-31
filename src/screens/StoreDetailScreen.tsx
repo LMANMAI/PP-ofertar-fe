@@ -1,13 +1,17 @@
-import { useMemo } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "../components/ui/AppMapView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
+import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens, radii, focusRing, isFocused } from "../theme/designSystem";
 import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
 import { BottomNav, ChainMarkerPin, ScreenHeader, type TabKey } from "../components";
 import { getChainMarker, markerAccessibilityLabel } from "../theme/chainMarkers";
 import type { NearbyStore } from "../services";
+import { StoreStatusLine } from "../components/StoreStatusLine";
+import { useNow } from "../hooks/useNow";
+import { directionsUrl } from "../utils/directions";
+import { describeWeek, openingStatus } from "../utils/openingHours";
 
 type Props = {
 	store: NearbyStore | null;
@@ -23,11 +27,22 @@ export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onSca
 	const isDark = useIsDarkMode();
 	const styles = useMemo(() => createStyles(colors), [colors]);
 
+	const now = useNow(60_000);
+	const [mapError, setMapError] = useState(false);
+
+	// Una ruta hasta la sucursal y no una búsqueda: antes abría Google Maps
+	// buscando las coordenadas, y había que tocar "Cómo llegar" otra vez ahí.
+	// El mismo enlace que la lista de precios (Apple Maps en iOS, Google Maps en
+	// el resto).
 	const openInMaps = () => {
 		if (!store) return;
-		const label = encodeURIComponent(store.name);
-		Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${store.lat},${store.lng}&query_place_id=${label}`);
+		setMapError(false);
+		Linking.openURL(directionsUrl(Platform.OS, store.lat, store.lng)).catch(() => setMapError(true));
 	};
+
+	const address = store ? [store.address, store.city].filter(Boolean).join(", ") : "";
+	const status = store ? openingStatus(store.horarios, now) : null;
+	const week = store ? describeWeek(store.horarios, now) : null;
 
 	return (
 		<View style={styles.safeArea}>
@@ -87,23 +102,55 @@ export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onSca
 								</View>
 							</View>
 
-							{(store.address || store.city) && (
-								<View style={styles.infoRow}>
-									<Ionicons name="location-outline" size={16} color={colors.subtleText} />
-									<Text style={styles.infoText}>
-										{[store.address, store.city].filter(Boolean).join(", ")}
-									</Text>
-								</View>
-							)}
+							{status && <StoreStatusLine status={status} />}
+
+							{address ? (
+								<Pressable
+									style={(state) => [styles.infoRow, styles.addressLink, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+									onPress={openInMaps}
+									accessibilityRole="link"
+									accessibilityLabel={`Cómo llegar a ${store.chainName}, ${address}`}
+								>
+									<Ionicons name="location-outline" size={16} color={colors.actionFill} />
+									<Text style={[styles.infoText, styles.addressText]}>{address}</Text>
+								</Pressable>
+							) : null}
 							<View style={styles.infoRow}>
 								<Ionicons name="navigate-outline" size={16} color={colors.subtleText} />
-								<Text style={styles.infoText}>{store.distanceKm.toFixed(1)} km de vos</Text>
+								{/* Del punto de búsqueda, que puede ser Casa o Trabajo y no donde estás. */}
+								<Text style={styles.infoText}>
+									A {store.distanceKm.toLocaleString("es-AR", { maximumFractionDigits: 1 })} km del lugar de búsqueda
+								</Text>
 							</View>
+							{mapError && (
+								<Text style={styles.errorText} accessibilityRole="alert">
+									No pudimos abrir el mapa. Buscá la dirección en tu app de mapas.
+								</Text>
+							)}
 						</View>
 
+						{week && (
+							<View style={styles.summaryCard}>
+								<Text style={styles.hoursTitle} accessibilityRole="header">
+									Horarios
+								</Text>
+								{week.map((line) => (
+									<View key={line.dia} style={styles.hoursRow} accessible accessibilityLabel={`${line.nombre}${line.hoy ? ", hoy" : ""}: ${line.texto.replace("24 h", "las 24 horas")}`}>
+										<Text style={[styles.hoursDay, line.hoy && styles.hoursToday]}>
+											{line.nombre}
+											{line.hoy ? " (hoy)" : ""}
+										</Text>
+										<Text style={[styles.hoursText, line.hoy && styles.hoursToday]}>{line.texto}</Text>
+									</View>
+								))}
+								<Text style={styles.disclaimer}>Horarios informados por la cadena; en feriados pueden cambiar.</Text>
+							</View>
+						)}
+
 						<Text style={styles.disclaimer}>
-							No tenemos horarios, teléfono ni medios de pago cargados para
-							esta sucursal todavía — solo la ubicación que reporta el súper.
+							{week
+								? "No tenemos teléfono ni medios de pago cargados para esta sucursal todavía."
+								: "No tenemos horarios, teléfono ni medios de pago cargados para esta sucursal todavía — solo la ubicación que reporta el súper."}
 						</Text>
 					</View>
 				</ScrollView>
@@ -111,7 +158,12 @@ export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onSca
 
 			{store && (
 				<View style={styles.footer}>
-					<Pressable style={styles.primaryButton} onPress={openInMaps}>
+					<Pressable
+						style={(state) => [styles.primaryButton, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+						onPress={openInMaps}
+						accessibilityRole="button"
+						accessibilityLabel={`Cómo llegar a ${store.chainName}${address ? `, ${address}` : ""}`}
+					>
 						<Ionicons name="map-outline" size={18} color={colors.cyan} />
 						<Text style={styles.primaryButtonText}>Cómo llegar</Text>
 					</Pressable>
@@ -161,6 +213,16 @@ function createStyles(colors: ColorTokens) {
 		fontSize: typography.sizes.micro,
 	},
 	infoRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
+	addressLink: { minHeight: 44 },
+	addressText: { color: colors.actionFill, fontFamily: typography.family.medium, textDecorationLine: "underline" },
+	errorText: { color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	hoursTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.body },
+	hoursRow: { flexDirection: "row", justifyContent: "space-between", gap: space.md },
+	hoursDay: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption },
+	hoursText: { flexShrink: 1, textAlign: "right", color: colors.defaultText, fontFamily: typography.family.regular, fontSize: typography.sizes.caption },
+	hoursToday: { color: colors.defaultText, fontFamily: typography.family.bold },
+	pressed: { opacity: 0.88 },
+	focusRing: focusRing(colors),
 	infoText: {
 		flex: 1,
 		color: colors.defaultText,

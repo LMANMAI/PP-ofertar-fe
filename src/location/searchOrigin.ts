@@ -1,92 +1,42 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
+import {
+	isInArgentina,
+	loadPlacesFrom,
+	savePlacesTo,
+	type PlacesStorage,
+	type SearchOrigin,
+	type SearchPlaces,
+} from "./searchPlaces";
 
-/** A place the user picked to search stores around, instead of where they are. */
-export type SearchOrigin = {
-	latitude: number;
-	longitude: number;
-	/** What to show for it: the address they typed or the place under the pin. */
-	label: string;
+export { isInArgentina };
+export type { SearchOrigin };
+
+// Casa y Trabajo viven en el dispositivo: el backend guarda qué cadenas y qué
+// radio, no dónde se centra la búsqueda, y nada más los lee. En el llavero
+// (SecureStore) y no en almacenamiento plano porque un lugar elegido para
+// comprar suele ser tu casa. La lógica (y la migración del punto único de la
+// versión anterior) está en `searchPlaces.ts`; acá sólo se conecta a Expo.
+const storage: PlacesStorage = {
+	secure: {
+		get: (key) => SecureStore.getItemAsync(key),
+		set: (key, value) => SecureStore.setItemAsync(key, value),
+		remove: (key) => SecureStore.deleteItemAsync(key),
+	},
+	legacy: {
+		get: (key) => AsyncStorage.getItem(key),
+		set: (key, value) => AsyncStorage.setItem(key, value),
+		remove: (key) => AsyncStorage.removeItem(key),
+	},
 };
 
-// Kept on the device: the backend stores which chains and what radius, not
-// where the search is centred, and nothing else reads it. In the keychain
-// (SecureStore) and not plain storage, because a place picked to shop around
-// is often home. The first version wrote to AsyncStorage: that copy is read
-// once, moved, and deleted.
-const storageKey = (userId: number) => `ofertar.favoriteStores.origin.${userId}`;
-
-// Rough bounds of Argentina. The stores and offers are all Argentine, so a
-// geocoder answer outside this box is a homonym abroad, not what was meant.
-const AR_BOUNDS = { minLat: -55.5, maxLat: -21.5, minLng: -73.8, maxLng: -53.4 };
-
-export function isInArgentina(latitude: number, longitude: number): boolean {
-	return (
-		latitude >= AR_BOUNDS.minLat &&
-		latitude <= AR_BOUNDS.maxLat &&
-		longitude >= AR_BOUNDS.minLng &&
-		longitude <= AR_BOUNDS.maxLng
-	);
+export function loadSearchPlaces(userId: number): Promise<SearchPlaces> {
+	return loadPlacesFrom(storage, userId);
 }
 
-function parse(raw: string | null): SearchOrigin | null {
-	if (!raw) return null;
-	try {
-		const value = JSON.parse(raw) as Partial<SearchOrigin>;
-		if (
-			typeof value.latitude !== "number" ||
-			typeof value.longitude !== "number" ||
-			!isInArgentina(value.latitude, value.longitude)
-		) {
-			return null;
-		}
-		return { latitude: value.latitude, longitude: value.longitude, label: value.label || "Ubicación elegida" };
-	} catch {
-		return null;
-	}
-}
-
-export async function loadSearchOrigin(userId: number): Promise<SearchOrigin | null> {
-	const key = storageKey(userId);
-	try {
-		const secured = parse(await SecureStore.getItemAsync(key));
-		if (secured) return secured;
-	} catch {
-		// No keychain here (web): fall through to the legacy copy.
-	}
-	try {
-		const legacy = parse(await AsyncStorage.getItem(key));
-		if (legacy) {
-			await saveSearchOrigin(userId, legacy);
-			await AsyncStorage.removeItem(key);
-		}
-		return legacy;
-	} catch {
-		return null;
-	}
-}
-
-export async function saveSearchOrigin(userId: number, origin: SearchOrigin): Promise<void> {
-	try {
-		await SecureStore.setItemAsync(storageKey(userId), JSON.stringify(origin));
-	} catch {
-		// The choice still applies for this visit; it just is not remembered.
-	}
-}
-
-export async function clearSearchOrigin(userId: number): Promise<void> {
-	const key = storageKey(userId);
-	try {
-		await SecureStore.deleteItemAsync(key);
-	} catch {
-		// Nothing to undo if it was never stored.
-	}
-	try {
-		await AsyncStorage.removeItem(key);
-	} catch {
-		// Same.
-	}
+export function saveSearchPlaces(userId: number, places: SearchPlaces): Promise<boolean> {
+	return savePlacesTo(storage, userId, places);
 }
 
 /**
@@ -112,6 +62,11 @@ export async function getDevicePosition(timeoutMs = 8000): Promise<{ latitude: n
  * The first place the device's geocoder finds for what the user typed, or null
  * when there is none in Argentina. Throws when the geocoder itself is not
  * available (no connection, or a device without one).
+ *
+ * Es el geocoder nativo del sistema (expo-location), no una API web de Google:
+ * no usa la key de la app ni se factura. Aun así se llama sólo al confirmar
+ * (`onSubmitEditing` / "Buscar"), nunca por tecla; `scripts/verifyMapsApiUsage.ts`
+ * lo controla.
  */
 export async function findPlace(query: string): Promise<SearchOrigin | null> {
 	const text = query.trim();
