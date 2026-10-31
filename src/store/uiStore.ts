@@ -1,7 +1,5 @@
 import { create } from "zustand";
-import type { TabKey } from "../components";
-
-export type ToastKind = "success" | "error";
+import type { TabKey, ToastKind } from "../components";
 
 /** Estado de interfaz compartido: pestaña activa y aviso (toast) en pantalla. */
 type UiState = {

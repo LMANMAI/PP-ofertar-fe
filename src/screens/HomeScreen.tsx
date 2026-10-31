@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomNav, OfferCarouselCardSkeleton, ProductCardSkeleton, type TabKey, useOnboardingTarget, StoreBadge, PrimaryButton } from "../components";
+import { BottomNav, FollowedChip, OfferCarouselCardSkeleton, ProductCardSkeleton, type TabKey, useOnboardingTarget, StoreBadge, PrimaryButton } from "../components";
 import { radii, space, typography, useIsTablet, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
@@ -22,6 +22,7 @@ import {
 	sortByOfferRelevance,
 } from "../services";
 import type { Offer, PromoIcon, RecurringProduct, SavingsReportResponse } from "../services";
+import { isFollowedPurchase } from "../utils/ean";
 import { formatLongDate, yyyyMM } from "../utils/format";
 import { catalogImageUri } from "../utils/productImage";
 import { isInBasket } from "../utils/basket";
@@ -268,12 +269,14 @@ type Props = {
 	onOpenAnalysis: () => void;
 	onOpenRecurring: () => void;
 	onOpenHabitual: () => void;
-	/** Lo que se guardó desde el escáner de códigos de barras. */
-	onOpenShoppingList: () => void;
+	/** Los productos que se siguen desde el escáner de códigos de barras. */
 	onOpenFollowed: () => void;
 	/** La oferta entera, por el mismo motivo que en OffersScreen: el carrusel
 	 * sale de su propio fetch y no del que resuelve el detalle. */
 	onOpenOffer: (offerId: string, fallback?: Offer | null) => void;
+	/** The codes followed from the scanner, null until read: newer than each
+	 * recurring product's `followed` (see isFollowedPurchase). */
+	followedEans: string[] | null;
 };
 
 const FEED_PAGE_SIZE = 24;
@@ -288,9 +291,9 @@ export function HomeScreen({
 	onOpenAnalysis,
 	onOpenRecurring,
 	onOpenHabitual,
-	onOpenShoppingList,
 	onOpenFollowed,
 	onOpenOffer,
+	followedEans,
 }: Props) {
 	const insets = useSafeAreaInsets();
 	const isTablet = useIsTablet();
@@ -615,8 +618,10 @@ export function HomeScreen({
 								// by barcode for most lines, so it really is the article on the
 								// receipt. No offer means no photo, and the icon stands.
 								const photo = catalogImageUri(p.bestOffer?.imageUrl);
+								const followed = isFollowedPurchase(p, followedEans);
 								const spoken = [
 									p.description,
+									followed ? "lo seguís" : null,
 									p.bestOffer ? `en oferta a ${formatCurrencyS(p.bestOffer.price)}` : null,
 									delta ? `${delta} de descuento` : null,
 									p.bestOffer && p.lastPaidPrice != null ? `última compra ${formatCurrencyS(p.lastPaidPrice)}` : null,
@@ -633,6 +638,9 @@ export function HomeScreen({
 									>
 										<RecurringProductThumb uri={photo} styles={styles} />
 										<Text style={styles.productName} numberOfLines={2}>{p.description}</Text>
+										{/* Also followed from the scanner: the same product, one card,
+										    marked so it does not look like the follow got lost. */}
+										{followed && <FollowedChip />}
 										{/* The price belongs to a same-brand, same-type catalog product that
 										    may be a different size, so name it here too — the card is the
 										    first place the user sees the claim. */}
@@ -710,39 +718,24 @@ export function HomeScreen({
 					</>
 				)}
 
-				{/* Lo que se guarda desde el escáner de códigos. Fuera del bloque de arriba a
-				    propósito: no dependen de haber escaneado un ticket, así que alguien que
-				    recién empieza también los tiene. */}
-				<View style={styles.savedRow}>
-					<Pressable
-						style={(state) => [styles.smartListCard, styles.savedCard, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
-						onPress={onOpenShoppingList}
-						accessibilityRole="button"
-						accessibilityLabel="Mi lista. Los productos que escaneaste para comprar"
-					>
-						<View style={styles.smartListIcon}>
-							<Ionicons name="list-outline" size={20} color={colors.cyan} />
-						</View>
-						<View style={styles.savedCopy}>
-							<Text style={styles.smartListTitle}>Mi lista</Text>
-							<Text style={styles.smartListBody}>Lo que escaneaste para comprar.</Text>
-						</View>
-					</Pressable>
-					<Pressable
-						style={(state) => [styles.smartListCard, styles.savedCard, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
-						onPress={onOpenFollowed}
-						accessibilityRole="button"
-						accessibilityLabel="Productos que seguís. Te avisamos cuando estén en promo"
-					>
-						<View style={styles.smartListIcon}>
-							<Ionicons name="notifications-outline" size={20} color={colors.cyan} />
-						</View>
-						<View style={styles.savedCopy}>
-							<Text style={styles.smartListTitle}>Seguidos</Text>
-							<Text style={styles.smartListBody}>Te avisamos si entran en promo.</Text>
-						</View>
-					</Pressable>
-				</View>
+				{/* Los productos que se siguen desde el escáner de códigos. Fuera del bloque
+				    de arriba a propósito: no dependen de haber escaneado un ticket, así que
+				    alguien que recién empieza también lo tiene. */}
+				<Pressable
+					style={(state) => [styles.smartListCard, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+					onPress={onOpenFollowed}
+					accessibilityRole="button"
+					accessibilityLabel="Productos que seguís. Te avisamos cuando estén en promo"
+				>
+					<View style={styles.smartListIcon}>
+						<Ionicons name="notifications-outline" size={20} color={colors.cyan} />
+					</View>
+					<View style={styles.smartListCopy}>
+						<Text style={styles.smartListTitle}>Productos que seguís</Text>
+						<Text style={styles.smartListBody}>Te avisamos cuando entren en promo.</Text>
+					</View>
+					<Ionicons name="chevron-forward" size={18} color={colors.subtleText} />
+				</Pressable>
 
 				{/* Ofertas vigentes en los súper que sigue el usuario. El backend ya
 				    restringe el match a sus cadenas favoritas, así que todo lo que
@@ -1252,12 +1245,6 @@ function createStyles(colors: ColorTokens) {
 		borderColor: colors.border,
 		padding: space.mdPlus,
 	},
-	// Two entries side by side: stacked they pushed the offers a full card further down.
-	// Icon over the words, not beside them: at half the width the text column was
-	// left with room for two words a line.
-	savedRow: { flexDirection: "row", gap: space.smPlus },
-	savedCard: { flex: 1, flexDirection: "column", alignItems: "flex-start", gap: space.smPlus },
-	savedCopy: { alignSelf: "stretch", gap: 2 },
 	smartListIcon: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.navy, borderWidth: 1, borderColor: colors.navyHairline, alignItems: "center", justifyContent: "center" },
 	smartListCopy: { flex: 1, gap: 2 },
 	smartListTitle: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.body },

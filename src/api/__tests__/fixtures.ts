@@ -119,24 +119,9 @@ export const recurringProducts = [
 		campaignOffers: [],
 		alternativeOffers: [],
 		promoMechanics: [],
+		followed: true,
 	},
 ] satisfies S["RecurringProductResponse"][];
-
-export const shoppingList = {
-	name: "Mi lista",
-	items: [
-		{
-			id: 1,
-			ean: "7790895000997",
-			description: "Gaseosa Coca Cola 2.25 L",
-			brand: "Coca Cola",
-			imageUrl: null,
-			quantity: 2,
-			checked: false,
-			addedAt: "2026-10-07T20:20:10",
-		},
-	],
-} satisfies S["ShoppingListResponse"];
 
 export const followedProducts = {
 	promosChecked: true,
@@ -147,6 +132,7 @@ export const followedProducts = {
 			brand: "Coca Cola",
 			imageUrl: null,
 			followedAt: "2026-10-07T20:20:41",
+			lastPurchasedAt: "2026-10-12T18:05:00",
 			inPromo: true,
 			bestOffer: null,
 			campaignOffers: [],

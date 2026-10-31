@@ -33,7 +33,6 @@ type Props = {
 	onOpenPayment: () => void;
 	onOpenPlans?: () => void;
 	onOpenStores: () => void;
-	onOpenShoppingList?: () => void;
 	onOpenFollowed?: () => void;
 	onOpenPoints: () => void;
 	onOpenHelp: () => void;
@@ -50,10 +49,7 @@ type LinkItem = {
 	id: string;
 	icon: IonName;
 	label: string;
-	action: keyof Pick<
-		Props,
-		"onOpenPayment" | "onOpenPlans" | "onOpenStores" | "onOpenShoppingList" | "onOpenFollowed" | "onOpenPoints" | "onChangePassword"
-	>;
+	action: keyof Pick<Props, "onOpenPayment" | "onOpenPlans" | "onOpenStores" | "onOpenFollowed" | "onOpenPoints" | "onChangePassword">;
 };
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; icon: IonName }[] = [
@@ -67,8 +63,7 @@ const ACCOUNT_ITEMS: LinkItem[] = [
 	{ id: "plans", icon: "ribbon-outline", label: "Planes", action: "onOpenPlans" },
 	{ id: "payment", icon: "card-outline", label: "Métodos de pago", action: "onOpenPayment" },
 	{ id: "stores", icon: "location-outline", label: "Mis tiendas favoritas", action: "onOpenStores" },
-	{ id: "list", icon: "list-outline", label: "Mi lista de compras", action: "onOpenShoppingList" },
-	{ id: "followed", icon: "notifications-outline", label: "Productos que sigo", action: "onOpenFollowed" },
+	{ id: "followed", icon: "notifications-outline", label: "Productos que seguís", action: "onOpenFollowed" },
 	{ id: "password", icon: "lock-closed-outline", label: "Cambiar contraseña", action: "onChangePassword" },
 ];
 
@@ -83,7 +78,6 @@ export function ProfileScreen({
 	onOpenPayment,
 		onOpenPlans,
 		onOpenStores,
-		onOpenShoppingList,
 		onOpenFollowed,
 		onOpenPoints,
 		onOpenHelp,
@@ -185,7 +179,6 @@ export function ProfileScreen({
 		onOpenPayment,
 		onOpenPlans,
 		onOpenStores,
-		onOpenShoppingList,
 		onOpenFollowed,
 		onOpenPoints,
 		onChangePassword,

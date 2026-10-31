@@ -201,26 +201,11 @@ export const RecurringProductListSchema: z.ZodType<Schemas["RecurringProductResp
 		campaignOffers: z.array(CampaignOfferSchema),
 		alternativeOffers: z.array(AlternativeOfferSchema),
 		promoMechanics: z.array(PromoMechanicOfferSchema),
+		followed: boolean,
 	}),
 );
 
-// ── Lista de compras y productos seguidos ────────────────────────────
-
-export const ShoppingListSchema: z.ZodType<Schemas["ShoppingListResponse"]> = z.object({
-	name: string,
-	items: z.array(
-		z.object({
-			id: number,
-			ean: string,
-			description: string,
-			brand: string.nullable(),
-			imageUrl: string.nullable(),
-			quantity: number,
-			checked: boolean,
-			addedAt: string,
-		}),
-	),
-});
+// ── Productos seguidos ───────────────────────────────────────────────
 
 export const FollowedProductsSchema: z.ZodType<Schemas["FollowedProductsResponse"]> = z.object({
 	promosChecked: boolean,
@@ -231,6 +216,7 @@ export const FollowedProductsSchema: z.ZodType<Schemas["FollowedProductsResponse
 			brand: string.nullable(),
 			imageUrl: string.nullable(),
 			followedAt: string,
+			lastPurchasedAt: string.nullable(),
 			inPromo: boolean,
 			bestOffer: BestOfferSchema.nullable(),
 			campaignOffers: z.array(CampaignOfferSchema),

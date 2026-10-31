@@ -10,7 +10,7 @@ import type { FollowedProduct, RecurringProduct } from "../services";
 import { friendlyAuthError } from "../services/authApi";
 import type { Session } from "../auth/session";
 import { PRODUCT_PLACEHOLDER } from "../theme/productPlaceholder";
-import { formatCurrency } from "../utils/format";
+import { formatCurrency, formatLongDate } from "../utils/format";
 import { catalogImageUri } from "../utils/productImage";
 import { isLooseMatch } from "../utils/productMatch";
 
@@ -21,6 +21,9 @@ type Mechanic = FollowedProduct["promoMechanics"][number];
 
 type Props = {
 	session: Session;
+	/** Whether this screen is the one showing. It reloads each time it comes
+	 * back, so a product followed in the scanner opened from here shows up. */
+	focused: boolean;
 	onBack: () => void;
 	/** Products are followed from the barcode scanner. */
 	onScanProduct: () => void;
@@ -35,9 +38,11 @@ type Props = {
 };
 
 /**
- * The shape `ProductOfferLine` words an offer from. A followed product was
- * never bought, so everything about past purchases is empty — which is also
- * what keeps the "menos que en tu último ticket" line from showing.
+ * The shape `ProductOfferLine` words an offer from. The backend only sends when
+ * a followed product was last bought (said on its own line, see
+ * lastPurchaseLine), not what was paid, so everything about past purchases is
+ * empty — which is also what keeps the "menos que en tu último ticket" line
+ * from showing.
  */
 function asOfferSubject(p: FollowedProduct): RecurringProduct {
 	return {
@@ -53,7 +58,20 @@ function asOfferSubject(p: FollowedProduct): RecurringProduct {
 		bestOffer: p.bestOffer,
 		campaignOffers: p.campaignOffers,
 		alternativeOffers: [],
+		followed: true,
 	};
+}
+
+/**
+ * "Lo compraste el 12 de octubre": it is also on a scanned ticket, so the user
+ * sees it is the same product as in "Productos recurrentes" and not another
+ * one. The year only when it is not this one. Null if never bought.
+ */
+function lastPurchaseLine(iso: string | null): string | null {
+	if (!iso) return null;
+	const otherYear = new Date(iso).getFullYear() !== new Date().getFullYear();
+	const day = formatLongDate(iso, { year: otherYear });
+	return day ? `Lo compraste el ${day}` : null;
 }
 
 /** "3x2", "70% en la 2da unidad": the chain's label reworded by the same rules
@@ -66,12 +84,13 @@ function mechanicHeadline(m: Mechanic): string | null {
 }
 
 /**
- * Products followed without having bought them, each with the promotions it has
- * right now at the chains the user shops at. The push that announces a new one
- * lands here.
+ * Products followed from the scanner, bought or not, each with the promotions
+ * it has right now at the chains the user shops at. The push that announces a
+ * new one lands here.
  */
 export function FollowedProductsScreen({
 	session,
+	focused,
 	onBack,
 	onScanProduct,
 	onUnfollow,
@@ -113,9 +132,11 @@ export function FollowedProductsScreen({
 	);
 
 	useEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount
-		load("initial");
-	}, [load]);
+		// With a list already on screen this is quiet: the skeleton only shows
+		// while there is nothing, and a failure keeps what it had.
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount and on coming back
+		if (focused) load("initial");
+	}, [load, focused]);
 
 	const unfollow = async (product: FollowedProduct) => {
 		if (unfollowing) return;
@@ -251,6 +272,7 @@ function ProductCard({
 	// The match is by brand and kind of product: a price that is really for
 	// something else must not read as this product's.
 	const loose = isLooseMatch(p.description, p.bestOffer?.productName);
+	const bought = lastPurchaseLine(p.lastPurchasedAt);
 
 	return (
 		<View style={[styles.card, busy && styles.cardBusy]}>
@@ -270,6 +292,14 @@ function ProductCard({
 						<Text style={styles.brand} numberOfLines={1}>
 							{p.brand}
 						</Text>
+					)}
+					{bought && (
+						<View style={styles.bought}>
+							<Ionicons name="receipt-outline" size={12} color={colors.mutedText2} accessible={false} />
+							<Text style={styles.boughtText} numberOfLines={1}>
+								{bought}
+							</Text>
+						</View>
 					)}
 				</View>
 				<Pressable
@@ -356,6 +386,8 @@ function createStyles(colors: ColorTokens) {
 		cardCopy: { flex: 1, gap: space.xs / 2 },
 		name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.label, lineHeight: lineHeights.label },
 		brand: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro },
+		bought: { flexDirection: "row", alignItems: "center", gap: space.xs, marginTop: space.xs / 2 },
+		boughtText: { flexShrink: 1, color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro },
 		iconButton: { width: 44, height: 44, marginRight: -space.sm, alignItems: "center", justifyContent: "center", borderRadius: radii.sm },
 
 		mechanic: { gap: space.xs },

@@ -3,9 +3,9 @@ import * as FileSystem from "expo-file-system/legacy";
 import { clearStoredToken, getBiometricPreference, getPromptDismissed, isBiometricAvailable } from "../auth/biometricAuth";
 import { registerForPushNotifications, type PushRegistrationResult } from "../notifications/pushRegistration";
 import { getTicket, scanTicket } from "../services";
-import type { Offer, SavedProductInput, TicketResponse } from "../services";
+import type { FollowProductInput, Offer, TicketResponse } from "../services";
 import { friendlyAuthError } from "../services/authApi";
-import { resetAllStores, useOffersStore, useSavedProductsStore, useScanStore, useSessionStore, useUiStore } from "../store";
+import { resetAllStores, useFollowedProductsStore, useOffersStore, useScanStore, useSessionStore, useUiStore } from "../store";
 import { nav } from "./nav";
 
 /**
@@ -121,22 +121,13 @@ export function handleOcrRetry(): void {
 	nav.backTo("CaptureTicket");
 }
 
-// ── Productos guardados desde el escáner ─────────────────────────────
-
-/** Lo que el escáner necesita para dibujar "En tu lista" y "Siguiendo" sobre lo que lee. */
-export function loadSavedProducts(): void {
-	const session = useSessionStore.getState().session;
-	if (!session) return;
-	const saved = useSavedProductsStore.getState();
-	void saved.loadList(session.token);
-	void saved.loadFollowedEans(session.token);
-}
+// ── Productos seguidos ───────────────────────────────────────────────
 
 /**
- * Un cambio sobre la lista o los productos seguidos. El store ya lo deshace si falla; acá se le
- * cuenta al usuario, que si no vería el tilde volver solo sin saber por qué.
+ * Un cambio sobre los productos seguidos. El store recién lo refleja cuando el backend confirma;
+ * acá se le cuenta al usuario si no salió, que si no vería el botón quedar igual sin saber por qué.
  */
-async function savedChange(change: (token: string) => Promise<void>, done?: string): Promise<boolean> {
+async function followedChange(change: (token: string) => Promise<void>, done?: string): Promise<boolean> {
 	const session = useSessionStore.getState().session;
 	if (!session) return false;
 	try {
@@ -149,36 +140,16 @@ async function savedChange(change: (token: string) => Promise<void>, done?: stri
 	}
 }
 
-export async function addScannedToList(product: SavedProductInput): Promise<void> {
-	await savedChange((token) => useSavedProductsStore.getState().addToList(token, product), "Lo agregamos a tu lista.");
-}
-
-export function setListItemChecked(itemId: number, checked: boolean): Promise<boolean> {
-	return savedChange((token) => useSavedProductsStore.getState().setChecked(token, itemId, checked));
-}
-
-export function setListItemQuantity(itemId: number, quantity: number): Promise<boolean> {
-	return savedChange((token) => useSavedProductsStore.getState().setQuantity(token, itemId, quantity));
-}
-
-export function removeListItem(itemId: number): Promise<boolean> {
-	return savedChange((token) => useSavedProductsStore.getState().removeFromList(token, itemId));
-}
-
-export function clearCheckedListItems(): Promise<boolean> {
-	return savedChange((token) => useSavedProductsStore.getState().clearChecked(token));
-}
-
 /**
  * Seguir un producto es pedir que te avisen, así que es el momento de pedirle el permiso de
  * notificaciones al teléfono (mismo criterio que el interruptor de Perfil). Y el aviso de
  * confirmación solo promete avisar si de verdad se puede: con las notificaciones de ofertas
  * apagadas o sin el permiso, el producto queda seguido igual y se dice qué falta.
  */
-export async function followScannedProduct(product: SavedProductInput): Promise<boolean> {
+export async function followScannedProduct(product: FollowProductInput): Promise<boolean> {
 	const session = useSessionStore.getState().session;
 	if (!session) return false;
-	const followed = await savedChange((token) => useSavedProductsStore.getState().follow(token, product));
+	const followed = await followedChange((token) => useFollowedProductsStore.getState().follow(token, product));
 	if (!followed) return false;
 
 	let push: PushRegistrationResult = "unsupported";
@@ -199,5 +170,5 @@ export async function followScannedProduct(product: SavedProductInput): Promise<
 }
 
 export function unfollowProduct(ean: string): Promise<boolean> {
-	return savedChange((token) => useSavedProductsStore.getState().unfollow(token, ean), "Dejaste de seguirlo.");
+	return followedChange((token) => useFollowedProductsStore.getState().unfollow(token, ean), "Dejaste de seguirlo.");
 }

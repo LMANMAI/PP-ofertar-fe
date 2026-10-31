@@ -1,16 +1,15 @@
 import { useAuthFlowStore } from "./authFlowStore";
+import { useFollowedProductsStore } from "./followedProductsStore";
 import { useOffersStore } from "./offersStore";
 import { usePointsStore } from "./pointsStore";
-import { useSavedProductsStore } from "./savedProductsStore";
 import { useScanStore } from "./scanStore";
 import { useSessionStore } from "./sessionStore";
 import { useUiStore } from "./uiStore";
 
 export { useAuthFlowStore } from "./authFlowStore";
+export { isFollowing, useFollowedProductsStore } from "./followedProductsStore";
 export { useOffersStore } from "./offersStore";
 export { historyEntryFromTx, usePointsStore } from "./pointsStore";
-export { isFollowing, isOnShoppingList, pendingCount, useSavedProductsStore } from "./savedProductsStore";
-export type { ListStatus } from "./savedProductsStore";
 export { useScanStore } from "./scanStore";
 export { useSessionStore } from "./sessionStore";
 export { useUiStore } from "./uiStore";
@@ -25,7 +24,7 @@ export function resetAllStores(): void {
 	usePointsStore.getState().reset();
 	useOffersStore.getState().reset();
 	useScanStore.getState().reset();
-	useSavedProductsStore.getState().reset();
+	useFollowedProductsStore.getState().reset();
 	useUiStore.getState().reset();
 	useAuthFlowStore.getState().reset();
 }

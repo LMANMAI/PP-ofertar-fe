@@ -4,11 +4,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useThemeColors, type ColorTokens, radii } from "../../theme/designSystem";
 
+/** "error" for something that did not go through: it cannot wear the green
+ * check of something that did. */
+export type ToastKind = "success" | "error";
+
 type Props = {
 	message: string;
-	/** "error" for something that did not go through: it cannot wear the green
-	 * check of something that did. */
-	kind?: "success" | "error";
+	kind?: ToastKind;
 	onDismiss: () => void;
 };
 
@@ -50,7 +52,7 @@ export function Toast({ message, kind = "success", onDismiss }: Props) {
 
 	// Only the toast itself takes the tap. The wrapper used to be a full-screen
 	// Pressable, so for the three seconds a toast was up the next tap anywhere
-	// was spent dismissing it — "Agregar a mi lista" and then "Seguir" lost the
+	// was spent dismissing it — "Seguir" and then "Escanear otro" lost the
 	// second one.
 	return (
 		<View style={styles.wrap} pointerEvents="box-none">

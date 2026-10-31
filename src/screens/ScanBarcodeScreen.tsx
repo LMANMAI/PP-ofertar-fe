@@ -7,7 +7,8 @@ import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, 
 import { InputField, ProductPriceResult, ScanModeSwitch, ScreenHeader } from "../components";
 import { useShopperContext } from "../hooks/useShopperContext";
 import { getProductoPorEan, SepaError } from "../services";
-import type { ProductoDetalleResponse, SavedProductInput } from "../services";
+import type { FollowProductInput, ProductoDetalleResponse } from "../services";
+import { isFollowableEan } from "../utils/ean";
 import { displayProductName } from "../utils/productName";
 import type { Session } from "../auth/session";
 
@@ -22,24 +23,23 @@ type Props = {
 	onChooseTicket: () => void;
 	/** Opens "Mis tiendas favoritas": the prices are read for those chains. */
 	onOpenFavorites: () => void;
-	/** The product is on the shopping list and still to be bought. */
-	isOnList: (ean: string) => boolean;
 	isFollowing: (ean: string) => boolean;
-	/** Both settle once the backend answered, whichever way it went: telling the
+	/** Settles once the backend answered, whichever way it went: telling the
 	 * user is the caller's job, this screen only holds the button meanwhile. */
-	onAddToList: (product: SavedProductInput) => Promise<void>;
-	onSetFollowing: (product: SavedProductInput, follow: boolean) => Promise<void>;
-	onOpenList: () => void;
+	onSetFollowing: (product: FollowProductInput, follow: boolean) => Promise<void>;
 };
 
 /**
- * What gets saved of a scanned product, or null when there is nothing to call
- * it: a list line reading "7790895000997" is no use in the aisle, and the offer
- * alert matches on the name.
+ * What gets saved of a scanned product to follow it, or null when there is
+ * nothing to call it: a push about "7790895000997" says nothing, and the offer
+ * alert matches on the name. Also null for a code the backend does not take:
+ * the camera reads UPC-E, and a 6-digit code finds prices but following it was
+ * a 400 shown as a generic error.
  */
-function savable(producto: ProductoDetalleResponse): SavedProductInput | null {
+function followable(producto: ProductoDetalleResponse, scanned: string | null): FollowProductInput | null {
 	const name = producto.descripcion?.trim();
 	if (!name) return null;
+	if (!isFollowableEan(producto.ean) || (scanned != null && !isFollowableEan(scanned))) return null;
 	return {
 		ean: producto.ean,
 		description: displayProductName(name),
@@ -66,17 +66,7 @@ const ERROR_TITLE: Record<SepaError["kind"], string> = {
 /** A barcode is 8 to 14 digits. Anything else is a typo, said before asking. */
 const isPlausibleCode = (code: string) => /^\d{8,14}$/.test(code);
 
-export function ScanBarcodeScreen({
-	onBack,
-	session,
-	onChooseTicket,
-	onOpenFavorites,
-	isOnList,
-	isFollowing,
-	onAddToList,
-	onSetFollowing,
-	onOpenList,
-}: Props) {
+export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavorites, isFollowing, onSetFollowing }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -89,8 +79,8 @@ export function ScanBarcodeScreen({
 	const [manual, setManual] = useState("");
 	const [manualError, setManualError] = useState<string | null>(null);
 	const lastScan = useRef<{ ean: string; at: number } | null>(null);
-	/** Which of the two save actions is waiting on the backend. */
-	const [saving, setSaving] = useState<"list" | "follow" | null>(null);
+	/** "Seguir" is waiting on the backend. */
+	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
 		if (permission && !permission.granted && permission.canAskAgain) {
@@ -135,27 +125,16 @@ export function ScanBarcodeScreen({
 		buscar(code);
 	};
 
-	const toSave = producto ? savable(producto) : null;
-	const onList = toSave != null && isOnList(toSave.ean);
-	const following = toSave != null && isFollowing(toSave.ean);
-
-	const addToList = async () => {
-		if (!toSave || saving) return;
-		setSaving("list");
-		try {
-			await onAddToList(toSave);
-		} finally {
-			setSaving(null);
-		}
-	};
+	const toFollow = producto ? followable(producto, ean) : null;
+	const following = toFollow != null && isFollowing(toFollow.ean);
 
 	const toggleFollowing = async () => {
-		if (!toSave || saving) return;
-		setSaving("follow");
+		if (!toFollow || saving) return;
+		setSaving(true);
 		try {
-			await onSetFollowing(toSave, !following);
+			await onSetFollowing(toFollow, !following);
 		} finally {
-			setSaving(null);
+			setSaving(false);
 		}
 	};
 
@@ -320,72 +299,41 @@ export function ScanBarcodeScreen({
 					<View style={[styles.pie, { paddingBottom: insets.bottom + space.md }]}>
 						{/* Next to "scan another" and not under the prices: both are about
 						    this product, and after reading a price the next thing is either
-						    to keep it or to move on. */}
-						{toSave && (
-							<View style={styles.guardarFila}>
-								<Pressable
-									style={(state) => [
-										styles.botonSecundario,
-										styles.guardarBoton,
-										onList && styles.guardarBotonActivo,
-										isFocused(state) && styles.focusRing,
-									]}
-									onPress={onList ? onOpenList : addToList}
-									disabled={saving != null}
-									accessibilityRole="button"
-									accessibilityLabel={onList ? "Está en tu lista. Abrir mi lista" : "Agregar a mi lista de compras"}
-									accessibilityState={{ busy: saving === "list", disabled: saving != null }}
-								>
-									{saving === "list" ? (
-										<ActivityIndicator size="small" color={colors.defaultText} />
-									) : (
-										<>
-											<Ionicons
-												name={onList ? "checkmark-circle" : "add-circle-outline"}
-												size={18}
-												color={onList ? colors.successSoftText : colors.defaultText}
-												accessible={false}
-											/>
-											<Text style={[styles.botonSecundarioTexto, onList && styles.guardarTextoActivo]} numberOfLines={1}>
-												{onList ? "En tu lista" : "A mi lista"}
-											</Text>
-										</>
-									)}
-								</Pressable>
-								<Pressable
-									style={(state) => [
-										styles.botonSecundario,
-										styles.guardarBoton,
-										following && styles.guardarBotonActivo,
-										isFocused(state) && styles.focusRing,
-									]}
-									onPress={toggleFollowing}
-									disabled={saving != null}
-									accessibilityRole="button"
-									accessibilityLabel={
-										following
-											? "Seguís este producto. Tocá para dejar de seguirlo"
-											: "Seguir este producto para que te avisemos cuando esté en promo"
-									}
-									accessibilityState={{ busy: saving === "follow", disabled: saving != null, selected: following }}
-								>
-									{saving === "follow" ? (
-										<ActivityIndicator size="small" color={colors.defaultText} />
-									) : (
-										<>
-											<Ionicons
-												name={following ? "notifications" : "notifications-outline"}
-												size={18}
-												color={following ? colors.successSoftText : colors.defaultText}
-												accessible={false}
-											/>
-											<Text style={[styles.botonSecundarioTexto, following && styles.guardarTextoActivo]} numberOfLines={1}>
-												{following ? "Siguiendo" : "Seguir"}
-											</Text>
-										</>
-									)}
-								</Pressable>
-							</View>
+						    to keep an eye on it or to move on. */}
+						{toFollow && (
+							<Pressable
+								style={(state) => [
+									styles.botonSecundario,
+									styles.seguirBoton,
+									following && styles.seguirBotonActivo,
+									isFocused(state) && styles.focusRing,
+								]}
+								onPress={toggleFollowing}
+								disabled={saving}
+								accessibilityRole="button"
+								accessibilityLabel={
+									following
+										? "Seguís este producto. Tocá para dejar de seguirlo"
+										: "Seguir este producto para que te avisemos cuando esté en promo"
+								}
+								accessibilityState={{ busy: saving, disabled: saving, selected: following }}
+							>
+								{saving ? (
+									<ActivityIndicator size="small" color={colors.defaultText} />
+								) : (
+									<>
+										<Ionicons
+											name={following ? "notifications" : "notifications-outline"}
+											size={18}
+											color={following ? colors.successSoftText : colors.defaultText}
+											accessible={false}
+										/>
+										<Text style={[styles.botonSecundarioTexto, following && styles.seguirTextoActivo]} numberOfLines={1}>
+											{following ? "Siguiendo" : "Seguir"}
+										</Text>
+									</>
+								)}
+							</Pressable>
 						)}
 						<Pressable
 							style={(state) => [styles.botonPrimario, styles.botonPie, isFocused(state) && styles.focusRing]}
@@ -448,12 +396,9 @@ function createStyles(colors: ColorTokens) {
 			backgroundColor: colors.actionFill,
 		},
 		botonPie: { alignSelf: "stretch" },
-		guardarFila: { flexDirection: "row", gap: space.sm, marginBottom: space.sm },
-		// Half the row each, whatever the label: the pair must not jump when
-		// "Seguir" becomes "Siguiendo".
-		guardarBoton: { flex: 1, flexDirection: "row", gap: space.xsPlus, paddingHorizontal: space.md },
-		guardarBotonActivo: { backgroundColor: colors.successSoft, borderColor: colors.success },
-		guardarTextoActivo: { color: colors.successSoftText },
+		seguirBoton: { alignSelf: "stretch", flexDirection: "row", gap: space.xsPlus, marginBottom: space.sm },
+		seguirBotonActivo: { backgroundColor: colors.successSoft, borderColor: colors.success },
+		seguirTextoActivo: { color: colors.successSoftText },
 		botonPrimarioTexto: { color: colors.actionText, fontFamily: typography.family.bold, fontSize: sizes.body },
 		botonSecundario: {
 			minHeight: 48,

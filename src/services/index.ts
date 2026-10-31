@@ -101,22 +101,6 @@ export type {
 
 export { registerPushToken } from "./pushApi";
 
-export {
-	addShoppingListItem,
-	clearCheckedShoppingListItems,
-	followProduct,
-	getFollowedEans,
-	getFollowedProducts,
-	getShoppingList,
-	removeShoppingListItem,
-	unfollowProduct,
-	updateShoppingListItem,
-} from "./savedProductsApi";
+export { followProduct, getFollowedEans, getFollowedProducts, unfollowProduct } from "./followedProductsApi";
 
-export type {
-	FollowedProduct,
-	FollowedProducts,
-	SavedProductInput,
-	ShoppingList,
-	ShoppingListItem,
-} from "./savedProductsApi";
+export type { FollowedProduct, FollowedProducts, FollowProductInput } from "./followedProductsApi";

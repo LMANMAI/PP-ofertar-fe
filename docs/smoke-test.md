@@ -36,12 +36,16 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Escanear uno que no está: dice que no hay precios, sin error.
 - [ ] Comparar precios y ver la sucursal más barata cerca (pedir ubicación).
 - [ ] Mis tiendas favoritas: cambiar cadenas y radio, y que persista.
-- [ ] Tras escanear un producto, "A mi lista": el botón pasa a "En tu lista" y al tocarlo abre la lista con el producto.
-- [ ] Mi lista (desde Inicio y desde Perfil): cambiar la cantidad, tildar un producto (baja a "Ya en el carrito"), destildarlo, sacarlo, "Sacarlos de la lista" y "Ver precios". Cerrar la app y volver: la lista sigue igual.
-- [ ] Volver a escanear un producto que está tildado y agregarlo: vuelve a quedar pendiente, sin duplicarse.
 - [ ] Tras escanear un producto, "Seguir": pasa a "Siguiendo" (la primera vez pide el permiso de notificaciones) y aparece en Productos que seguís; tocar "Siguiendo" lo deja de seguir.
-- [ ] Productos que seguís: muestra cuáles están en promo y dónde; dejar de seguir uno lo saca de la lista. Con las notificaciones de ofertas apagadas en Perfil, lo avisa arriba.
-- [ ] Un producto sin nombre (código que no está en SEPA ni en los proveedores) no ofrece "A mi lista" ni "Seguir".
+- [ ] Productos que seguís (desde Inicio y desde Perfil): muestra cuáles están en promo y dónde; dejar de seguir uno lo saca de la lista; "Ver precios" y volver deja de nuevo en Productos que seguís; "atrás" vuelve a Inicio o a Perfil, según de dónde se vino. Con las notificaciones de ofertas apagadas en Perfil, lo avisa arriba.
+- [ ] Un producto sin nombre (código que no está en SEPA ni en los proveedores) no ofrece "Seguir".
+- [ ] Leer con la cámara un código corto (UPC-E de 6 dígitos): muestra lo que haya del producto pero no ofrece "Seguir"; uno de 8 a 14 dígitos sí.
+- [ ] Productos que seguís vacío → "Escanear un producto" → "atrás" en el escáner vuelve a Productos que seguís (no a Inicio). Seguir uno en el escáner y volver: ya aparece en la lista, sin deslizar para recargar.
+- [ ] Comparar → escanear un código → "atrás" vuelve a Comparar; desde el escáner, Mis tiendas favoritas → "atrás" vuelve al escáner y su "atrás" sigue llevando a donde se lo abrió.
+- [ ] Seguir un producto que también aparece en un ticket escaneado (antes o después): en Productos recurrentes y en "Para tu próxima compra" de Inicio sale una sola vez, con la marca "Lo seguís"; dejar de seguirlo saca la marca al volver a esas pantallas.
+- [ ] El mismo producto leído como GTIN-14 (con un 0 adelante) y como EAN-13: el escáner muestra "Siguiendo" en los dos casos y no se duplica en Productos que seguís.
+- [ ] En Productos que seguís, uno que está en algún ticket muestra "Lo compraste el 12 de octubre" (con el año si no es el actual); uno que nunca se compró no muestra esa línea.
+- [ ] Sin red al abrir la app (los seguidos no cargan), recuperar la red y seguir un producto: los que ya se seguían siguen apareciendo como "Siguiendo" en el escáner.
 
 ## 6. Puntos
 - [ ] Ver el saldo y el historial.
@@ -53,7 +57,7 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Cambiar nombre y correo (pide la contraseña actual).
 - [ ] Cambiar contraseña: al terminar la app sigue con la sesión abierta.
 - [ ] Activar y desactivar las notificaciones de ofertas.
-- [ ] Cerrar sesión: al entrar con otra cuenta no queda nada de la anterior (puntos, ofertas, tickets, lista de compras, productos seguidos).
+- [ ] Cerrar sesión: al entrar con otra cuenta no queda nada de la anterior (puntos, ofertas, tickets, productos seguidos).
 
 ## 8. Navegación
 - [ ] Botón físico "atrás" de Android en cada pantalla: vuelve a la pantalla anterior (la de la que se vino) y solo en Inicio cierra la app.

@@ -9,7 +9,6 @@ import {
 	ProductoDetalleSchema,
 	RecurringProductListSchema,
 	SavingsReportSchema,
-	ShoppingListSchema,
 	SucursalesCercanasSchema,
 	TicketListSchema,
 	TicketSchema,
@@ -29,7 +28,6 @@ describe("cada schema acepta una respuesta con la forma del contrato", () => {
 		["OfferFeed", OfferFeedSchema, f.offerFeed],
 		["RecurringProducts", RecurringProductListSchema, f.recurringProducts],
 		["FavoriteStores", FavoriteStoresSchema, f.favoriteStores],
-		["ShoppingList", ShoppingListSchema, f.shoppingList],
 		["FollowedProducts", FollowedProductsSchema, f.followedProducts],
 		["ProductoDetalle", ProductoDetalleSchema, f.productoDetalle],
 		["SucursalesCercanas", SucursalesCercanasSchema, f.sucursalesCercanas],
@@ -63,6 +61,22 @@ describe("un cambio de contrato se detecta", () => {
 		expect(TicketSchema.safeParse({ ...f.ticket, status: "DELETED" }).success).toBe(false);
 		const oferta = { ...f.offerFeed, items: [{ ...f.offerFeed.items[0], mechanic: "4x1" }] };
 		expect(OfferFeedSchema.safeParse(oferta).success).toBe(false);
+	});
+
+	it("productos recurrentes: `followed` es obligatorio y no admite null", () => {
+		const [leche] = f.recurringProducts;
+		const { followed: _quitado, ...sinFollowed } = leche;
+		expect(RecurringProductListSchema.safeParse([sinFollowed]).success).toBe(false);
+		expect(RecurringProductListSchema.safeParse([{ ...leche, followed: null }]).success).toBe(false);
+		expect(RecurringProductListSchema.safeParse([{ ...leche, followed: false }]).success).toBe(true);
+	});
+
+	it("productos seguidos: `lastPurchasedAt` viene siempre, null si nunca se compró", () => {
+		const [gaseosa] = f.followedProducts.items;
+		const con = (item: object) => ({ ...f.followedProducts, items: [item] });
+		const { lastPurchasedAt: _quitado, ...sinFecha } = gaseosa;
+		expect(FollowedProductsSchema.safeParse(con(sinFecha)).success).toBe(false);
+		expect(FollowedProductsSchema.safeParse(con({ ...gaseosa, lastPurchasedAt: null })).success).toBe(true);
 	});
 
 	it("un backend más nuevo que agrega campos no rompe a la app", () => {
