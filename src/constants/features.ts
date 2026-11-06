@@ -1,8 +1,7 @@
-/** Password recovery needs the backend to send email (SMTP + a verified
- * domain, see PP-ofertar application.properties). Until that exists the
- * screen says so instead of promising a code that never arrives. Set to true
- * once mail is configured in production. */
-export const PASSWORD_RECOVERY_ENABLED = false;
+/** Password recovery needs the backend to send email (SMTP, see PP-ofertar
+ * application.properties). Without it the screen says so instead of promising a
+ * code that never arrives, so turn this off if mail stops being configured. */
+export const PASSWORD_RECOVERY_ENABLED = true;
 
 /** Promos bancarias y Mis tarjetas contra datos de prueba en memoria
  * (`services/bankPromosMock.ts`) en vez del backend, mientras los endpoints del

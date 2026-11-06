@@ -164,6 +164,8 @@ const CampaignOfferSchema: z.ZodType<Schemas["CampaignOffer"]> = z.object({
 	discountPercentages: z.array(number),
 	mechanic: PromoMechanicSchema.nullable(),
 	percentagesUnverified: boolean,
+	brands: z.array(string),
+	categories: z.array(string),
 });
 
 const PromoMechanicOfferSchema: z.ZodType<Schemas["PromoMechanic"]> = z.object({
@@ -202,6 +204,7 @@ export const RecurringProductListSchema: z.ZodType<Schemas["RecurringProductResp
 		alternativeOffers: z.array(AlternativeOfferSchema),
 		promoMechanics: z.array(PromoMechanicOfferSchema),
 		followed: boolean,
+		addedToHabitual: boolean,
 	}),
 );
 
@@ -226,6 +229,8 @@ export const FollowedProductsSchema: z.ZodType<Schemas["FollowedProductsResponse
 });
 
 export const FollowedEansSchema = z.array(string);
+
+export const HabitualEansSchema = z.array(string);
 
 // ── Horarios de sucursales ───────────────────────────────────────────
 

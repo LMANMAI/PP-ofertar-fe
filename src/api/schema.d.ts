@@ -100,6 +100,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bank-promotions/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Las promos de hoy, para la tira de Home (máximo 3) */
+        get: operations["today"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bank-promotions/week": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Siete días de promos bancarias desde from
+         * @description Con mine=true no vienen las promos que no le sirven al usuario (match=none).
+         */
+        get: operations["week"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/payment-methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Los medios de pago y beneficios del usuario */
+        get: operations["get"];
+        /**
+         * Reemplaza el conjunto completo de medios y beneficios
+         * @description Valida cada slug contra el catálogo: uno desconocido es 400 y no se guarda nada.
+         */
+        put: operations["replace"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/payment-methods/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Quita un medio de pago
+         * @description 204; 404 si no existe o es de otro usuario.
+         */
+        delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/offers": {
         parameters: {
             query?: never;
@@ -108,6 +186,23 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listOffers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payment-methods/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catálogo: emisores (del scraper), redes, tipos y beneficios */
+        get: operations["catalog"];
         put?: never;
         post?: never;
         delete?: never;
@@ -207,6 +302,54 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["unfollow"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/habitual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addHabitualProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/habitual/eans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listHabitualProductEans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/habitual/{ean}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeHabitualProduct"];
         options?: never;
         head?: never;
         patch?: never;
@@ -557,6 +700,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AddHabitualProductRequest: {
+            brand?: string;
+            description?: string;
+            ean?: string;
+        };
         AlternativeOffer: {
             brand: string | null;
             discountPct: number | null;
@@ -568,6 +716,22 @@ export interface components {
         AuthResponse: {
             token: string;
             user: components["schemas"]["UserProfileResponse"];
+        };
+        BankPromotionsTodayResponse: {
+            bestPercent: number | null;
+            /** Format: date */
+            date: string;
+            promos: components["schemas"]["PromoView"][];
+        };
+        BankPromotionsWeekResponse: {
+            days: components["schemas"]["PromoDay"][];
+            /** Format: date */
+            from: string;
+            hasPaymentMethods: boolean;
+            mine: boolean;
+            notes: components["schemas"]["PromoNote"][];
+            /** Format: date */
+            to: string;
         };
         BestOffer: {
             discountPct: number | null;
@@ -584,6 +748,8 @@ export interface components {
         };
         CampaignOffer: {
             activeTo: string | null;
+            brands: string[];
+            categories: string[];
             discountPercentages: number[];
             imageUrl: string | null;
             legalText: string | null;
@@ -593,6 +759,15 @@ export interface components {
             percentagesUnverified: boolean;
             province: string | null;
             retailerName: string;
+        };
+        CatalogBenefit: {
+            description: string;
+            name: string;
+            slug: string;
+        };
+        CatalogOption: {
+            name: string;
+            slug: string;
         };
         CategorySavings: {
             category: string | null;
@@ -661,6 +836,10 @@ export interface components {
             email?: string;
             password?: string;
         };
+        MyPaymentMethodsResponse: {
+            benefits: string[];
+            methods: components["schemas"]["PaymentMethodView"][];
+        };
         Offer: {
             activeTo: string | null;
             brand: string | null;
@@ -724,6 +903,34 @@ export interface components {
             sort?: components["schemas"]["SortObject"];
             unpaged?: boolean;
         };
+        PaymentCatalogResponse: {
+            benefits: components["schemas"]["CatalogBenefit"][];
+            cardTypes: components["schemas"]["CatalogOption"][];
+            issuers: components["schemas"]["PaymentIssuerView"][];
+            networks: components["schemas"]["CatalogOption"][];
+        };
+        PaymentIssuerView: {
+            /** @enum {string} */
+            kind: "bank" | "wallet" | "card_issuer" | "club";
+            name: string;
+            slug: string;
+        };
+        PaymentMethodInput: {
+            cardType?: string;
+            issuerSlug?: string;
+            network?: string;
+        };
+        PaymentMethodView: {
+            cardType: string | null;
+            /** Format: int64 */
+            id: number;
+            issuer: components["schemas"]["PaymentIssuerView"];
+            network: string | null;
+        };
+        PercentRange: {
+            max: number;
+            min: number;
+        };
         PointsBalanceResponse: {
             /** Format: int32 */
             balance: number;
@@ -748,6 +955,32 @@ export interface components {
             purchaseCount: number;
             totalDiscounts: number;
         };
+        PromoCap: {
+            amount: number;
+            /** @enum {string|null} */
+            period: "purchase" | "day" | "week" | "month" | null;
+        };
+        PromoDay: {
+            bestPercent: number | null;
+            /** Format: date */
+            date: string;
+            promos: components["schemas"]["PromoView"][];
+            /** Format: int32 */
+            weekday: number;
+        };
+        PromoDiscount: {
+            amount?: number | null;
+            /** Format: int32 */
+            installments?: number | null;
+            /** @enum {string} */
+            kind: "percent" | "installments" | "amount" | "other";
+            percent?: number | null;
+            text: string;
+        };
+        PromoIssuer: {
+            name: string;
+            slug: string;
+        };
         PromoMechanic: {
             imageUrl: string | null;
             listPrice: number | null;
@@ -758,6 +991,43 @@ export interface components {
             requiredQuantity: number | null;
             retailerName: string;
             unitPrice: number | null;
+        };
+        PromoNote: {
+            /** Format: date */
+            fromDate: string;
+            /** @enum {string} */
+            kind: "rollover";
+        };
+        PromoRequires: {
+            cardType?: string | null;
+            network?: string | null;
+            package?: string | null;
+        };
+        PromoView: {
+            allMethods: boolean;
+            cap: components["schemas"]["PromoCap"] | null;
+            channels: string[];
+            conditions: string[];
+            discount: components["schemas"]["PromoDiscount"];
+            formats: string[] | null;
+            /** Format: int64 */
+            id: number;
+            issuers: components["schemas"]["PromoIssuer"][];
+            legalText: string | null;
+            /** @enum {string} */
+            match: "match" | "near" | "all" | "none";
+            matchReason: string | null;
+            percentRange: components["schemas"]["PercentRange"] | null;
+            qualityFlags: string[];
+            regions: string[] | null;
+            requires: components["schemas"]["PromoRequires"] | null;
+            retailer: string;
+            retailerName: string;
+            title: string;
+            /** Format: date */
+            validFrom: string;
+            /** Format: date */
+            validTo: string;
         };
         PushDeliveryResponse: {
             /** @description Código de error de Expo, p. ej. DeviceNotRegistered (el token se borra). */
@@ -815,6 +1085,7 @@ export interface components {
             type: "test" | "followedProducts" | "offers" | "reactivation";
         };
         RecurringProductResponse: {
+            addedToHabitual: boolean;
             alternativeOffers: components["schemas"]["AlternativeOffer"][];
             barcode: string | null;
             bestOffer: components["schemas"]["BestOffer"] | null;
@@ -1039,6 +1310,10 @@ export interface components {
             /** Format: int32 */
             radiusKm?: number;
         };
+        UpdatePaymentMethodsRequest: {
+            benefits: string[];
+            methods: components["schemas"]["PaymentMethodInput"][];
+        };
         UpdateProfileRequest: {
             address?: string;
             alternativeBrandsEnabled?: boolean;
@@ -1218,6 +1493,122 @@ export interface operations {
             };
         };
     };
+    today: {
+        parameters: {
+            query?: {
+                /** @description true: sólo las que le sirven al usuario (match, all, near) */
+                mine?: boolean;
+                /** @description Zona del usuario: una o varias provincias separadas por coma, por nombre ("Córdoba"), forma canónica ("CORDOBA") o código ISO 3166-2 ("AR-X" o "X"); "AMBA" o "GBA" es CABA + Buenos Aires. Sin zona, las promos regionales nunca dan match. Una provincia que no se reconoce es 400. */
+                province?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BankPromotionsTodayResponse"];
+                };
+            };
+        };
+    };
+    week: {
+        parameters: {
+            query?: {
+                /** @description Primer día (YYYY-MM-DD). Por defecto, hoy en Argentina */
+                from?: string;
+                /** @description true: sólo las que le sirven al usuario (match, all, near) */
+                mine?: boolean;
+                /** @description Zona del usuario: una o varias provincias separadas por coma, por nombre ("Córdoba"), forma canónica ("CORDOBA") o código ISO 3166-2 ("AR-X" o "X"); "AMBA" o "GBA" es CABA + Buenos Aires. Sin zona, las promos regionales nunca dan match. Una provincia que no se reconoce es 400. */
+                province?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BankPromotionsWeekResponse"];
+                };
+            };
+        };
+    };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyPaymentMethodsResponse"];
+                };
+            };
+        };
+    };
+    replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePaymentMethodsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyPaymentMethodsResponse"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listOffers: {
         parameters: {
             query?: {
@@ -1240,6 +1631,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OfferFeedResponse"];
+                };
+            };
+        };
+    };
+    catalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PaymentCatalogResponse"];
                 };
             };
         };
@@ -1371,6 +1782,68 @@ export interface operations {
         };
     };
     unfollow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ean: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    addHabitualProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddHabitualProductRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listHabitualProductEans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string[];
+                };
+            };
+        };
+    };
+    removeHabitualProduct: {
         parameters: {
             query?: never;
             header?: never;

@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LoadingOverlay, OnboardingProvider, Toast } from "./src/components";
 import { useAppBootstrap } from "./src/hooks/useAppBootstrap";
 import { useNotificationTaps } from "./src/hooks/useNotificationTaps";
+import { useReferralLink } from "./src/hooks/useReferralLink";
 import { navigationRef } from "./src/navigation/nav";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useScanStore, useSessionStore, useUiStore } from "./src/store";
@@ -22,6 +23,7 @@ function useOnboardingEligible(): boolean {
 function AppShell() {
 	useAppBootstrap();
 	useNotificationTaps();
+	useReferralLink();
 
 	const session = useSessionStore((s) => s.session);
 	const booted = useSessionStore((s) => s.booted);

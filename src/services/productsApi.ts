@@ -71,6 +71,9 @@ export interface CampaignOffer {
 	imageUrl: string | null;
 	/** Read off the promo image by OCR, so treat as a best guess. */
 	discountPercentages: number[];
+	/** Marcas y categorías de la campaña, para decir por qué aplica. */
+	brands: string[];
+	categories: string[];
 	/** How the discount applies. A conditional mechanic makes the headline
 	 * percentage far less valuable than it looks: "70% en la 2da unidad" is not
 	 * 70% off what you pay. */
@@ -140,6 +143,8 @@ export interface RecurringProduct {
 	/** Also followed from the scanner: same product by normalized EAN, so the
 	 * app shows it once, marked "Lo seguís". False without a barcode. */
 	followed: boolean;
+	/** Sumado desde el escáner: está en la compra habitual aunque ningún ticket lo traiga. */
+	addedToHabitual: boolean;
 }
 
 /**

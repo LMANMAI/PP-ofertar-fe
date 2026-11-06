@@ -342,6 +342,16 @@ export function hasGuessedPercentages(offers: CampaignOffer[]): boolean {
  * que la hoja detalla, para que el "y N más" del chip no prometa otras. */
 export const MAX_CAMPAIGNS_SHOWN = 3;
 
+/** Por qué la campaña aplica a este producto. El legal de Carrefour no nombra
+ * las marcas: salen de la grilla de logos, leída con visión artificial. */
+function campaignScopeLines(c: CampaignOffer): { text: string; tone: "body" }[] {
+	const list = (items: string[]) => [...new Set(items)].join(", ");
+	return [
+		...(c.brands?.length ? [{ text: `Marcas: ${list(c.brands)}`, tone: "body" as const }] : []),
+		...(c.categories?.length ? [{ text: `Categorías: ${list(c.categories)}`, tone: "body" as const }] : []),
+	];
+}
+
 /**
  * La hoja de una oferta del feed (Ofertas, Inicio).
  *
@@ -460,7 +470,11 @@ export function productConditions(
 			key: `campaign-${i}`,
 			kind: "campaign",
 			title: `${describeCampaignDiscount(c) ?? "Promoción vigente"} en ${where}`,
-			lines: [{ text: validityText(c.activeTo, now), tone: "body" }, ...legalLines(c.legalText)],
+			lines: [
+				{ text: validityText(c.activeTo, now), tone: "body" },
+				...campaignScopeLines(c),
+				...legalLines(c.legalText),
+			],
 			full: campaignOfferToOffer(c),
 		});
 	});

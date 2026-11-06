@@ -37,7 +37,7 @@ export type RootStackParamList = {
 
 	// Códigos de barras y precios
 	/** De dónde se abrió el escáner: "atrás" vuelve ahí (desde la pestaña Escanear, a Inicio). */
-	ScanBarcode: { origin: "scan" | "compare" | "followedProducts" };
+	ScanBarcode: { origin: "scan" | "compare" | "followedProducts" | "habitual" };
 	Compare: { productName: string; barcode: string | null; origin: "main" | "ticketProcessed" | "followedProducts" };
 	FavoriteStores: { from: "profile" | "scanBarcode" | "compare" };
 	StoreDetail: { store: NearbyStore };

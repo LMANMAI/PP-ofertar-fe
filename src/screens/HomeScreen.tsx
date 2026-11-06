@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomNav, FollowedChip, OfferCarouselCardSkeleton, ProductCardSkeleton, type TabKey, useOnboardingTarget, StoreBadge, PrimaryButton } from "../components";
+import { BottomNav, FollowedChip, OfferCarouselCardSkeleton, ProductCardSkeleton, RECURRING_EMPTY_HINT, type TabKey, useOnboardingScroll, useOnboardingTarget, StoreBadge, PrimaryButton } from "../components";
 import { radii, space, typography, useIsTablet, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
@@ -323,6 +323,7 @@ export function HomeScreen({
 	const [offers, setOffers] = useState<Offer[]>(cached?.offers ?? []);
 	const offersTarget = useOnboardingTarget("offers");
 	const historyTarget = useOnboardingTarget("history");
+	const tourScroll = useOnboardingScroll();
 	const [savingsError, setSavingsError] = useState(false);
 	const [loadingSavings, setLoadingSavings] = useState(!cached?.savings);
 	const [loadingRecurring, setLoadingRecurring] = useState(!cached?.recurring);
@@ -492,6 +493,9 @@ export function HomeScreen({
 			<View style={styles.headerBottomCurve} />
 
 			<ScrollView
+				// eslint-disable-next-line react-hooks/refs -- attachRef/onScroll are stable callbacks from useOnboardingScroll, not a render-time ref read
+				ref={tourScroll.attachRef} onScroll={tourScroll.onScroll}
+				scrollEventThrottle={32}
 				style={styles.scroll}
 				contentContainerStyle={[
 					styles.scrollContent,
@@ -632,8 +636,7 @@ export function HomeScreen({
 							<View style={styles.productsEmpty}>
 								<Ionicons name="cart-outline" size={20} color={colors.subtleText} />
 								<Text style={styles.productsEmptyText}>
-									Todavía no registramos productos que compres seguido. Escaneá
-									tickets y aparecen acá.
+									{RECURRING_EMPTY_HINT}
 								</Text>
 							</View>
 						) : (

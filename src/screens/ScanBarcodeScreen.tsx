@@ -27,6 +27,9 @@ type Props = {
 	/** Settles once the backend answered, whichever way it went: telling the
 	 * user is the caller's job, this screen only holds the button meanwhile. */
 	onSetFollowing: (product: FollowProductInput, follow: boolean) => Promise<void>;
+	isInHabitual: (ean: string) => boolean;
+	/** Same contract as onSetFollowing, for the user's habitual shop. */
+	onSetInHabitual: (product: FollowProductInput, add: boolean) => Promise<void>;
 };
 
 /**
@@ -66,7 +69,7 @@ const ERROR_TITLE: Record<SepaError["kind"], string> = {
 /** A barcode is 8 to 14 digits. Anything else is a typo, said before asking. */
 const isPlausibleCode = (code: string) => /^\d{8,14}$/.test(code);
 
-export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavorites, isFollowing, onSetFollowing }: Props) {
+export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavorites, isFollowing, onSetFollowing, isInHabitual, onSetInHabitual }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
@@ -81,6 +84,8 @@ export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavor
 	const lastScan = useRef<{ ean: string; at: number } | null>(null);
 	/** "Seguir" is waiting on the backend. */
 	const [saving, setSaving] = useState(false);
+	/** "Compra habitual" is waiting on the backend. */
+	const [savingHabitual, setSavingHabitual] = useState(false);
 
 	useEffect(() => {
 		if (permission && !permission.granted && permission.canAskAgain) {
@@ -135,6 +140,18 @@ export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavor
 			await onSetFollowing(toFollow, !following);
 		} finally {
 			setSaving(false);
+		}
+	};
+
+	const inHabitual = toFollow != null && isInHabitual(toFollow.ean);
+
+	const toggleHabitual = async () => {
+		if (!toFollow || savingHabitual) return;
+		setSavingHabitual(true);
+		try {
+			await onSetInHabitual(toFollow, !inHabitual);
+		} finally {
+			setSavingHabitual(false);
 		}
 	};
 
@@ -301,39 +318,74 @@ export function ScanBarcodeScreen({ onBack, session, onChooseTicket, onOpenFavor
 						    this product, and after reading a price the next thing is either
 						    to keep an eye on it or to move on. */}
 						{toFollow && (
-							<Pressable
-								style={(state) => [
-									styles.botonSecundario,
-									styles.seguirBoton,
-									following && styles.seguirBotonActivo,
-									isFocused(state) && styles.focusRing,
-								]}
-								onPress={toggleFollowing}
-								disabled={saving}
-								accessibilityRole="button"
-								accessibilityLabel={
-									following
-										? "Seguís este producto. Tocá para dejar de seguirlo"
-										: "Seguir este producto para que te avisemos cuando esté en promo"
-								}
-								accessibilityState={{ busy: saving, disabled: saving, selected: following }}
-							>
-								{saving ? (
-									<ActivityIndicator size="small" color={colors.defaultText} />
-								) : (
-									<>
-										<Ionicons
-											name={following ? "notifications" : "notifications-outline"}
-											size={18}
-											color={following ? colors.successSoftText : colors.defaultText}
-											accessible={false}
-										/>
-										<Text style={[styles.botonSecundarioTexto, following && styles.seguirTextoActivo]} numberOfLines={1}>
-											{following ? "Siguiendo" : "Seguir"}
-										</Text>
-									</>
-								)}
-							</Pressable>
+							<View style={styles.accionesProducto}>
+								<Pressable
+									style={(state) => [
+										styles.botonSecundario,
+										styles.seguirBoton,
+										following && styles.seguirBotonActivo,
+										isFocused(state) && styles.focusRing,
+									]}
+									onPress={toggleFollowing}
+									disabled={saving}
+									accessibilityRole="button"
+									accessibilityLabel={
+										following
+											? "Seguís este producto. Tocá para dejar de seguirlo"
+											: "Seguir este producto para que te avisemos cuando esté en promo"
+									}
+									accessibilityState={{ busy: saving, disabled: saving, selected: following }}
+								>
+									{saving ? (
+										<ActivityIndicator size="small" color={colors.defaultText} />
+									) : (
+										<>
+											<Ionicons
+												name={following ? "notifications" : "notifications-outline"}
+												size={18}
+												color={following ? colors.successSoftText : colors.defaultText}
+												accessible={false}
+											/>
+											<Text style={[styles.botonSecundarioTexto, following && styles.seguirTextoActivo]} numberOfLines={1}>
+												{following ? "Siguiendo" : "Seguir"}
+											</Text>
+										</>
+									)}
+								</Pressable>
+								<Pressable
+									style={(state) => [
+										styles.botonSecundario,
+										styles.seguirBoton,
+										inHabitual && styles.seguirBotonActivo,
+										isFocused(state) && styles.focusRing,
+									]}
+									onPress={toggleHabitual}
+									disabled={savingHabitual}
+									accessibilityRole="button"
+									accessibilityLabel={
+										inHabitual
+											? "Está en tu compra habitual. Tocá para sacarlo"
+											: "Sumar a tu compra habitual para que te avisemos si falta en tu próximo ticket"
+									}
+									accessibilityState={{ busy: savingHabitual, disabled: savingHabitual, selected: inHabitual }}
+								>
+									{savingHabitual ? (
+										<ActivityIndicator size="small" color={colors.defaultText} />
+									) : (
+										<>
+											<Ionicons
+												name={inHabitual ? "checkmark-circle" : "cart-outline"}
+												size={18}
+												color={inHabitual ? colors.successSoftText : colors.defaultText}
+												accessible={false}
+											/>
+											<Text style={[styles.botonSecundarioTexto, inHabitual && styles.seguirTextoActivo]} numberOfLines={1}>
+												Compra habitual
+											</Text>
+										</>
+									)}
+								</Pressable>
+							</View>
 						)}
 						<Pressable
 							style={(state) => [styles.botonPrimario, styles.botonPie, isFocused(state) && styles.focusRing]}
@@ -396,7 +448,8 @@ function createStyles(colors: ColorTokens) {
 			backgroundColor: colors.actionFill,
 		},
 		botonPie: { alignSelf: "stretch" },
-		seguirBoton: { alignSelf: "stretch", flexDirection: "row", gap: space.xsPlus, marginBottom: space.sm },
+		accionesProducto: { flexDirection: "row", gap: space.sm, marginBottom: space.sm },
+		seguirBoton: { flex: 1, flexDirection: "row", gap: space.xsPlus, paddingHorizontal: space.sm },
 		seguirBotonActivo: { backgroundColor: colors.successSoft, borderColor: colors.success },
 		seguirTextoActivo: { color: colors.successSoftText },
 		botonPrimarioTexto: { color: colors.actionText, fontFamily: typography.family.bold, fontSize: sizes.body },

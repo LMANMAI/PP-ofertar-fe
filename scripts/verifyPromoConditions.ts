@@ -568,9 +568,26 @@ check("las cards memoizadas no reciben closures nuevas por render", () => {
 	}
 });
 
+check("la campaña dice las marcas y categorías por las que aplica, sin repetirlas", () => {
+	const conditions = productConditions(
+		product({ campaignOffers: [campaign({ brands: ["Natura", "Natura"], categories: ["Aceite"] })] }),
+		false,
+	);
+	const text = sheetText(conditions);
+	assert.ok(text.includes("Marcas: Natura") && !text.includes("Natura, Natura"), "faltan las marcas");
+	assert.ok(text.includes("Categorías: Aceite"), "faltan las categorías");
+});
+
+check("una campaña sin marcas no agrega renglones vacíos", () => {
+	const text = sheetText(productConditions(product({ campaignOffers: [campaign()] }), false));
+	assert.ok(!text.includes("Marcas:") && !text.includes("Categorías:"));
+});
+
 check('el texto de pago "Con tarjeta o programa de" sigue igual y en la tarjeta', () => {
 	assert.ok(
-		recurring.includes('Con tarjeta o programa de {offer.retailerName}: {promos.payment.join(" · ")}'),
+		readFileSync(resolve(here, "..", "src/components/PaymentPromos.tsx"), "utf8").includes(
+			"Con tarjeta o programa de {retailerName}:",
+		) && recurring.includes("<PaymentPromos"),
 		"cambió el texto aprobado de las promos de pago",
 	);
 });

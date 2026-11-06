@@ -51,6 +51,18 @@ export function formatLongDate(iso: string | null, opts?: { year?: boolean }): s
 	});
 }
 
+/**
+ * "Lo compraste el 12 de octubre": it is also on a scanned ticket, so the user
+ * sees it is the same product as in "Productos recurrentes" and not another
+ * one. The year only when it is not this one. Null if never bought.
+ */
+export function lastPurchaseLine(iso: string | null): string | null {
+	if (!iso) return null;
+	const otherYear = new Date(iso).getFullYear() !== new Date().getFullYear();
+	const day = formatLongDate(iso, { year: otherYear });
+	return day ? `Lo compraste el ${day}` : null;
+}
+
 /** "3 sept, 14:32" — when a ticket was scanned, not necessarily when the
  * purchase happened (the ticket carries no separate emission date). The year
  * is added only for a previous year, so a January ticket seen in December is

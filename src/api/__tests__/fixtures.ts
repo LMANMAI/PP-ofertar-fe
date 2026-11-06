@@ -120,6 +120,7 @@ export const recurringProducts = [
 		alternativeOffers: [],
 		promoMechanics: [],
 		followed: true,
+		addedToHabitual: false,
 	},
 ] satisfies S["RecurringProductResponse"][];
 
