@@ -1,4 +1,5 @@
 import { useAuthFlowStore } from "./authFlowStore";
+import { useBankPromosStore } from "./bankPromosStore";
 import { useFollowedProductsStore } from "./followedProductsStore";
 import { useOffersStore } from "./offersStore";
 import { usePointsStore } from "./pointsStore";
@@ -7,6 +8,7 @@ import { useSessionStore } from "./sessionStore";
 import { useUiStore } from "./uiStore";
 
 export { useAuthFlowStore } from "./authFlowStore";
+export { DuplicateMethodError, useBankPromosStore } from "./bankPromosStore";
 export { isFollowing, useFollowedProductsStore } from "./followedProductsStore";
 export { useOffersStore } from "./offersStore";
 export { historyEntryFromTx, usePointsStore } from "./pointsStore";
@@ -27,4 +29,5 @@ export function resetAllStores(): void {
 	useFollowedProductsStore.getState().reset();
 	useUiStore.getState().reset();
 	useAuthFlowStore.getState().reset();
+	useBankPromosStore.getState().reset();
 }

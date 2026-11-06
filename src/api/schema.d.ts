@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/admin/push/jobs/{job}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["runJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -222,6 +238,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/push/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/push/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["test"];
         delete?: never;
         options?: never;
         head?: never;
@@ -711,6 +759,61 @@ export interface components {
             retailerName: string;
             unitPrice: number | null;
         };
+        PushDeliveryResponse: {
+            /** @description Código de error de Expo, p. ej. DeviceNotRegistered (el token se borra). */
+            error: string | null;
+            message: string | null;
+            platform: string;
+            /** @enum {string} */
+            status: "ok" | "error";
+            /** @description Últimos caracteres del token, para reconocer el dispositivo sin exponer el token. */
+            tokenSuffix: string;
+        };
+        PushDeviceResponse: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            platform: string;
+            /** @description Últimos caracteres del token, para reconocer el dispositivo sin exponer el token. */
+            tokenSuffix: string;
+        };
+        PushJobRunResponse: {
+            /** Format: int32 */
+            deviceCount: number;
+            /** @enum {string} */
+            job: "followed" | "offers" | "reactivation";
+            reason: string;
+            sent: boolean;
+            /** Format: int64 */
+            userId: number;
+        };
+        PushStatusResponse: {
+            /** Format: int32 */
+            deviceCount: number;
+            devices: components["schemas"]["PushDeviceResponse"][];
+            /**
+             * Format: date-time
+             * @description Último recordatorio del job de reactivación; null si nunca se le mandó.
+             */
+            lastReactivationNudgeAt: string | null;
+            /** @description Preferencia de alertas de ofertas: habilita los avisos de ofertas, productos seguidos y reactivación. Los de tickets y referidos salen siempre. */
+            offersPushEnabled: boolean;
+        };
+        PushTestRequest: {
+            /**
+             * @description Qué aviso simular. Lleva el mismo data que el aviso real, así al tocarlo abre la misma pantalla.
+             * @enum {string}
+             */
+            type?: "test" | "followedProducts" | "offers" | "reactivation";
+        };
+        PushTestResponse: {
+            devices: components["schemas"]["PushDeliveryResponse"][];
+            message: string;
+            sent: boolean;
+            /** @enum {string} */
+            type: "test" | "followedProducts" | "offers" | "reactivation";
+        };
         RecurringProductResponse: {
             alternativeOffers: components["schemas"]["AlternativeOffer"][];
             barcode: string | null;
@@ -977,6 +1080,30 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    runJob: {
+        parameters: {
+            query: {
+                userId: number;
+            };
+            header?: never;
+            path: {
+                job: "followed" | "offers" | "reactivation";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PushJobRunResponse"];
+                };
+            };
+        };
+    };
     forgotPassword: {
         parameters: {
             query?: never;
@@ -1304,6 +1431,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PushStatusResponse"];
+                };
+            };
+        };
+    };
+    test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PushTestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PushTestResponse"];
+                };
             };
         };
     };

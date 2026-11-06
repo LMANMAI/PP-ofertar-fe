@@ -669,6 +669,135 @@
         "required" : [ "imageUrl", "listPrice", "productName", "promoLabels", "promoUnitPrice", "requiredQuantity", "retailerName", "unitPrice" ],
         "type" : "object"
       },
+      "PushDeliveryResponse" : {
+        "properties" : {
+          "error" : {
+            "description" : "Código de error de Expo, p. ej. DeviceNotRegistered (el token se borra).",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "message" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "platform" : {
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "ok", "error" ],
+            "type" : "string"
+          },
+          "tokenSuffix" : {
+            "description" : "Últimos caracteres del token, para reconocer el dispositivo sin exponer el token.",
+            "type" : "string"
+          }
+        },
+        "required" : [ "error", "message", "platform", "status", "tokenSuffix" ],
+        "type" : "object"
+      },
+      "PushDeviceResponse" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "lastSeenAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "platform" : {
+            "type" : "string"
+          },
+          "tokenSuffix" : {
+            "description" : "Últimos caracteres del token, para reconocer el dispositivo sin exponer el token.",
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "lastSeenAt", "platform", "tokenSuffix" ],
+        "type" : "object"
+      },
+      "PushJobRunResponse" : {
+        "properties" : {
+          "deviceCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "job" : {
+            "enum" : [ "followed", "offers", "reactivation" ],
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "sent" : {
+            "type" : "boolean"
+          },
+          "userId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "deviceCount", "job", "reason", "sent", "userId" ],
+        "type" : "object"
+      },
+      "PushStatusResponse" : {
+        "properties" : {
+          "deviceCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "devices" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PushDeviceResponse"
+            },
+            "type" : "array"
+          },
+          "lastReactivationNudgeAt" : {
+            "description" : "Último recordatorio del job de reactivación; null si nunca se le mandó.",
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "offersPushEnabled" : {
+            "description" : "Preferencia de alertas de ofertas: habilita los avisos de ofertas, productos seguidos y reactivación. Los de tickets y referidos salen siempre.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "deviceCount", "devices", "lastReactivationNudgeAt", "offersPushEnabled" ],
+        "type" : "object"
+      },
+      "PushTestRequest" : {
+        "properties" : {
+          "type" : {
+            "description" : "Qué aviso simular. Lleva el mismo data que el aviso real, así al tocarlo abre la misma pantalla.",
+            "enum" : [ "test", "followedProducts", "offers", "reactivation" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PushTestResponse" : {
+        "properties" : {
+          "devices" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PushDeliveryResponse"
+            },
+            "type" : "array"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "sent" : {
+            "type" : "boolean"
+          },
+          "type" : {
+            "enum" : [ "test", "followedProducts", "offers", "reactivation" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "devices", "message", "sent", "type" ],
+        "type" : "object"
+      },
       "RecurringProductResponse" : {
         "properties" : {
           "alternativeOffers" : {
@@ -1505,6 +1634,41 @@
   },
   "openapi" : "3.0.1",
   "paths" : {
+    "/admin/push/jobs/{job}" : {
+      "post" : {
+        "operationId" : "runJob",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "job",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "followed", "offers", "reactivation" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushJobRunResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-push-controller" ]
+      }
+    },
     "/auth/forgot-password" : {
       "post" : {
         "operationId" : "forgotPassword",
@@ -1871,6 +2035,51 @@
         },
         "responses" : {
           "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "push-controller" ]
+      }
+    },
+    "/push/status" : {
+      "get" : {
+        "operationId" : "status",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "push-controller" ]
+      }
+    },
+    "/push/test" : {
+      "post" : {
+        "operationId" : "test",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PushTestRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushTestResponse"
+                }
+              }
+            },
             "description" : "OK"
           }
         },

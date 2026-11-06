@@ -84,4 +84,6 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Ofertas → abre Ofertas.
 - [ ] Producto seguido en promo → abre Productos que seguís, con la promo a la vista.
 - [ ] Tocar una notificación con la sesión cerrada no rompe nada (se ignora).
+- [ ] Perfil → "Enviar notificación de prueba": muestra "Enviando…", después "Te mandamos una notificación de prueba…" y llega en segundos con el encabezado "OfertAR"; el botón queda deshabilitado 10 s con la cuenta regresiva. Con las alertas de ofertas apagadas o sin permiso del sistema, está deshabilitado y explica por qué.
+- [ ] Los avisos de ofertas, productos seguidos y recordatorio de escaneo también se pueden disparar sin esperar al cron: `POST /push/test` con `{"type": "offers" | "followedProducts" | "reactivation"}` (mismo destino al tocarlo) o, como ADMIN, `POST /admin/push/jobs/{offers|followed|reactivation}?userId=` (corre la lógica real del job para ese usuario).
 - [ ] En Expo Go: seguir un producto no promete avisos (el toast dice que el push no funciona en Expo Go) y no se registra ningún listener de notificaciones.

@@ -9,15 +9,16 @@ type Props = {
 	chainName?: string;
 	/** Cerrada con certeza. Una sucursal sin horario se dibuja como abierta: no se sabe. */
 	closed: boolean;
+	onLogoLoad?: () => void;
 };
 
 /** El pin de cadena de siempre; si la sucursal está cerrada, más chico y con una luna. */
-export function StoreMarkerPin({ chainSlug, chainName, closed }: Props) {
+export function StoreMarkerPin({ chainSlug, chainName, closed, onLogoLoad }: Props) {
 	const isDark = useIsDarkMode();
-	if (!closed) return <ChainMarkerPin chainSlug={chainSlug} chainName={chainName} size={OPEN_MARKER_SIZE} withPointer />;
+	if (!closed) return <ChainMarkerPin chainSlug={chainSlug} chainName={chainName} size={OPEN_MARKER_SIZE} withPointer onLogoLoad={onLogoLoad} />;
 	return (
 		<View style={styles.wrap} pointerEvents="none">
-			<ChainMarkerPin chainSlug={chainSlug} chainName={chainName} size={CLOSED_MARKER_SIZE} withPointer />
+			<ChainMarkerPin chainSlug={chainSlug} chainName={chainName} size={CLOSED_MARKER_SIZE} withPointer onLogoLoad={onLogoLoad} />
 			<View
 				style={[
 					styles.badge,

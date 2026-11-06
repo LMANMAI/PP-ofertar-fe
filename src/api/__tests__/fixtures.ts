@@ -253,3 +253,13 @@ export const nearbyStores = [
 		distanceKm: 2.4,
 	},
 ];
+
+export const pushTestResult = {
+	type: "followedProducts",
+	sent: true,
+	message: "Te mandamos una notificación de prueba. Puede tardar unos segundos.",
+	devices: [
+		{ platform: "android", tokenSuffix: "a1b2c]", status: "ok", message: null, error: null },
+		{ platform: "ios", tokenSuffix: "zz99x]", status: "error", message: "not registered", error: "DeviceNotRegistered" },
+	],
+} satisfies S["PushTestResponse"];

@@ -9,6 +9,7 @@ import {
 	PointsBalanceSchema,
 	PointsHistorySchema,
 	ProductoDetalleSchema,
+	PushTestResultSchema,
 	RecurringProductListSchema,
 	SavingsReportSchema,
 	SucursalesCercanasSchema,
@@ -35,6 +36,7 @@ describe("cada schema acepta una respuesta con la forma del contrato", () => {
 		["SucursalesCercanas", SucursalesCercanasSchema, f.sucursalesCercanas],
 		["Horarios", HorariosSchema, f.horarios],
 		["NearbyStores", NearbyStoreListSchema, f.nearbyStores],
+		["PushTestResult", PushTestResultSchema, f.pushTestResult],
 	] as const)("%s", (_nombre, schema, ejemplo) => {
 		expect(schema.safeParse(ejemplo).success).toBe(true);
 	});

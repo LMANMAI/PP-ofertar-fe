@@ -25,6 +25,7 @@ import { isFollowedPurchase } from "../utils/ean";
 import { formatCurrency, formatLongDate, yyyyMM } from "../utils/format";
 import { isLooseMatch } from "../utils/productMatch";
 import { ConditionsButton, PromoConditionsSheet } from "../components/PromoConditionsSheet";
+import { BankPromosTodayStrip } from "../components/BankPromosTodayStrip";
 import {
 	heroSpoken,
 	offerCardHero,
@@ -285,6 +286,10 @@ type Props = {
 	/** The codes followed from the scanner, null until read: newer than each
 	 * recurring product's `followed` (see isFollowedPurchase). */
 	followedEans: string[] | null;
+	/** "Hoy con tus tarjetas" (OFT-56): lleva al calendario de promos bancarias. Sin él no se dibuja. */
+	onOpenBankPromos?: () => void;
+	/** Sube cuando cambian las tarjetas del usuario, para volver a pedir lo de hoy. */
+	bankPromosRevision?: number;
 };
 
 const FEED_PAGE_SIZE = 24;
@@ -302,6 +307,8 @@ export function HomeScreen({
 	onOpenFollowed,
 	onOpenOffer,
 	followedEans,
+	onOpenBankPromos,
+	bankPromosRevision = 0,
 }: Props) {
 	const insets = useSafeAreaInsets();
 	const isTablet = useIsTablet();
@@ -559,6 +566,10 @@ export function HomeScreen({
 						</Pressable>
 					</View>
 				</View>
+
+				{onOpenBankPromos ? (
+					<BankPromosTodayStrip token={session.token} refreshKey={bankPromosRevision} onOpen={onOpenBankPromos} />
+				) : null}
 
 				{isNewUser ? (
 					<View style={styles.firstRunCard}>

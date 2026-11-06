@@ -56,6 +56,8 @@ export type RootStackParamList = {
 	// Perfil
 	PersonalData: undefined;
 	PaymentMethods: undefined;
+	/** Calendario semanal de promos bancarias: se entra desde la tira de Inicio y desde Mis tarjetas (D9). */
+	BankPromos: undefined;
 	Plans: undefined;
 	HelpCenter: undefined;
 	ChangePasswordAuth: undefined;

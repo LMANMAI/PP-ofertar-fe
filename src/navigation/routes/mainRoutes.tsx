@@ -22,7 +22,7 @@ import {
 	TicketProcessedScreen,
 } from "../../screens";
 import { resolveOffer } from "../../services";
-import { isFollowing, useFollowedProductsStore, useOffersStore, usePointsStore, useScanStore, useSessionStore } from "../../store";
+import { isFollowing, useBankPromosStore, useFollowedProductsStore, useOffersStore, usePointsStore, useScanStore, useSessionStore } from "../../store";
 import {
 	followScannedProduct,
 	handleChoosePdf,
@@ -46,6 +46,7 @@ export function MainRoute() {
 	const referralPoints = usePointsStore((s) => s.balance);
 	const biometricEnabled = useSessionStore((s) => s.biometricEnabled);
 	const followedEans = useFollowedProductsStore((s) => s.followedEans);
+	const bankPromosRevision = useBankPromosStore((s) => s.revision);
 	if (!session) return null;
 
 	if (tabProps.activeTab === "offers") {
@@ -94,6 +95,8 @@ export function MainRoute() {
 			onOpenFollowed={() => nav.push("FollowedProducts")}
 			onOpenOffer={openOffer}
 			followedEans={followedEans}
+			onOpenBankPromos={() => nav.push("BankPromos")}
+			bankPromosRevision={bankPromosRevision}
 		/>
 	);
 }

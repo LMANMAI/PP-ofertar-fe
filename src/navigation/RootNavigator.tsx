@@ -34,6 +34,7 @@ import {
 	TicketProcessedRoute,
 } from "./routes/mainRoutes";
 import {
+	BankPromosRoute,
 	ChangePasswordAuthRoute,
 	ConfirmRedeemRoute,
 	HelpCenterRoute,
@@ -113,6 +114,7 @@ export function RootNavigator() {
 			{/* Perfil */}
 			<Stack.Screen name="PersonalData" component={PersonalDataRoute} />
 			<Stack.Screen name="PaymentMethods" component={PaymentMethodsRoute} />
+			<Stack.Screen name="BankPromos" component={BankPromosRoute} />
 			<Stack.Screen name="Plans" component={PlansRoute} />
 			<Stack.Screen name="HelpCenter" component={HelpCenterRoute} />
 			<Stack.Screen name="ChangePasswordAuth" component={ChangePasswordAuthRoute} />
