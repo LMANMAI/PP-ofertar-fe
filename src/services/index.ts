@@ -99,8 +99,11 @@ export type {
 	PointsBalanceResponse,
 } from "./pointsApi";
 
-export { registerPushToken } from "./pushApi";
+export { registerPushToken, sendTestPush } from "./pushApi";
+
+export type { PushTestResult, PushTestType } from "./pushApi";
 
 export { followProduct, getFollowedEans, getFollowedProducts, unfollowProduct } from "./followedProductsApi";
 
 export type { FollowedProduct, FollowedProducts, FollowProductInput } from "./followedProductsApi";
+export { addHabitualProduct, getHabitualEans, removeHabitualProduct } from "./habitualProductsApi";

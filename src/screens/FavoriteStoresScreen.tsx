@@ -24,6 +24,7 @@ import { radii, space, typography, useIsDarkMode, useIsTablet, useThemeColors, t
 import { DARK_MAP_STYLE } from "../theme/darkMapStyle";
 import { BottomNav, ChainMarkerPin, ErrorBanner, InlineNotice, InputField, LoadingState, PrimaryButton, ScreenHeader, type TabKey, SectionLabel } from "../components";
 import { StoreMarkerPin } from "../components/StoreMarkerPin";
+import { LogoMarker } from "../components/ui/LogoMarker";
 import { StoreStatusLine } from "../components/StoreStatusLine";
 import { getChainMarker, markerAccessibilityLabel } from "../theme/chainMarkers";
 import type { Session } from "../auth/session";
@@ -555,7 +556,7 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 								const status = statusOf(s);
 								const statusText = openingLabel(status);
 								return (
-									<Marker
+									<LogoMarker
 										key={`${s.chainSlug}-${s.externalId}`}
 										coordinate={{ latitude: s.lat, longitude: s.lng }}
 										title={s.name}
@@ -573,8 +574,15 @@ export function FavoriteStoresScreen({ onBack, session, activeTab, onSelectTab, 
 									>
 										{/* Forma + iniciales: la cadena se reconoce sin depender del color.
 										    Cerrada: más chica y con una luna, sin tocar colores ni opacidad. */}
-										<StoreMarkerPin chainSlug={s.chainSlug} chainName={s.chainName} closed={status.kind === "closed"} />
-									</Marker>
+										{(onLogoLoad) => (
+											<StoreMarkerPin
+												chainSlug={s.chainSlug}
+												chainName={s.chainName}
+												closed={status.kind === "closed"}
+												onLogoLoad={onLogoLoad}
+											/>
+										)}
+									</LogoMarker>
 								);
 							})}
 						</MapView>

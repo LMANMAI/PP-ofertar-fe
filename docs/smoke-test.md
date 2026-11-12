@@ -46,6 +46,12 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Con el teléfono en otra zona horaria (por ejemplo Madrid), el estado sigue la hora argentina.
 - [ ] Tras escanear un producto, "Seguir": pasa a "Siguiendo" (la primera vez pide el permiso de notificaciones) y aparece en Productos que seguís; tocar "Siguiendo" lo deja de seguir.
 - [ ] Productos que seguís (desde Inicio y desde Perfil): muestra cuáles están en promo y dónde; dejar de seguir uno lo saca de la lista; "Ver precios" y volver deja de nuevo en Productos que seguís; "atrás" vuelve a Inicio o a Perfil, según de dónde se vino. Con las notificaciones de ofertas apagadas en Perfil, lo avisa arriba.
+- [ ] Tras escanear un producto, "Compra habitual": queda marcado y aparece en Tu compra habitual; tocarlo de nuevo lo saca. No hay una lista aparte ni en Inicio ni en Perfil.
+- [ ] En Tu compra habitual, "Sumar un producto" → sumar uno → "atrás": vuelve ahí y ya aparece, sin recargar. Solo lo sumado tiene el botón para sacarlo; lo detectado por los tickets no.
+- [ ] Escanear un ticket sin un producto sumado: "¿Olvidaste comprar esto?" lo nombra, aun en el primer ticket de la cuenta. Si el ticket lo trae, no avisa y sigue en la compra habitual.
+- [ ] Un producto sumado que además sale de los tickets aparece una sola vez. Con más de 5 faltantes, el aviso muestra 5 y "Y N más."
+- [ ] Productos recurrentes no muestra lo sumado que no se compró: la regla de esa pantalla sigue siendo 2 tickets en 3 meses.
+- [ ] Tour en un teléfono chico y con la letra del sistema al máximo: en los 4 pasos se ven y se pueden tocar "Siguiente" y "Omitir tour". El paso 3 desplaza Inicio hasta las ofertas y, al terminar, Inicio vuelve arriba.
 - [ ] Un producto sin nombre (código que no está en SEPA ni en los proveedores) no ofrece "Seguir".
 - [ ] Leer con la cámara un código corto (UPC-E de 6 dígitos): muestra lo que haya del producto pero no ofrece "Seguir"; uno de 8 a 14 dígitos sí.
 - [ ] Productos que seguís vacío → "Escanear un producto" → "atrás" en el escáner vuelve a Productos que seguís (no a Inicio). Seguir uno en el escáner y volver: ya aparece en la lista, sin deslizar para recargar.
@@ -84,4 +90,6 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Ofertas → abre Ofertas.
 - [ ] Producto seguido en promo → abre Productos que seguís, con la promo a la vista.
 - [ ] Tocar una notificación con la sesión cerrada no rompe nada (se ignora).
+- [ ] Perfil → "Enviar notificación de prueba": muestra "Enviando…", después "Te mandamos una notificación de prueba…" y llega en segundos con el encabezado "OfertAR"; el botón queda deshabilitado 10 s con la cuenta regresiva. Con las alertas de ofertas apagadas o sin permiso del sistema, está deshabilitado y explica por qué.
+- [ ] Los avisos de ofertas, productos seguidos y recordatorio de escaneo también se pueden disparar sin esperar al cron: `POST /push/test` con `{"type": "offers" | "followedProducts" | "reactivation"}` (mismo destino al tocarlo) o, como ADMIN, `POST /admin/push/jobs/{offers|followed|reactivation}?userId=` (corre la lógica real del job para ese usuario).
 - [ ] En Expo Go: seguir un producto no promete avisos (el toast dice que el push no funciona en Expo Go) y no se registra ningún listener de notificaciones.

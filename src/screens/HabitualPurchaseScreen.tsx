@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
-import { getRecurringProducts, sortByOfferRelevance } from "../services";
+import { getRecurringProducts, getTickets, sortByOfferRelevance } from "../services";
 import type { RecurringProduct } from "../services";
 import { friendlyAuthError } from "../services/authApi";
 import type { Session } from "../auth/session";
@@ -66,6 +66,7 @@ function since(iso: string | null): string | null {
 /** How often and how recently, in the words the rest of the app uses. The date
  * is when the receipt was scanned: the ticket carries no emission date. */
 function habitLine(p: RecurringProduct): string {
+	if (p.ticketCount === 0) return "Lo sumaste vos · todavía no está en tus tickets";
 	const tickets = p.ticketCount === 1 ? "1 ticket" : `${p.ticketCount} tickets`;
 	const last = since(p.lastPaidAt);
 	return last ? `En ${tickets} · última vez ${last}` : `En ${tickets}`;
@@ -74,18 +75,28 @@ function habitLine(p: RecurringProduct): string {
 type Props = {
 	onBack: () => void;
 	session: Session;
+	/** Whether this screen is the one showing. It reloads each time it comes
+	 * back, so a product added in the scanner opened from here shows up. */
+	focused: boolean;
 	activeTab: TabKey;
 	onSelectTab: (t: TabKey) => void;
 	onScanPress: () => void;
 	/** The full offer detail of every product lives in "Productos recurrentes". */
 	onOpenRecurring: () => void;
+	/** Products get added from the barcode scanner. */
+	onScanProduct: () => void;
+	/** Resolves to whether it stopped being added; telling the user why not is the caller's job. */
+	onRemove: (product: RecurringProduct) => Promise<boolean>;
 };
 
-export function HabitualPurchaseScreen({ onBack, session, activeTab, onSelectTab, onScanPress, onOpenRecurring }: Props) {
+export function HabitualPurchaseScreen({ onBack, session, focused, activeTab, onSelectTab, onScanPress, onOpenRecurring, onScanProduct, onRemove }: Props) {
 	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
 	const [all, setAll] = useState<RecurringProduct[]>([]);
+	/** Newest first, null until read. Decides what can be said about "tu último ticket". */
+	const [lastTickets, setLastTickets] = useState<{ count: number; latestIso: string | null } | null>(null);
+	const [removing, setRemoving] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -106,6 +117,13 @@ export function HabitualPurchaseScreen({ onBack, session, activeTab, onSelectTab
 		(mode: "initial" | "refresh") => {
 			if (mode === "refresh") setRefreshing(true);
 			else setLoading(true);
+			// Enrichment only: without it the screen says less, not something wrong.
+			getTickets(session.token)
+				.then((tickets) => {
+					const processed = tickets.filter((t) => t.status === "PROCESSED");
+					setLastTickets({ count: processed.length, latestIso: processed[0]?.createdAt ?? null });
+				})
+				.catch(() => {});
 			getRecurringProducts(session.token)
 				.then((data) => {
 					setAll(data);
@@ -122,27 +140,48 @@ export function HabitualPurchaseScreen({ onBack, session, activeTab, onSelectTab
 	);
 
 	useEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount / when the session token changes
-		load("initial");
-	}, [load]);
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- fetches on mount and on coming back
+		if (focused) load("initial");
+	}, [load, focused]);
+
+	const remove = async (product: RecurringProduct) => {
+		if (removing) return;
+		setRemoving(product.description);
+		try {
+			if (await onRemove(product)) {
+				setAll((current) => current.filter((p) => p !== product));
+				// If the tickets also show it, it comes back, no longer marked as added.
+				load("initial");
+			}
+		} finally {
+			setRemoving(null);
+		}
+	};
 
 	const { missing, bought, ticketsSeen, referenceIso } = useMemo(() => {
 		const habitual = sortByOfferRelevance(habitualProducts(all)).map(toItem);
 		return {
 			missing: habitual.filter((i) => !i.product.inReferenceTicket),
 			bought: habitual.filter((i) => i.product.inReferenceTicket),
-			// The most tickets any product shows up in: a floor for how many there are.
-			ticketsSeen: all.reduce((max, p) => Math.max(max, p.ticketCount), 0),
+			// The most tickets any product shows up in: a floor for how many there are,
+			// for when the ticket list could not be read.
+			ticketsSeen: Math.max(lastTickets?.count ?? 0, all.reduce((max, p) => Math.max(max, p.ticketCount), 0)),
 			// The latest scan among what the reference ticket contains.
-			referenceIso: all
-				.filter((p) => p.inReferenceTicket && p.lastPaidAt)
-				.map((p) => p.lastPaidAt as string)
-				.sort()
-				.pop() ?? null,
+			referenceIso:
+				lastTickets?.latestIso ??
+				all
+					.filter((p) => p.inReferenceTicket && p.lastPaidAt)
+					.map((p) => p.lastPaidAt as string)
+					.sort()
+					.pop() ??
+				null,
 		};
-	}, [all]);
+	}, [all, lastTickets]);
 
-	const canJudge = ticketsSeen >= MIN_TICKETS_TO_JUDGE;
+	const hasAdded = all.some((p) => p.addedToHabitual);
+	// An added product can be missing from the very first ticket; a detected one
+	// needs three to tell. See missingHabitual.
+	const canJudge = ticketsSeen >= (hasAdded ? 1 : MIN_TICKETS_TO_JUDGE);
 	const habitualCount = missing.length + bought.length;
 	const boughtWithOffer = bought.filter((i) => i.hasOffer);
 	const referenceDate = formatLongDate(referenceIso);
@@ -175,8 +214,8 @@ export function HabitualPurchaseScreen({ onBack, session, activeTab, onSelectTab
 				<EmptyState
 					icon="receipt-outline"
 					title="Todavía no detectamos tu compra habitual"
-					hint="Con dos tickets reconocemos lo que comprás seguido. Con tres, te decimos qué te falta."
-					action={{ label: "Escanear ticket", onPress: onScanPress }}
+					hint="Con dos tickets reconocemos lo que comprás seguido. También podés sumar un producto escaneando su código de barras."
+					action={{ label: "Sumar un producto", onPress: onScanProduct }}
 				/>
 			)}
 
@@ -194,7 +233,9 @@ export function HabitualPurchaseScreen({ onBack, session, activeTab, onSelectTab
 						<Text style={styles.intro}>
 							{canJudge
 								? `Lo comparamos con el último ticket que escaneaste${referenceDate ? ` (${referenceDate})` : ""}.`
-								: "Con tres tickets o más te decimos qué productos habituales te faltan."}
+								: hasAdded
+									? "Cuando escanees un ticket, te avisamos si falta alguno de estos productos."
+									: "Con tres tickets o más te decimos qué productos habituales te faltan."}
 						</Text>
 						{canJudge && (
 							<Text style={styles.introStrong}>
@@ -213,7 +254,7 @@ export function HabitualPurchaseScreen({ onBack, session, activeTab, onSelectTab
 								NO ESTABAN EN TU ÚLTIMO TICKET ({missing.length})
 							</SectionLabel>
 							{missing.map((item) => (
-								<HabitualCard key={item.id} item={item} styles={styles} colors={colors} />
+								<HabitualCard key={item.id} item={item} removing={removing} onRemove={remove} styles={styles} colors={colors} />
 							))}
 						</>
 					)}
@@ -226,14 +267,14 @@ export function HabitualPurchaseScreen({ onBack, session, activeTab, onSelectTab
 								CON OFERTA AHORA ({boughtWithOffer.length})
 							</SectionLabel>
 							{boughtWithOffer.map((item) => (
-								<HabitualCard key={item.id} item={item} styles={styles} colors={colors} />
+								<HabitualCard key={item.id} item={item} removing={removing} onRemove={remove} styles={styles} colors={colors} />
 							))}
 						</>
 					)}
 
 					{!canJudge &&
 						[...missing, ...bought].map((item) => (
-							<HabitualCard key={item.id} item={item} styles={styles} colors={colors} />
+							<HabitualCard key={item.id} item={item} removing={removing} onRemove={remove} styles={styles} colors={colors} />
 						))}
 
 					{canJudge && bought.length > 0 && (
@@ -252,12 +293,27 @@ export function HabitualPurchaseScreen({ onBack, session, activeTab, onSelectTab
 							{showBought &&
 								bought.map(({ id, product: p }) => (
 									<View key={id} style={styles.boughtRow}>
-										<Text style={styles.name}>{p.description}</Text>
-										<Text style={styles.meta}>{habitLine(p)}</Text>
+										<View style={styles.rowCopy}>
+											<Text style={styles.name}>{p.description}</Text>
+											<Text style={styles.meta}>{habitLine(p)}</Text>
+										</View>
+										{p.addedToHabitual && (
+											<RemoveButton product={p} removing={removing} onRemove={remove} styles={styles} colors={colors} />
+										)}
 									</View>
 								))}
 						</View>
 					)}
+
+					<Pressable
+						style={(state) => [styles.link, isFocused(state) && styles.focusRing]}
+						onPress={onScanProduct}
+						accessibilityRole="button"
+						accessibilityLabel="Sumar un producto a tu compra habitual escaneando su código de barras"
+					>
+						<Ionicons name="barcode-outline" size={16} color={colors.actionFill} accessible={false} />
+						<Text style={styles.linkText}>Sumar un producto</Text>
+					</Pressable>
 
 					<Pressable
 						style={(state) => [styles.link, isFocused(state) && styles.focusRing]}
@@ -283,19 +339,33 @@ export function HabitualPurchaseScreen({ onBack, session, activeTab, onSelectTab
  * a screen reader, since the pieces mean nothing apart. */
 const HabitualCard = memo(function HabitualCard({
 	item,
+	removing,
+	onRemove,
 	styles,
 	colors,
 }: {
 	item: Item;
+	removing: string | null;
+	onRemove: (product: RecurringProduct) => void;
 	styles: ReturnType<typeof createStyles>;
 	colors: ColorTokens;
 }) {
 	const { product: p, loose } = item;
 	return (
-		<View style={styles.card} accessible accessibilityLabel={`${p.description}. ${habitLine(p)}. ${offerSummary(p, loose)}`}>
-			<View style={{ gap: space.xs / 2 }}>
-				<Text style={styles.name}>{p.description}</Text>
-				<Text style={styles.meta}>{habitLine(p)}</Text>
+		<View
+			style={styles.card}
+			// Read as a unit, unless a button inside has to be reachable on its own.
+			accessible={!p.addedToHabitual}
+			accessibilityLabel={`${p.description}. ${habitLine(p)}. ${offerSummary(p, loose)}`}
+		>
+			<View style={styles.cardTop}>
+				<View style={styles.rowCopy}>
+					<Text style={styles.name}>{p.description}</Text>
+					<Text style={styles.meta}>{habitLine(p)}</Text>
+				</View>
+				{p.addedToHabitual && (
+					<RemoveButton product={p} removing={removing} onRemove={onRemove} styles={styles} colors={colors} />
+				)}
 			</View>
 			<ProductOfferLine product={p} loose={loose} />
 			{!p.bestOffer && p.campaignOffers.length === 0 && (
@@ -309,6 +379,35 @@ const HabitualCard = memo(function HabitualCard({
 	);
 });
 
+/** Only for what the user added: what the tickets show is not theirs to remove. */
+function RemoveButton({
+	product,
+	removing,
+	onRemove,
+	styles,
+	colors,
+}: {
+	product: RecurringProduct;
+	removing: string | null;
+	onRemove: (product: RecurringProduct) => void;
+	styles: ReturnType<typeof createStyles>;
+	colors: ColorTokens;
+}) {
+	const busy = removing === product.description;
+	return (
+		<Pressable
+			style={(state) => [styles.iconButton, (state.pressed || busy) && styles.pressed, isFocused(state) && styles.focusRing]}
+			onPress={() => onRemove(product)}
+			disabled={removing != null}
+			accessibilityRole="button"
+			accessibilityLabel={`Sacar ${product.description} de tu compra habitual`}
+			accessibilityState={{ busy, disabled: removing != null }}
+		>
+			<Ionicons name="trash-outline" size={20} color={colors.mutedText2} accessible={false} />
+		</Pressable>
+	);
+}
+
 function createStyles(colors: ColorTokens) {
 	const { sizes, lineHeights } = typography;
 	return StyleSheet.create({
@@ -321,12 +420,16 @@ function createStyles(colors: ColorTokens) {
 		// Section label: the one place the design system spends letter-spacing.
 		sectionLabel: { marginTop: space.xs },
 		card: { backgroundColor: colors.card, borderRadius: radii.md, padding: space.mdPlus, gap: space.md, borderWidth: 1, borderColor: colors.divider },
+		cardTop: { flexDirection: "row", alignItems: "center", gap: space.smPlus },
+		rowCopy: { flex: 1, gap: space.xs / 2 },
+		iconButton: { width: 44, height: 44, marginRight: -space.sm, alignItems: "center", justifyContent: "center", borderRadius: radii.sm },
+		pressed: { opacity: 0.6 },
 		name: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: sizes.label, lineHeight: lineHeights.label },
 		meta: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro, lineHeight: lineHeights.micro },
 		noOffer: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: sizes.micro },
 		groupHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
 		groupTitle: { color: colors.mutedText2, fontFamily: typography.family.medium, fontSize: sizes.caption },
-		boughtRow: { gap: space.xs / 2, paddingVertical: space.smPlus, borderTopWidth: 1, borderTopColor: colors.divider },
+		boughtRow: { flexDirection: "row", alignItems: "center", gap: space.smPlus, paddingVertical: space.smPlus, borderTopWidth: 1, borderTopColor: colors.divider },
 		link: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.xs, minHeight: 44, marginTop: space.sm },
 		linkText: { color: colors.actionFill, fontFamily: typography.family.medium, fontSize: sizes.caption, textDecorationLine: "underline" },
 	});

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
+	ActivityIndicator,
 	Image,
 	Pressable,
 	ScrollView,
@@ -19,7 +20,10 @@ import { getInitials, getAvatarUri, splitName } from "../auth/session";
 import { isBiometricAvailable, useBiometricInfo } from "../auth/biometricAuth";
 import { canUsePush } from "../notifications/loadNotifications";
 import { registerForPushNotifications } from "../notifications/pushRegistration";
+import { runTestPush, startsCooldown, TEST_PUSH_COOLDOWN_MS, TEST_PUSH_MESSAGES, type TestPushOutcome } from "../notifications/testPush";
 import { updateProfile } from "../services";
+
+/** Si se puede mandar una notificación de prueba desde este dispositivo, y si no, por qué. */
 
 type IonName = ComponentProps<typeof Ionicons>["name"];
 
@@ -62,7 +66,7 @@ const THEME_OPTIONS: { value: ThemePreference; label: string; icon: IonName }[] 
 const ACCOUNT_ITEMS: LinkItem[] = [
 	{ id: "points", icon: "people-outline", label: "Puntos y referidos", action: "onOpenPoints" },
 	{ id: "plans", icon: "ribbon-outline", label: "Planes", action: "onOpenPlans" },
-	{ id: "payment", icon: "card-outline", label: "Métodos de pago", action: "onOpenPayment" },
+	{ id: "payment", icon: "card-outline", label: "Mis tarjetas", action: "onOpenPayment" },
 	{ id: "stores", icon: "location-outline", label: "Mis tiendas favoritas", action: "onOpenStores" },
 	{ id: "followed", icon: "notifications-outline", label: "Productos que seguís", action: "onOpenFollowed" },
 	{ id: "password", icon: "lock-closed-outline", label: "Cambiar contraseña", action: "onChangePassword" },
@@ -104,6 +108,11 @@ export function ProfileScreen({
 	// as unavailable there instead of failing on tap.
 	const pushAvailable = canUsePush();
 	const { firstName, lastName } = splitName(session.user.name);
+	const [testPushLoading, setTestPushLoading] = useState(false);
+	const [testPushOutcome, setTestPushOutcome] = useState<TestPushOutcome | null>(null);
+	const [testPushCooldownUntil, setTestPushCooldownUntil] = useState(0);
+	const [now, setNow] = useState(() => Date.now());
+	const testPushCooldownLeft = Math.max(0, Math.ceil((testPushCooldownUntil - now) / 1000));
 
 	// The default cyan-track/white-thumb pairing is ~1.7:1 when on and the
 	// off track vanishes into the card, so the state was readable only by
@@ -127,6 +136,56 @@ export function ProfileScreen({
 		const id = setTimeout(() => setPreferenceError(null), 6000);
 		return () => clearTimeout(id);
 	}, [preferenceError]);
+
+	// Cuenta regresiva del cooldown: un tick por segundo mientras dura.
+	useEffect(() => {
+		if (testPushCooldownUntil <= Date.now()) return;
+		const id = setInterval(() => {
+			const t = Date.now();
+			setNow(t);
+			if (t >= testPushCooldownUntil) clearInterval(id);
+		}, 1000);
+		return () => clearInterval(id);
+	}, [testPushCooldownUntil]);
+
+	// Sólo se bloquea en Expo Go. El permiso y el registro del teléfono los resuelve el botón
+	// al tocarlo (runTestPush), y el resultado se muestra abajo.
+	const testPushBlockedReason = pushAvailable ? null : TEST_PUSH_MESSAGES.expoGo;
+	const testPushDisabled =
+		testPushBlockedReason !== null ||
+		testPushLoading ||
+		savingPreference ||
+		testPushCooldownLeft > 0;
+	const testPushHint =
+		testPushBlockedReason ??
+		(testPushLoading
+			? "Enviando…"
+			: testPushCooldownLeft > 0
+				? `Podés volver a probar en ${testPushCooldownLeft} s`
+				: "Te llega a este teléfono y a los demás que tengas registrados");
+
+	const handleTestPush = async () => {
+		if (testPushDisabled) return;
+		setTestPushLoading(true);
+		setTestPushOutcome(null);
+		const outcome = await runTestPush(session.token, () =>
+			registerForPushNotifications(session.token, { requestPermission: true }),
+		);
+		setTestPushLoading(false);
+		setTestPushOutcome(outcome);
+		if (startsCooldown(outcome)) {
+			const t = Date.now();
+			setNow(t);
+			setTestPushCooldownUntil(t + TEST_PUSH_COOLDOWN_MS);
+		}
+	};
+
+	const testPushOutcomeStyle = (outcome: TestPushOutcome) => {
+		if (outcome.kind === "sent") return { icon: "checkmark-circle" as const, color: colors.successSoftText };
+		if (outcome.kind === "noDevices" || outcome.kind === "rateLimited")
+			return { icon: "information-circle" as const, color: colors.warningSoftText };
+		return { icon: "alert-circle" as const, color: colors.dangerSoftText };
+	};
 
 	const handleToggleAlternativeBrands = async (value: boolean) => {
 		// Optimistic: the switch should feel instant, and a failed save is
@@ -329,6 +388,49 @@ export function ProfileScreen({
 					</View>
 					<View style={styles.listDivider} />
 					<Pressable
+						style={(state) => [
+							styles.listItem,
+							state.pressed && !testPushDisabled && styles.pressed,
+							isFocused(state) && styles.focusRingInset,
+						]}
+						onPress={handleTestPush}
+						disabled={testPushDisabled}
+						accessibilityRole="button"
+						accessibilityLabel="Enviar notificación de prueba"
+						accessibilityHint={testPushHint}
+						accessibilityState={{ disabled: testPushDisabled, busy: testPushLoading }}
+					>
+						<View style={styles.listIconWrap}>
+							<Ionicons name="paper-plane-outline" size={16} color={colors.infoSoftText} />
+						</View>
+						<View style={{ flex: 1, gap: space.xs }}>
+							<Text style={[styles.listLabel, testPushDisabled && !testPushLoading && styles.disabledText]}>
+								Enviar notificación de prueba
+							</Text>
+							<Text style={styles.listHint}>{testPushHint}</Text>
+							{testPushOutcome && (
+								<View
+									style={styles.errorRow}
+									accessibilityRole={testPushOutcome.kind === "sent" ? "text" : "alert"}
+									accessibilityLiveRegion="polite"
+								>
+									<Ionicons
+										name={testPushOutcomeStyle(testPushOutcome).icon}
+										size={13}
+										color={testPushOutcomeStyle(testPushOutcome).color}
+									/>
+									<Text style={[styles.outcomeText, { color: testPushOutcomeStyle(testPushOutcome).color }]}>
+										{testPushOutcome.message}
+									</Text>
+								</View>
+							)}
+						</View>
+						{testPushLoading && (
+							<ActivityIndicator size="small" color={colors.infoSoftText} accessibilityElementsHidden />
+						)}
+					</Pressable>
+					<View style={styles.listDivider} />
+					<Pressable
 							style={(state) => [styles.listItem, isFocused(state) && styles.focusRingInset]}
 							onPress={() => handleToggleAlternativeBrands(!alternativeBrands)}
 							disabled={savingPreference}
@@ -495,5 +597,8 @@ function createStyles(colors: ColorTokens) {
 		focusRingInset: focusRing(colors, true),
 		errorRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
 	errorText: { flex: 1, color: colors.dangerSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	// El color lo pone el resultado (éxito, aviso o error), siempre desde los tokens.
+	outcomeText: { flex: 1, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	disabledText: { color: colors.mutedText2 },
 	});
 }

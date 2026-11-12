@@ -15,6 +15,8 @@ type Props = {
 	size?: number;
 	/** Punta inferior tipo pin de mapa. Se apaga en listas. */
 	withPointer?: boolean;
+	/** Avisa cuando el logo terminó de cargar (o falló). El mapa lo usa para redibujar el pin: ver LogoMarker. */
+	onLogoLoad?: () => void;
 };
 
 /**
@@ -31,7 +33,7 @@ type Props = {
  * relaciones de aspecto distintas. */
 const LOGO_SCALE = 0.68;
 
-export function ChainMarkerPin({ chainSlug, chainName, size = 32, withPointer = false }: Props) {
+export function ChainMarkerPin({ chainSlug, chainName, size = 32, withPointer = false, onLogoLoad }: Props) {
 	const isDark = useIsDarkMode();
 	const descriptor = useMemo(() => getChainMarker(chainSlug, chainName), [chainSlug, chainName]);
 	const logo = chainLogo(chainSlug);
@@ -65,6 +67,11 @@ export function ChainMarkerPin({ chainSlug, chainName, size = 32, withPointer = 
 							// tamaño distinto o estirado.
 							style={{ width: size * LOGO_SCALE, height: size * LOGO_SCALE }}
 							resizeMode="contain"
+							// Sin el fundido de entrada de Android: el pin del mapa es una foto,
+							// y sacada a mitad del fundido el logo saldría transparente.
+							fadeDuration={0}
+							onLoad={onLogoLoad}
+							onError={onLogoLoad}
 							accessible={false}
 						/>
 					) : (

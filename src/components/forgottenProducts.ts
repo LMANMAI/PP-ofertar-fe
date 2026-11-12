@@ -7,32 +7,49 @@ import type { RecurringProduct } from "../services";
 export const MIN_TRIPS_TO_BE_HABITUAL = 2;
 export const MAX_FORGOTTEN_SHOWN = 5;
 
-/** Every product the user habitually buys, in the order it arrived. */
+/** La regla de Consumo Inteligente dicha en pantalla. Los valores viven en el
+ * backend (`recurring.window-days` y `recurring.min-tickets`): si cambian allá,
+ * este texto cambia con ellos. */
+export const RECURRING_RULE_TEXT =
+	"Productos que compraste en 2 o más tickets en los últimos 3 meses. Se actualiza con cada ticket.";
+export const RECURRING_EMPTY_HINT =
+	"Cuando compres un producto en 2 tickets dentro de 3 meses, aparece acá. Una compra aislada no cuenta.";
+
+/** Bought on enough separate trips to be recurring, whatever else is true of it. */
+export function isRecurring(product: RecurringProduct): boolean {
+	return product.ticketCount >= MIN_TRIPS_TO_BE_HABITUAL;
+}
+
+/** The user's habitual shop, in the order it arrived: what the tickets show they
+ * buy, plus what they added from the barcode scanner. It is one list. */
 export function habitualProducts(products: RecurringProduct[]): RecurringProduct[] {
-	return products.filter((p) => p.ticketCount >= MIN_TRIPS_TO_BE_HABITUAL);
+	return products.filter((p) => isRecurring(p) || p.addedToHabitual);
 }
 
 /**
  * The habitual products the reference ticket does not contain, all of them.
  *
- * With fewer than three tickets this is always empty, by construction: a
- * product needs two trips to be habitual, so with two tickets it is in both,
- * the reference among them. Screens that say so should not read it as "nothing
- * is missing".
+ * Without added products and with fewer than three tickets this is always
+ * empty, by construction: a product needs two trips to be habitual, so with two
+ * tickets it is in both, the reference among them. Screens that say so should
+ * not read it as "nothing is missing".
  */
 export function missingHabitual(products: RecurringProduct[]): RecurringProduct[] {
 	return habitualProducts(products).filter((p) => !p.inReferenceTicket);
 }
 
 /**
- * Given every recurring product measured against one ticket, the ones the user
- * habitually buys and this ticket does not contain — capped, because it is what
- * interrupts the user right after a scan.
+ * What this ticket does not contain of the user's habitual shop. Added products
+ * go first, because the user asked for those by name.
+ *
+ * Not capped: the sheet shows the first MAX_FORGOTTEN_SHOWN and says how many
+ * more there are.
  *
  * Plain module, not the .tsx next to it: this is the rule that decides whether
  * to interrupt the user, and it should be testable without pulling in React
  * Native.
  */
 export function forgottenIn(products: RecurringProduct[]): RecurringProduct[] {
-	return missingHabitual(products).slice(0, MAX_FORGOTTEN_SHOWN);
+	const missing = missingHabitual(products);
+	return [...missing.filter((p) => p.addedToHabitual), ...missing.filter((p) => !p.addedToHabitual)];
 }

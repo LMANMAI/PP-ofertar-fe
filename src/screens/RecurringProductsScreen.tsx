@@ -24,7 +24,19 @@ import {
 import type { Offer, RecurringProduct } from "../services";
 import { friendlyAuthError } from "../services/authApi";
 import type { Session } from "../auth/session";
-import { BottomNav, EmptyState, ErrorBanner, FollowedChip, ScreenHeader, Skeleton, type TabKey } from "../components";
+import {
+	BottomNav,
+	EmptyState,
+	ErrorBanner,
+	FollowedChip,
+	PaymentPromos,
+	RECURRING_EMPTY_HINT,
+	RECURRING_RULE_TEXT,
+	ScreenHeader,
+	Skeleton,
+	type TabKey,
+	isRecurring,
+} from "../components";
 import { OffersSortSheet } from "../components/OffersSortSheet";
 import { ProductOfferLine, PromoHero, offerSummary } from "../components/ProductOfferLine";
 import { ConditionsButton, PromoConditionsSheet } from "../components/PromoConditionsSheet";
@@ -191,7 +203,9 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 				.then((data) => {
 					// Same ordering as the home carousel, so a product featured there
 					// is also at the top when the user opens this section.
-					setProducts(sortByOfferRelevance(data));
+					// Solo lo que cumple la regla que dice esta pantalla: lo sumado desde el
+					// escáner está en la compra habitual aunque no se haya comprado.
+					setProducts(sortByOfferRelevance(data.filter(isRecurring)));
 					setError(null);
 				})
 				// A failed refresh keeps the list it already had: wiping it would turn
@@ -247,6 +261,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 	const listHeader = (
 		<View style={styles.listHeader}>
 			{error && <ErrorBanner message={error} onRetry={() => load("refresh")} />}
+			<Text style={styles.intro}>{RECURRING_RULE_TEXT}</Text>
 			{withOffer.length > 0 ? (
 				<View style={{ gap: space.xs }}>
 					<Text style={styles.intro}>
@@ -338,7 +353,7 @@ export function RecurringProductsScreen({ onBack, session, activeTab, onSelectTa
 				<EmptyState
 					icon="repeat-outline"
 					title="Todavía no detectamos productos recurrentes"
-					hint="Escaneá más tickets para que podamos reconocer tus compras habituales"
+					hint={RECURRING_EMPTY_HINT}
 				/>
 			)}
 
@@ -550,12 +565,7 @@ const ProductCard = memo(function ProductCard({
 						    No se mudan a la hoja de condiciones: no son la letra chica
 						    de la promo de arriba, son otra promoción. */}
 						{promos && promos.payment.length > 0 && (
-							<View style={styles.promoRow}>
-								<Ionicons name="card-outline" size={13} color={colors.infoSoftText} />
-								<Text style={styles.promoText}>
-									Con tarjeta o programa de {offer.retailerName}: {promos.payment.join(" · ")}
-								</Text>
-							</View>
+							<PaymentPromos labels={promos.payment} retailerName={offer.retailerName} price={offer.price} />
 						)}
 
 						{/* Lo que no pudimos clasificar, crudo. Perderlo sería peor que

@@ -37,7 +37,7 @@ export type RootStackParamList = {
 
 	// Códigos de barras y precios
 	/** De dónde se abrió el escáner: "atrás" vuelve ahí (desde la pestaña Escanear, a Inicio). */
-	ScanBarcode: { origin: "scan" | "compare" | "followedProducts" };
+	ScanBarcode: { origin: "scan" | "compare" | "followedProducts" | "habitual" };
 	Compare: { productName: string; barcode: string | null; origin: "main" | "ticketProcessed" | "followedProducts" };
 	FavoriteStores: { from: "profile" | "scanBarcode" | "compare" };
 	StoreDetail: { store: NearbyStore };
@@ -56,6 +56,8 @@ export type RootStackParamList = {
 	// Perfil
 	PersonalData: undefined;
 	PaymentMethods: undefined;
+	/** Calendario semanal de promos bancarias: se entra desde la tira de Inicio y desde Mis tarjetas (D9). */
+	BankPromos: undefined;
 	Plans: undefined;
 	HelpCenter: undefined;
 	ChangePasswordAuth: undefined;

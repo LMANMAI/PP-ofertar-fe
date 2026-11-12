@@ -1,13 +1,19 @@
 import {
 	Pressable,
+	ScrollView,
 	StyleSheet,
 	Text,
 	View,
 	useWindowDimensions,
 } from "react-native";
-import { useMemo, type RefObject } from "react";
+import { useMemo, useState, type RefObject } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { space, typography, useThemeColors, type ColorTokens, radii } from "../../theme/designSystem";
 import type { OnboardingTargetId } from "./OnboardingProvider";
+import { placeTooltip } from "./onboardingPlacement";
+
+/** Until the card is measured. The real height depends on the text and the phone's font scale. */
+const ESTIMATED_TOOLTIP_HEIGHT = 190;
 
 export type SpotlightRect = {
 	x: number;
@@ -35,30 +41,21 @@ export function OnboardingOverlay({
 	onSkip,
 	overlayRef,
 }: Props) {
-	const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+	const windowSize = useWindowDimensions();
+	const insets = useSafeAreaInsets();
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
-	const tooltipHeight = 190;
-	const placeAbove = Boolean(
-		spotlight &&
-		spotlight.y + spotlight.height + 18 + tooltipHeight > windowHeight,
-	);
-	const tooltipTop = spotlight
-		? placeAbove
-			? Math.max(18, spotlight.y - tooltipHeight - 18)
-			: spotlight.y + spotlight.height + 18
-		: 180;
-	const tooltipLeft = spotlight
-		? Math.max(18, Math.min(spotlight.x, windowWidth - 318))
-		: 18;
-	const arrowLeft = spotlight
-		? Math.max(
-				24,
-				Math.min(spotlight.x - tooltipLeft + spotlight.width / 2 - 9, 270),
-			)
-		: 30;
+	const [container, setContainer] = useState<{ width: number; height: number } | null>(null);
+	const [tooltipHeight, setTooltipHeight] = useState(ESTIMATED_TOOLTIP_HEIGHT);
+	const placement = placeTooltip({ spotlight, container: container ?? windowSize, tooltipHeight, insets });
 	return (
-		<View ref={overlayRef} style={styles.overlay} pointerEvents="box-none">
+		// Takes every touch while the tour runs: scrolling under a spotlight would
+		// leave it pointing at nothing, and the only way forward is the card.
+		<View
+			ref={overlayRef}
+			style={styles.overlay}
+			onLayout={({ nativeEvent: { layout } }) => setContainer({ width: layout.width, height: layout.height })}
+		>
 			{spotlight && (
 				<View pointerEvents="none" style={StyleSheet.absoluteFill}>
 					<View style={[styles.shade, { height: spotlight.y }]} />
@@ -103,24 +100,36 @@ export function OnboardingOverlay({
 					/>
 				</View>
 			)}
-			<View style={[styles.tooltip, { top: tooltipTop, left: tooltipLeft }]}>
-				<View
-					style={[
-						styles.arrow,
-						placeAbove ? styles.arrowBelow : styles.arrowAbove,
-						{ left: arrowLeft },
-					]}
-				/>
-				<Text style={styles.step}>
-					{stepNumber} / {totalSteps}
-				</Text>
-				<Text style={styles.title}>{step.title}</Text>
-				<Text style={styles.description}>{step.description}</Text>
+			<View
+				onLayout={({ nativeEvent: { layout } }) => setTooltipHeight(layout.height)}
+				style={[
+					styles.tooltip,
+					{ top: placement.top, left: placement.left, width: placement.width, maxHeight: placement.maxHeight },
+				]}
+			>
+				{placement.showArrow && (
+					<View
+						style={[
+							styles.arrow,
+							placement.above ? styles.arrowBelow : styles.arrowAbove,
+							{ left: placement.arrowLeft },
+						]}
+					/>
+				)}
+				{/* The text scrolls and the buttons stay: with a very large font they are
+				    what has to remain reachable. */}
+				<ScrollView style={styles.tooltipText} bounces={false} showsVerticalScrollIndicator={false}>
+					<Text style={styles.step}>
+						{stepNumber} / {totalSteps}
+					</Text>
+					<Text style={styles.title}>{step.title}</Text>
+					<Text style={styles.description}>{step.description}</Text>
+				</ScrollView>
 				<View style={styles.actions}>
-					<Pressable onPress={onSkip} hitSlop={8}>
+					<Pressable onPress={onSkip} hitSlop={8} accessibilityRole="button">
 						<Text style={styles.skip}>Omitir tour</Text>
 					</Pressable>
-					<Pressable onPress={onNext} style={styles.next} hitSlop={4}>
+					<Pressable onPress={onNext} style={styles.next} hitSlop={4} accessibilityRole="button">
 						<Text style={styles.nextText}>
 							{stepNumber === totalSteps ? "Entendido" : "Siguiente"}
 						</Text>
@@ -152,7 +161,6 @@ function createStyles(colors: ColorTokens) {
 	},
 	tooltip: {
 		position: "absolute",
-		width: 300,
 		backgroundColor: colors.card,
 		borderRadius: radii.lg,
 		padding: 18,
@@ -161,6 +169,7 @@ function createStyles(colors: ColorTokens) {
 		shadowRadius: 16,
 		elevation: 10,
 	},
+	tooltipText: { flexGrow: 0, flexShrink: 1 },
 	arrow: {
 		position: "absolute",
 		width: 18,

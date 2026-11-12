@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker, PROVIDER_DEFAULT } from "../components/ui/AppMapView";
+import MapView, { PROVIDER_DEFAULT } from "../components/ui/AppMapView";
+import { LogoMarker } from "../components/ui/LogoMarker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useIsDarkMode, useThemeColors, type ColorTokens, radii, focusRing, isFocused } from "../theme/designSystem";
@@ -73,7 +74,7 @@ export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onSca
 							scrollEnabled={false}
 							zoomEnabled={false}
 						>
-							<Marker
+							<LogoMarker
 								coordinate={{ latitude: store.lat, longitude: store.lng }}
 								title={store.name}
 								description={store.chainName}
@@ -85,8 +86,10 @@ export function StoreDetailScreen({ store, onBack, activeTab, onSelectTab, onSca
 								)}
 							>
 								{/* Un pin suelto también tiene que decir de qué cadena es. */}
-								<ChainMarkerPin chainSlug={store.chainSlug} chainName={store.chainName} withPointer />
-							</Marker>
+								{(onLogoLoad) => (
+									<ChainMarkerPin chainSlug={store.chainSlug} chainName={store.chainName} withPointer onLogoLoad={onLogoLoad} />
+								)}
+							</LogoMarker>
 						</MapView>
 					</View>
 

@@ -605,7 +605,7 @@ check("las bancarias van aparte y dichas como condicionadas", () => {
 	// no se paga con nada. Lo que comparten es que exigen cumplir algo que no
 	// es llevar más unidades, y eso es lo que el renglón tiene que decir.
 	assert.ok(
-		screen.includes("Con tarjeta o programa de"),
+		screen.includes("<PaymentPromos") && src("src/components/PaymentPromos.tsx").includes("Con tarjeta o programa de"),
 		"las bancarias tienen que estar etiquetadas como condicionadas a tarjeta o programa",
 	);
 	assert.ok(
