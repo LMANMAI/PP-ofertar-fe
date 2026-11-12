@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	FlatList,
@@ -29,12 +29,13 @@ import {
 	getRecurringProducts,
 	offerCategories,
 	offerCategoryLabel,
-	offerPromo,
 } from "../services";
 import { friendlyAuthError } from "../services/authApi";
-import type { Offer, PromoIcon, RecurringProduct } from "../services";
+import type { Offer, RecurringProduct } from "../services";
 import type { Session } from "../auth/session";
-import { formatLongDate } from "../utils/format";
+import { formatCurrency, formatLongDate } from "../utils/format";
+import { ConditionsButton, PromoConditionsSheet } from "../components/PromoConditionsSheet";
+import { heroSpoken, offerCardHero, offerConditions, type PromoConditions } from "../components/promoConditions";
 import { isInBasket } from "../utils/basket";
 
 type Props = {
@@ -121,6 +122,20 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 	const [onlyBasket, setOnlyBasket] = useState(cached?.onlyBasket ?? false);
 	const [sort, setSort] = useState<SortKey>(cached?.sort ?? "relevance");
 	const [sortVisible, setSortVisible] = useState(false);
+	// La hoja de condiciones abierta, o null. Una sola para las 50 cards de la
+	// página: una `Modal` por card montaría 50 hojas cerradas para abrir una.
+	const [conditions, setConditions] = useState<PromoConditions | null>(null);
+	// Estables: van como prop de una card memoizada (ver `OfferCard`).
+	const openConditions = useCallback((next: PromoConditions) => setConditions(next), []);
+	const closeConditions = useCallback(() => setConditions(null), []);
+	// Se cierra antes de navegar para no encontrarla abierta al volver.
+	const openFullOffer = useCallback(
+		(offer: Offer) => {
+			setConditions(null);
+			onOpenOffer(offer.id, offer);
+		},
+		[onOpenOffer],
+	);
 	const listRef = useRef<FlatList<Offer>>(null);
 
 	const [filter, setFilter] = useState<OffersFilterState>(
@@ -544,6 +559,7 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 								offer={o}
 								inBasket={basketIds.has(o.id)}
 								onOpenOffer={onOpenOffer}
+								onOpenConditions={openConditions}
 								colors={colors}
 								styles={styles}
 							/>
@@ -558,9 +574,11 @@ export function OffersScreen({ session, activeTab, onSelectTab, onScanPress, onO
 				/>
 			)}
 
-			<View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+			<View style={{ marginTop: "auto", paddingBottom: insets.bottom, backgroundColor: colors.card }}>
 				<BottomNav active={activeTab} onSelect={onSelectTab} onScanPress={onScanPress} />
 			</View>
+
+			<PromoConditionsSheet conditions={conditions} onClose={closeConditions} onOpenFull={openFullOffer} />
 
 			<OffersSortSheet
 				visible={sortVisible}
@@ -640,64 +658,47 @@ function OfferCardSkeleton({ styles }: { styles: ReturnType<typeof createStyles>
 	);
 }
 
-/** Same anatomy as the home carousel card, one size up: the number in its own
- * tile with an icon, and right beside it the thing the list never used to say —
- * whether the percentage comes off the price or off a second unit.
+/** Same anatomy as the home carousel card, one size up. Lo grande es lo que se
+ * paga: una oferta de catálogo muestra el precio final con el de lista
+ * tachado (sin tile de "25%": con el tachado a la vista el porcentaje es una
+ * cuenta que el usuario no necesita); una campaña, que no trae precio, muestra
+ * el número de la creatividad en su tile y, al lado, a qué se aplica — la
+ * condición nunca se va a la hoja. La letra chica (legales, avisos de OCR)
+ * vive en `PromoConditionsSheet`, detrás del botón "Condiciones".
  *
  * Memoized, and takes `onOpenOffer` + the offer instead of a pre-bound
  * `onOpen` closure, so its props stay referentially stable across re-renders
  * of the list (a fresh `() => onOpenOffer(o.id)` per render would defeat the
- * memo on every single card, every time). */
+ * memo on every single card, every time). Lo mismo `onOpenConditions`. */
 const OfferCard = memo(function OfferCard({
 	offer,
 	inBasket,
 	onOpenOffer,
+	onOpenConditions,
 	colors,
 	styles,
 }: {
 	offer: Offer;
 	inBasket: boolean;
 	onOpenOffer: (offerId: string, fallback?: Offer | null) => void;
+	onOpenConditions: (conditions: PromoConditions) => void;
 	colors: ColorTokens;
 	styles: ReturnType<typeof createStyles>;
 }) {
 	const until = formatLongDate(offer.activeTo);
-	const promo = offerPromo(offer);
-	const catalogPct =
-		offer.kind === "catalog" && offer.discountPct != null && offer.discountPct >= 1
-			? `${Math.round(offer.discountPct)}%`
-			: null;
-
-	const amount = promo ? promo.amount : catalogPct;
-	const capped = promo?.capped ?? false;
-	const conditional = promo?.conditional ?? false;
-	const icon: PromoIcon = promo ? promo.icon : "pricetag-outline";
-	// The percentages we collapsed into "hasta". Named in full here, where
-	// there is room for it, so the ceiling is never mistaken for the only
-	// number the promotion advertises. Same filter as describePromo, so the
-	// list can never contradict the tile.
-	const everyPct = [
-		...new Set((offer.discountPercentages ?? []).filter((n) => n > 0 && n <= 100)),
-	];
+	const hero = offerCardHero(offer);
+	// Null cuando no hay letra chica: entonces no hay botón.
+	const conditions = offerConditions(offer);
 	// La categoría, que hasta ahora sólo se veía abriendo la oferta —y ni
 	// siquiera siempre: colgaba de la línea de marca, así que una oferta sin
 	// marca la escondía del todo—. `offerCategoryLabel` es una función de
 	// módulo, no una closure nueva por render, así que no toca el memo.
 	const category = offerCategoryLabel(offer.category);
 
-	const money = (n: number) => `$${Math.round(n).toLocaleString("es-AR")}`;
 	const spoken = [
 		`${offer.kind === "catalog" ? "Oferta" : "Promoción"} en ${offer.retailerName ?? "tu súper"}${offer.province ? `, ${offer.province}` : ""}`,
-		offer.kind === "catalog"
-			? offer.productName ?? offer.headline
-			: promo
-				? `${promo.amount ?? ""} ${promo.applies}`.trim()
-				: offer.headline,
-		offer.kind === "catalog" && catalogPct ? `${catalogPct} de descuento` : null,
-		offer.kind === "catalog" && offer.price != null ? money(offer.price) : null,
-		offer.kind === "catalog" && offer.price != null && offer.listPrice != null && offer.listPrice > offer.price
-			? `antes ${money(offer.listPrice)}`
-			: null,
+		offer.kind === "catalog" ? offer.productName ?? offer.headline : null,
+		heroSpoken(hero) || (offer.kind === "catalog" ? null : offer.headline),
 		until ? `vigente hasta el ${until}` : "vigencia no informada",
 		inBasket ? "de tu compra" : null,
 	]
@@ -705,123 +706,130 @@ const OfferCard = memo(function OfferCard({
 		.join(", ");
 
 	return (
-		<Pressable
-			onPress={() => onOpenOffer(offer.id, offer)}
-			style={(state) => [styles.offerCard, state.pressed && styles.offerCardPressed, isFocused(state) && styles.focusRing]}
-			accessibilityRole="button"
-			accessibilityLabel={spoken}
-		>
-			<View style={styles.offerHeader}>
-				<View style={styles.offerStoreRow}>
-					<StoreBadge retailerSlug={offer.retailerSlug} retailerName={offer.retailerName} />
-					<Text style={styles.storeName} numberOfLines={1}>
-						{offer.retailerName}
-						{offer.province ? ` · ${offer.province}` : ""}
-					</Text>
-				</View>
-				{inBasket && (
-					<View style={styles.basketTag}>
-						<Ionicons name="cart-outline" size={12} color={colors.infoSoftText} />
-						<Text style={styles.basketTagText}>De tu compra</Text>
-					</View>
-				)}
-				<Ionicons name="chevron-forward" size={16} color={colors.subtleText} />
-			</View>
-
-			<View style={styles.offerBody}>
-				{amount ? (
-					<View style={styles.amountTile}>
-						<View style={styles.amountKickerRow}>
-							<Ionicons name={icon} size={12} color={colors.cyan} />
-							{capped && <Text style={styles.amountKicker}>HASTA</Text>}
-						</View>
-						<Text
-							style={styles.amountValue}
-							numberOfLines={1}
-							adjustsFontSizeToFit
-							minimumFontScale={0.6}
-						>
-							{amount}
+		<View style={styles.offerCard}>
+			{/* El área que abre el detalle y el botón de condiciones son
+			    hermanos: con el `accessibilityLabel` en toda la card, el lector
+			    de pantalla agrupa a los hijos y un botón adentro quedaría
+			    inalcanzable. */}
+			<Pressable
+				onPress={() => onOpenOffer(offer.id, offer)}
+				style={(state) => [styles.offerMain, state.pressed && styles.offerCardPressed, isFocused(state) && styles.focusRing]}
+				accessibilityRole="button"
+				accessibilityLabel={spoken}
+			>
+				<View style={styles.offerHeader}>
+					<View style={styles.offerStoreRow}>
+						<StoreBadge retailerSlug={offer.retailerSlug} retailerName={offer.retailerName} />
+						<Text style={styles.storeName} numberOfLines={1}>
+							{offer.retailerName}
+							{offer.province ? <Text style={styles.storeProvince}>{` · ${offer.province}`}</Text> : null}
 						</Text>
 					</View>
-				) : (
-					<View style={[styles.amountTile, styles.amountTileFlat]}>
-						<Ionicons name={icon} size={26} color={colors.cyan} />
-					</View>
-				)}
+					{inBasket && (
+						<View style={styles.basketTag}>
+							<Ionicons name="cart-outline" size={12} color={colors.infoSoftText} />
+							<Text style={styles.basketTagText}>De tu compra</Text>
+						</View>
+					)}
+					<Ionicons name="chevron-forward" size={16} color={colors.subtleText} />
+				</View>
 
-				<View style={styles.offerBodyRight}>
-					{offer.kind === "catalog" ? (
-						<>
-							<Text style={styles.offerProduct} numberOfLines={2}>
-								{offer.productName ?? offer.headline}
+				{hero.kind === "price" ? (
+					<View style={styles.catalogBody}>
+						<Text style={styles.offerProduct} numberOfLines={2}>
+							{offer.productName ?? offer.headline}
+						</Text>
+						<View style={styles.priceRow}>
+							<Text style={styles.priceNow} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+								{formatCurrency(hero.price)}
 							</Text>
-							{offer.price != null && (
-								<View style={styles.priceRow}>
-									<Text style={styles.priceNow}>
-										${Math.round(offer.price).toLocaleString("es-AR")}
-									</Text>
-									{offer.listPrice != null && offer.listPrice > offer.price && (
-										<Text style={styles.priceWas}>
-											Antes ${Math.round(offer.listPrice).toLocaleString("es-AR")}
-										</Text>
-									)}
-								</View>
+							{hero.listPrice != null && (
+								<Text style={styles.priceWas} numberOfLines={1}>
+									{formatCurrency(hero.listPrice)}
+								</Text>
 							)}
-						</>
-					) : (
-						<>
-							<View style={[styles.appliesChip, conditional && styles.appliesChipWarm]}>
-								<Text style={[styles.appliesText, conditional && styles.appliesTextWarm]}>
-									{promo ? promo.applies : offer.headline}
+							{hero.discountPct != null && <Text style={styles.pctNote}>-{hero.discountPct}%</Text>}
+						</View>
+					</View>
+				) : (
+					<View style={styles.offerBody}>
+						{hero.kind === "mechanic" && hero.amount ? (
+							<View style={styles.amountTile}>
+								<View style={styles.amountKickerRow}>
+									<Ionicons name={hero.icon} size={12} color={colors.cyan} />
+									{hero.capped && <Text style={styles.amountKicker}>HASTA</Text>}
+								</View>
+								<Text
+									style={styles.amountValue}
+									numberOfLines={1}
+									adjustsFontSizeToFit
+									minimumFontScale={0.6}
+								>
+									{hero.amount}
 								</Text>
 							</View>
-							{promo && <Text style={styles.offerDetail}>{promo.detail}</Text>}
-						</>
-					)}
-				</View>
-			</View>
+						) : (
+							<View style={[styles.amountTile, styles.amountTileFlat]}>
+								<Ionicons name={hero.kind === "mechanic" ? hero.icon : "pricetag-outline"} size={26} color={colors.cyan} />
+							</View>
+						)}
 
-			{/* Categoría y vigencia comparten renglón. Una oferta sin fecha lo dice en
-			    vez de callarlo: sin vencimiento no se puede saber si va a seguir ahí
-			    cuando llegue al súper. */}
-			<View style={styles.offerMetaRow}>
-				{category !== null && (
-					<View style={styles.categoryChip} accessibilityLabel={`Categoría: ${category}`}>
-						<Ionicons name="pricetags-outline" size={11} color={colors.mutedText2} />
-						<Text style={styles.categoryChipText} numberOfLines={1}>
-							{category}
-						</Text>
+						<View style={styles.offerBodyRight}>
+							{offer.kind === "catalog" ? (
+								<Text style={styles.offerProduct} numberOfLines={2}>
+									{offer.productName ?? offer.headline}
+								</Text>
+							) : hero.kind === "mechanic" && hero.applies ? (
+								<View style={[styles.appliesChip, hero.conditional && styles.appliesChipWarm]}>
+									<Text style={[styles.appliesText, hero.conditional && styles.appliesTextWarm]}>
+										{hero.applies}
+									</Text>
+								</View>
+							) : null}
+						</View>
 					</View>
 				)}
-				{until !== null ? (
-					<Text style={styles.offerValidity}>Vigente hasta el {until}</Text>
-				) : (
-					<Text style={styles.offerValidityMissing}>Vigencia no informada</Text>
+
+				{/* Categoría y vigencia comparten renglón. Una oferta sin fecha lo dice en
+				    vez de callarlo: sin vencimiento no se puede saber si va a seguir ahí
+				    cuando llegue al súper. La vigencia se queda en la card aunque la
+				    hoja también la tenga: esta lista se puede ordenar por "Vence
+				    antes", y un orden que no se ve no se entiende. */}
+				<View style={styles.offerMetaRow}>
+					{category !== null && (
+						<View style={styles.categoryChip} accessibilityLabel={`Categoría: ${category}`}>
+							<Ionicons name="pricetags-outline" size={11} color={colors.mutedText2} />
+							<Text style={styles.categoryChipText} numberOfLines={1}>
+								{category}
+							</Text>
+						</View>
+					)}
+					{until !== null ? (
+						<Text style={styles.offerValidity}>Vigente hasta el {until}</Text>
+					) : (
+						<Text style={styles.offerValidityMissing}>Vigencia no informada</Text>
+					)}
+				</View>
+
+				{/* Sólo la marca: la categoría se mudó al chip de arriba y repetirla acá
+				    sería decir dos veces lo mismo en la misma card. */}
+				{offer.brand && (
+					<Text style={styles.offerApplies} numberOfLines={1}>
+						{offer.brand}
+					</Text>
 				)}
-			</View>
+			</Pressable>
 
-			{/* Sólo la marca: la categoría se mudó al chip de arriba y repetirla acá
-			    sería decir dos veces lo mismo en la misma card. */}
-			{offer.brand && (
-				<Text style={styles.offerApplies} numberOfLines={1}>
-					{offer.brand}
-				</Text>
+			{/* Lo que antes eran dos renglones en cursiva al pie —el aviso de
+			    varios porcentajes y el de porcentaje leído por OCR— más el
+			    legal, que sólo se veía abriendo el detalle. */}
+			{conditions !== null && (
+				<ConditionsButton
+					onPress={() => onOpenConditions(conditions)}
+					accessibilityLabel={`Condiciones de la promoción de ${offer.retailerName ?? "tu súper"}`}
+				/>
 			)}
-
-			{capped && everyPct.length > 1 && (
-				<Text style={styles.offerCaveat}>
-					El aviso muestra más de un porcentaje ({everyPct.map((p) => `${p}%`).join(", ")}) y no
-					dice a qué producto va cada uno, así que mostramos el mayor.
-				</Text>
-			)}
-
-			{offer.percentagesUnverified && (
-				<Text style={styles.offerCaveat}>
-					El porcentaje se leyó de la imagen de la promoción y puede no ser exacto.
-				</Text>
-			)}
-		</Pressable>
+		</View>
 	);
 });
 
@@ -897,6 +905,9 @@ function createStyles(colors: ColorTokens) {
 		borderWidth: 1,
 		borderColor: colors.border,
 	},
+	// El área tocable que abre el detalle; el botón de condiciones queda
+	// afuera, como hermano (ver `OfferCard`).
+	offerMain: { gap: space.smPlus },
 	offerCardPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
 	focusRing: focusRing(colors),
 	skeletonList: { padding: space.lg, gap: space.md },
@@ -939,20 +950,18 @@ function createStyles(colors: ColorTokens) {
 	appliesChipWarm: { backgroundColor: colors.warmChip },
 	appliesText: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.caption, lineHeight: typography.lineHeights.caption },
 	appliesTextWarm: { color: colors.warmChipText },
-	offerDetail: {
-		color: colors.mutedText2,
-		fontFamily: typography.family.regular,
-		fontSize: typography.sizes.caption,
-		lineHeight: typography.lineHeights.caption,
-	},
 	offerProduct: {
 		color: colors.defaultText,
 		fontFamily: typography.family.medium,
 		fontSize: typography.sizes.caption,
 		lineHeight: typography.lineHeights.caption,
 	},
-	priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.sm },
-	priceNow: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.bodyL },
+	// Una oferta de catálogo ya no lleva tile: el precio final es el número
+	// grande. `flexWrap` para que con un monto largo el tachado baje de renglón
+	// en vez de empujar la card más allá de los 360 dp.
+	catalogBody: { gap: space.xs },
+	priceRow: { flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", columnGap: space.sm },
+	priceNow: { flexShrink: 1, color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.h2, lineHeight: typography.lineHeights.h2 },
 	priceWas: {
 		color: colors.subtleText,
 		fontFamily: typography.family.regular,
@@ -963,7 +972,11 @@ function createStyles(colors: ColorTokens) {
 	basketTag: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.infoSoft, borderRadius: radii.sm, paddingHorizontal: space.sm, paddingVertical: space.xs },
 	basketTagText: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.micro },
 	offerStoreRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.sm },
-	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	// El súper en negrita y un paso más grande: junto con el logo es lo que se
+	// reconoce de un vistazo, antes que el precio.
+	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.label },
+	storeProvince: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption },
+	pctNote: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
 	// Un solo renglón para los dos metadatos de contexto. `flexWrap` está porque
 	// en tablet la card va a media pantalla: ahí una categoría larga más "Vigente
 	// hasta el 31 de diciembre" no entran juntas y la vigencia baja sola, en vez
@@ -1001,12 +1014,5 @@ function createStyles(colors: ColorTokens) {
 	offerValidity: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
 	offerValidityMissing: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption },
 	offerApplies: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.caption, lineHeight: typography.lineHeights.caption },
-	offerCaveat: {
-		color: colors.subtleText,
-		fontFamily: typography.family.regular,
-		fontSize: typography.sizes.micro,
-		lineHeight: typography.lineHeights.micro,
-		fontStyle: "italic",
-	},
 	});
 }

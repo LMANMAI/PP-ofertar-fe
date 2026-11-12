@@ -1,6 +1,7 @@
 import type { components } from "../api/schema";
 import { request } from "../api/client";
 import { FavoriteStoresSchema, NearbyStoreListSchema, StoreChainListSchema } from "../api/schemas";
+import type { Horarios } from "../utils/openingHours";
 
 export interface StoreChain {
 	slug: string;
@@ -17,6 +18,10 @@ export interface NearbyStore {
 	lat: number;
 	lng: number;
 	distanceKm: number;
+	/** Horario de atención (ver `utils/openingHours`). Sólo viene en las tiendas
+	 * que el backend pudo cruzar con una sucursal de SEPA; sin él no se muestra
+	 * ningún estado. */
+	horarios?: Horarios | null;
 }
 
 export type FavoriteStores = components["schemas"]["FavoriteStoresResponse"];

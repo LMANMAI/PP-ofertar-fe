@@ -159,12 +159,16 @@ export async function followScannedProduct(product: FollowProductInput): Promise
 		// Sin token de push no hay aviso, pero el producto ya quedó seguido.
 	}
 	const offersPushEnabled = useSessionStore.getState().session?.user.offersPushEnabled ?? true;
+	// Expo Go va primero: ahí el push no anda aunque la preferencia esté prendida, y el
+	// switch de Perfil está deshabilitado, así que no tiene sentido mandarlo a activarla.
 	useUiStore.getState().showToast(
-		!offersPushEnabled
-			? "Lo seguís, pero tenés apagadas las notificaciones de ofertas. Activalas desde Perfil para que te avisemos."
-			: push === "denied"
-				? "Lo seguís, pero OfertAR no tiene permiso para notificarte. Activalo en los ajustes del teléfono para que te avisemos."
-				: "Lo seguís. Te avisamos cuando esté en promo.",
+		push === "expoGo"
+			? "Lo seguís, pero las notificaciones push no funcionan en Expo Go. Probá con un development build para que te avisemos."
+			: !offersPushEnabled
+				? "Lo seguís, pero tenés apagadas las notificaciones de ofertas. Activalas desde Perfil para que te avisemos."
+				: push === "denied"
+					? "Lo seguís, pero OfertAR no tiene permiso para notificarte. Activalo en los ajustes del teléfono para que te avisemos."
+					: "Lo seguís. Te avisamos cuando esté en promo.",
 	);
 	return true;
 }

@@ -3,6 +3,8 @@ import {
 	AuthResponseSchema,
 	FavoriteStoresSchema,
 	FollowedProductsSchema,
+	HorariosSchema,
+	NearbyStoreListSchema,
 	OfferFeedSchema,
 	PointsBalanceSchema,
 	PointsHistorySchema,
@@ -31,6 +33,8 @@ describe("cada schema acepta una respuesta con la forma del contrato", () => {
 		["FollowedProducts", FollowedProductsSchema, f.followedProducts],
 		["ProductoDetalle", ProductoDetalleSchema, f.productoDetalle],
 		["SucursalesCercanas", SucursalesCercanasSchema, f.sucursalesCercanas],
+		["Horarios", HorariosSchema, f.horarios],
+		["NearbyStores", NearbyStoreListSchema, f.nearbyStores],
 	] as const)("%s", (_nombre, schema, ejemplo) => {
 		expect(schema.safeParse(ejemplo).success).toBe(true);
 	});
@@ -77,6 +81,32 @@ describe("un cambio de contrato se detecta", () => {
 		const { lastPurchasedAt: _quitado, ...sinFecha } = gaseosa;
 		expect(FollowedProductsSchema.safeParse(con(sinFecha)).success).toBe(false);
 		expect(FollowedProductsSchema.safeParse(con({ ...gaseosa, lastPurchasedAt: null })).success).toBe(true);
+	});
+
+	it("sucursales de SEPA: `horarios` viene siempre, null si no se informa ningún día", () => {
+		const [jumbo] = f.sucursalesCercanas.sucursales;
+		const con = (sucursal: object) => ({ ...f.sucursalesCercanas, sucursales: [sucursal] });
+		const { horarios: _quitado, ...sinHorarios } = jumbo;
+		expect(SucursalesCercanasSchema.safeParse(con(sinHorarios)).success).toBe(false);
+		expect(SucursalesCercanasSchema.safeParse(con({ ...jumbo, horarios: null })).success).toBe(true);
+	});
+
+	it("horarios: las siete claves vienen, cada día es [] (cerrado), null (sin dato) o franjas", () => {
+		const { domingo: _quitado, ...sinDomingo } = f.horarios;
+		expect(HorariosSchema.safeParse(sinDomingo).success).toBe(false);
+		expect(HorariosSchema.safeParse({ ...f.horarios, lunes: [] }).success).toBe(true);
+		expect(HorariosSchema.safeParse({ ...f.horarios, lunes: null }).success).toBe(true);
+		expect(HorariosSchema.safeParse({ ...f.horarios, lunes: [{ desde: "08:00" }] }).success).toBe(false);
+		expect(HorariosSchema.safeParse({ ...f.horarios, lunes: [{ desde: 8, hasta: 22 }] }).success).toBe(false);
+	});
+
+	it("horarios no se pierde al validar (zod descarta las claves que el schema no declara)", () => {
+		const sucursales = SucursalesCercanasSchema.parse(f.sucursalesCercanas).sucursales;
+		expect(sucursales[0].horarios).toEqual(f.horarios);
+		expect(sucursales[1].horarios).toBeNull();
+		const [conHorarios, sinHorarios] = NearbyStoreListSchema.parse(f.nearbyStores);
+		expect(conHorarios.horarios).toEqual(f.horarios);
+		expect(sinHorarios.horarios).toBeUndefined();
 	});
 
 	it("un backend más nuevo que agrega campos no rompe a la app", () => {

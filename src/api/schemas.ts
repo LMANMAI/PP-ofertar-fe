@@ -227,6 +227,27 @@ export const FollowedProductsSchema: z.ZodType<Schemas["FollowedProductsResponse
 
 export const FollowedEansSchema = z.array(string);
 
+// ── Horarios de sucursales ───────────────────────────────────────────
+
+// Cada día: [] cerrado, null no informado (o SEPA dice algo que no se entiende con certeza),
+// y si no, sus franjas. Las siete claves vienen siempre. Lo interpreta utils/openingHours.
+export const FranjaHorariaSchema: z.ZodType<Schemas["FranjaHorariaResponse"]> = z.object({
+	desde: string,
+	hasta: string,
+});
+
+const dia = z.array(FranjaHorariaSchema).nullable();
+
+export const HorariosSchema: z.ZodType<Schemas["HorariosResponse"]> = z.object({
+	lunes: dia,
+	martes: dia,
+	miercoles: dia,
+	jueves: dia,
+	viernes: dia,
+	sabado: dia,
+	domingo: dia,
+});
+
 // ── Tiendas ──────────────────────────────────────────────────────────
 
 export const FavoriteStoresSchema: z.ZodType<Schemas["FavoriteStoresResponse"]> = z.object({
@@ -249,6 +270,9 @@ export const NearbyStoreListSchema = z.array(
 		lat: number,
 		lng: number,
 		distanceKm: number,
+		// Sólo en las tiendas que el backend pudo cruzar con una sucursal de SEPA; en las
+		// demás la clave no viene. Sin esto zod la descartaría y nunca se vería el estado.
+		horarios: HorariosSchema.nullable().optional(),
 	}),
 );
 
@@ -298,6 +322,7 @@ export const SucursalesCercanasSchema: z.ZodType<Schemas["SepaSucursalesCercanas
 			longitud: number,
 			distanciaKm: number,
 			precio: number,
+			horarios: HorariosSchema.nullable(),
 		}),
 	),
 });

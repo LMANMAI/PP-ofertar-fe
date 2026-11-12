@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 
 import { describePromoLabel, readPromoLabel } from "../src/services/promoLabels";
 import { summarizeOfferPromos } from "../src/services/productsApi";
+import { productOfferHero } from "../src/components/promoConditions";
 import type { BestOffer } from "../src/services/productsApi";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -551,11 +552,21 @@ check("la tarjeta clasifica las promos en vez de imprimir la etiqueta cruda", ()
 	);
 });
 
+// Los tres checks que siguen miraban el `PromoBody` de la pantalla. En el
+// rediseño de las tarjetas (precio final grande, logo del súper, letra chica
+// en una hoja aparte) el bloque de la promo se mudó a `ProductOfferLine`, que
+// es lo que la pantalla ya dibujaba arriba de todo y que comparte con "Tu
+// compra habitual", y la decisión de qué va grande a `productOfferHero`
+// (src/components/promoConditions.ts). Se apuntan ahí; lo que protegen es lo
+// mismo. La parte fina —qué mostrar en cada caso— la cubre además
+// scripts/verifyPromoConditions.ts.
+const offerLine = src("src", "components", "ProductOfferLine.tsx");
+
 check("la mecánica usa el mismo tile + chip que las cards de oferta", () => {
-	assert.ok(screen.includes("styles.amountTile"), "falta el tile del monto");
-	assert.ok(screen.includes("styles.appliesChip"), 'falta el chip de "aplica a"');
+	assert.ok(offerLine.includes("styles.amountTile"), "falta el tile del monto");
+	assert.ok(offerLine.includes("styles.appliesChip"), 'falta el chip de "aplica a"');
 	assert.ok(
-		screen.includes("featured.wording.conditional && styles.appliesChipWarm"),
+		offerLine.includes("hero.conditional && styles.appliesChipWarm"),
 		"el chip tiene que ponerse cálido cuando la promo es condicional",
 	);
 });
@@ -563,20 +574,28 @@ check("la mecánica usa el mismo tile + chip que las cards de oferta", () => {
 check("la mecánica se muestra siempre, no sólo con la tarjeta desplegada", () => {
 	// El renglón viejo vivía adentro del detalle desplegado. Si el bloque nuevo
 	// cae ahí también, el usuario sigue sin ver qué promoción aplica de entrada.
-	const featuredAt = screen.indexOf("{offer && featured && showPromo && !loose &&");
-	const expandedAt = screen.indexOf("{isExpanded && hasAnything && (");
+	const featuredAt = screen.indexOf("<ProductOfferLine product={p} loose={loose}");
+	const expandedAt = screen.indexOf("{isExpanded && hasAnything");
 	assert.ok(featuredAt > 0, "no está el bloque de la mecánica destacada");
 	assert.ok(expandedAt > 0, "no está el bloque del detalle desplegado");
 	assert.ok(featuredAt < expandedAt, "la mecánica quedó adentro del detalle desplegado");
+	// Y `ProductOfferLine` la dibuja sin condición de despliegue.
+	assert.ok(offerLine.includes("productOfferHero(offer, loose)"), "la línea no calcula el hero");
+	assert.ok(
+		offerLine.includes(`{hero.kind !== "price" && <PromoHero hero={hero} />}`),
+		"la línea no dibuja la mecánica",
+	);
 });
 
 check("con condición de cantidad se aclara que una sola unidad no baja", () => {
-	// Es el punto de toda la tarea.
-	assert.ok(screen.includes("featured.requiredQuantity > 1"), "falta el guard de la condición");
-	assert.ok(
-		screen.includes("Llevando 1 sola unidad pagás"),
-		"falta decir cuánto sale llevando una sola",
-	);
+	// Es el punto de toda la tarea. Ahora se verifica el comportamiento y no
+	// sólo que el texto exista: con un 3x2, lo que sale UNA unidad tiene que
+	// llegar a la tarjeta, y la tarjeta tiene que dibujarlo.
+	const hero = productOfferHero(bestOffer({ promoLabels: ["3X2"] }), false);
+	assert.ok(hero.kind === "mechanic", `un 3x2 sin precio por unidad es mecánica, no ${hero.kind}`);
+	assert.equal(hero.kind === "mechanic" ? hero.single?.text : null, "Llevando 1 sola unidad pagás $3.200");
+	assert.ok(offerLine.includes("hero.single.text"), "falta decir cuánto sale llevando una sola");
+	assert.ok(offerLine.includes("{hero.single ? "), "falta decir cuánto sale llevando una sola");
 });
 
 check("las bancarias van aparte y dichas como condicionadas", () => {

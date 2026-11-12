@@ -77,7 +77,10 @@ export interface PromoLabelReading {
 	 * preguntó qué promoción aplica, y ponerle un segundo número de unidades al
 	 * lado de la mecánica es justo la confusión que hay que evitar — más
 	 * todavía cuando la condición es 1 y el tope es lo único numerado de la
-	 * etiqueta. Se guarda porque hace verificable que lo leímos como tope. */
+	 * etiqueta. Se guarda porque hace verificable que lo leímos como tope, y
+	 * porque la hoja de condiciones (`PromoConditionsSheet`) sí lo muestra: ahí
+	 * va solo, rotulado como tope y lejos de la mecánica, que es justo lo que
+	 * en la tarjeta no se puede garantizar. */
 	maxUnits: number | null;
 	/** La mecánica en el vocabulario de campañas, cuando la etiqueta cae justo
 	 * en uno de sus cuatro casos. Null no significa "no hay mecánica": significa

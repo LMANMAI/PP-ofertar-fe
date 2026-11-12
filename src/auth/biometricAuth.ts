@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import * as LocalAuthentication from "expo-local-authentication";
 
@@ -58,16 +59,23 @@ export type BiometricInfo = {
 
 const DEFAULT_BIOMETRIC_INFO: BiometricInfo = { hint: "tu biometría", icon: "finger-print-outline" };
 
-/** What to call the device's biometric in copy and which icon to show:
- * iPhones with Face ID have no fingerprint, so "huella" would be wrong there. */
+/** What to call the device's biometric in copy and which icon to show. iOS
+ * uses Apple's names (Face ID / Touch ID); Android never borrows "Face ID",
+ * and fingerprint wins over face unlock there because it is what users expect
+ * (many Android devices report both). */
 export async function getBiometricInfo(): Promise<BiometricInfo> {
 	const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
-	if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-		return { hint: "Face ID", icon: "scan-outline" };
+	const hasFace = types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+	const hasFingerprint = types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
+
+	if (Platform.OS === "ios") {
+		if (hasFace) return { hint: "Face ID", icon: "scan-outline" };
+		if (hasFingerprint) return { hint: "Touch ID", icon: "finger-print-outline" };
+		return DEFAULT_BIOMETRIC_INFO;
 	}
-	if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-		return { hint: "tu huella", icon: "finger-print-outline" };
-	}
+
+	if (hasFingerprint) return { hint: "tu huella", icon: "finger-print-outline" };
+	if (hasFace) return { hint: "el reconocimiento facial", icon: "scan-outline" };
 	return DEFAULT_BIOMETRIC_INFO;
 }
 
