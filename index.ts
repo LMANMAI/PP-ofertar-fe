@@ -1,6 +1,10 @@
 import { registerRootComponent } from 'expo';
 
+// Primero, para que el tiempo de arranque se mida desde que empieza a cargar el JS de la app.
+import { startTelemetry } from './src/telemetry/setup';
 import App from './App';
+
+startTelemetry();
 
 // Expo's web template ships <html lang="en">, so a screen reader would read
 // this Spanish app with English pronunciation.

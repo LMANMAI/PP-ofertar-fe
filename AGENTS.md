@@ -39,6 +39,13 @@ All screens live in `src/screens/`, one component per file. The barrel `src/scre
 - Login and register go through the real API (`src/services/authApi.ts`). The session token is kept in `expo-secure-store` for biometric sign-in (`src/auth/biometricAuth.ts`). `Session` holds a token and a `UserProfile`.
 - `src/data/` holds static data only (`plans.ts`, `rewards.ts`).
 
+## Telemetry
+
+- `src/telemetry/core.ts` queues anonymous usage and performance events and posts them in batches to the backend (`POST /telemetry/events`); the metrics dashboard (repo `PP-ofertar-dashboard`) reads them as `app.*` metrics. Nothing that identifies the person is sent: no user, email or token, only a random install id.
+- What is tracked without touching screens: screen views and time on screen (from `uiStore.route` / `uiStore.tab`), every backend call with its duration and outcome (`send()` in `src/api/client.ts`), uncaught JS errors, API contract mismatches, and start-up time. `src/telemetry/setup.ts` holds the React Native wiring and is started once from `index.ts`.
+- To count a business event call `trackEvent("some_name")` from `core.ts` (letters, digits, `_`, `.`, `-`). The backend caps how many distinct names it accepts, so never put an id or free text in the name.
+- `core.ts` must stay free of native imports (`client.ts` uses it and is tested in plain Node). `EXPO_PUBLIC_TELEMETRY=off` turns it all off.
+
 ## TypeScript
 
 `tsconfig.json` extends `expo/tsconfig.base` with `strict: true`. No path aliases configured — all imports are relative.

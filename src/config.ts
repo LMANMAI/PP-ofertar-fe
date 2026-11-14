@@ -14,3 +14,9 @@ export const API_BASE_URL: string =
  */
 export const CONTRACT_MODE: "report" | "strict" =
 	process.env.EXPO_PUBLIC_CONTRACT_MODE === "strict" ? "strict" : "report";
+
+/**
+ * Telemetría anónima de uso y rendimiento (src/telemetry), que alimenta el tablero de métricas.
+ * Prendida por defecto; se apaga con EXPO_PUBLIC_TELEMETRY=off.
+ */
+export const TELEMETRY_ENABLED: boolean = process.env.EXPO_PUBLIC_TELEMETRY !== "off";
