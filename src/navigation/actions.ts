@@ -5,7 +5,7 @@ import { registerForPushNotifications, type PushRegistrationResult } from "../no
 import { getTicket, scanTicket } from "../services";
 import type { FollowProductInput, Offer, TicketResponse } from "../services";
 import { friendlyAuthError } from "../services/authApi";
-import { resetAllStores, useFollowedProductsStore, useOffersStore, useScanStore, useSessionStore, useUiStore } from "../store";
+import { resetAllStores, useFollowedProductsStore, useHabitualProductsStore, useOffersStore, useScanStore, useSessionStore, useUiStore } from "../store";
 import { trackEvent } from "../telemetry/core";
 import { nav } from "./nav";
 
@@ -127,13 +127,13 @@ export function handleOcrRetry(): void {
 	nav.backTo("CaptureTicket");
 }
 
-// ── Productos seguidos ───────────────────────────────────────────────
+// ── Productos seguidos y compra habitual ─────────────────────────────
 
 /**
- * Un cambio sobre los productos seguidos. El store recién lo refleja cuando el backend confirma;
- * acá se le cuenta al usuario si no salió, que si no vería el botón quedar igual sin saber por qué.
+ * Un cambio sobre los productos seguidos o la compra habitual. El store recién lo refleja cuando el backend
+ * confirma; acá se le cuenta al usuario si no salió, que si no vería el botón quedar igual sin saber por qué.
  */
-async function followedChange(change: (token: string) => Promise<void>, done?: string): Promise<boolean> {
+async function productChange(change: (token: string) => Promise<void>, done?: string): Promise<boolean> {
 	const session = useSessionStore.getState().session;
 	if (!session) return false;
 	try {
@@ -155,7 +155,7 @@ async function followedChange(change: (token: string) => Promise<void>, done?: s
 export async function followScannedProduct(product: FollowProductInput): Promise<boolean> {
 	const session = useSessionStore.getState().session;
 	if (!session) return false;
-	const followed = await followedChange((token) => useFollowedProductsStore.getState().follow(token, product));
+	const followed = await productChange((token) => useFollowedProductsStore.getState().follow(token, product));
 	if (!followed) return false;
 	trackEvent("product_followed");
 
@@ -166,16 +166,34 @@ export async function followScannedProduct(product: FollowProductInput): Promise
 		// Sin token de push no hay aviso, pero el producto ya quedó seguido.
 	}
 	const offersPushEnabled = useSessionStore.getState().session?.user.offersPushEnabled ?? true;
+	// Expo Go va primero: ahí el push no anda aunque la preferencia esté prendida, y el
+	// switch de Perfil está deshabilitado, así que no tiene sentido mandarlo a activarla.
 	useUiStore.getState().showToast(
-		!offersPushEnabled
-			? "Lo seguís, pero tenés apagadas las notificaciones de ofertas. Activalas desde Perfil para que te avisemos."
-			: push === "denied"
-				? "Lo seguís, pero OfertAR no tiene permiso para notificarte. Activalo en los ajustes del teléfono para que te avisemos."
-				: "Lo seguís. Te avisamos cuando esté en promo.",
+		push === "expoGo"
+			? "Lo seguís, pero las notificaciones push no funcionan en Expo Go. Probá con un development build para que te avisemos."
+			: !offersPushEnabled
+				? "Lo seguís, pero tenés apagadas las notificaciones de ofertas. Activalas desde Perfil para que te avisemos."
+				: push === "denied"
+					? "Lo seguís, pero OfertAR no tiene permiso para notificarte. Activalo en los ajustes del teléfono para que te avisemos."
+					: "Lo seguís. Te avisamos cuando esté en promo.",
 	);
 	return true;
 }
 
 export function unfollowProduct(ean: string): Promise<boolean> {
-	return followedChange((token) => useFollowedProductsStore.getState().unfollow(token, ean), "Dejaste de seguirlo.");
+	return productChange((token) => useFollowedProductsStore.getState().unfollow(token, ean), "Dejaste de seguirlo.");
+}
+
+export function addScannedToHabitual(product: FollowProductInput): Promise<boolean> {
+	return productChange(
+		(token) => useHabitualProductsStore.getState().add(token, product),
+		"Sumado a tu compra habitual. Si falta en tu próximo ticket, te avisamos.",
+	);
+}
+
+export function removeFromHabitual(ean: string): Promise<boolean> {
+	return productChange(
+		(token) => useHabitualProductsStore.getState().remove(token, ean),
+		"Lo sacaste de tu compra habitual.",
+	);
 }

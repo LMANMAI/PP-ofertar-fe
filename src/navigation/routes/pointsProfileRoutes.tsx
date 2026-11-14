@@ -1,7 +1,9 @@
+import { useCallback } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { storeToken } from "../../auth/biometricAuth";
 import { REWARDS } from "../../data/rewards";
 import {
+	BankPromosCalendarScreen,
 	ChangePasswordAuthScreen,
 	ConfirmRedeemScreen,
 	HelpCenterScreen,
@@ -14,9 +16,9 @@ import {
 	RedeemSuccessScreen,
 	RewardDetailScreen,
 } from "../../screens";
-import { usePointsStore, useSessionStore, useUiStore } from "../../store";
+import { useBankPromosStore, usePointsStore, useSessionStore, useUiStore } from "../../store";
 import { handleLogout } from "../actions";
-import { nav } from "../nav";
+import { nav, navigationRef } from "../nav";
 import type { RootStackParamList } from "../types";
 import { useSession, useTabProps } from "./useRouteProps";
 
@@ -126,9 +128,51 @@ export function PersonalDataRoute() {
 	);
 }
 
+/** Mis tarjetas (OFT-54): lo que lee y cambia vive en useBankPromosStore. */
 export function PaymentMethodsRoute() {
+	const session = useSession();
 	const tabProps = useTabProps();
-	return <PaymentMethodsScreen {...tabProps} onBack={() => nav.goMain("profile")} />;
+	const catalog = useBankPromosStore((s) => s.catalog);
+	const mine = useBankPromosStore((s) => s.mine);
+	const token = session?.token ?? null;
+	const onLoad = useCallback(async () => {
+		if (token) await useBankPromosStore.getState().load(token);
+	}, [token]);
+	if (!session) return null;
+	const store = useBankPromosStore.getState();
+	return (
+		<PaymentMethodsScreen
+			{...tabProps}
+			// Se llega desde Perfil o desde el calendario: "atrás" vuelve a donde estaba.
+			onBack={() => (navigationRef.canGoBack() ? nav.goBack() : nav.goMain("profile"))}
+			catalog={catalog}
+			mine={mine}
+			onLoad={onLoad}
+			onAdd={(method) => store.addMethod(session.token, method)}
+			onRemove={(id) => store.removeMethod(session.token, id)}
+			onToggleBenefit={(benefit, enabled) => store.setBenefit(session.token, benefit, enabled)}
+			onOpenCalendar={() => nav.backTo("BankPromos")}
+		/>
+	);
+}
+
+/** Calendario semanal de promos bancarias (OFT-55). */
+export function BankPromosRoute() {
+	const session = useSession();
+	const tabProps = useTabProps();
+	const revision = useBankPromosStore((s) => s.revision);
+	const mine = useBankPromosStore((s) => s.mine);
+	if (!session) return null;
+	return (
+		<BankPromosCalendarScreen
+			{...tabProps}
+			session={session}
+			onBack={() => (navigationRef.canGoBack() ? nav.goBack() : nav.goMain("home"))}
+			onAddCards={() => nav.backTo("PaymentMethods")}
+			refreshKey={revision}
+			hasPaymentMethods={mine ? mine.methods.length > 0 : null}
+		/>
+	);
 }
 
 export function PlansRoute() {

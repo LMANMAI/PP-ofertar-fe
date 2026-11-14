@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
 	Image,
@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomNav, FollowedChip, OfferCarouselCardSkeleton, ProductCardSkeleton, type TabKey, useOnboardingTarget, StoreBadge, PrimaryButton } from "../components";
+import { BottomNav, FollowedChip, OfferCarouselCardSkeleton, ProductCardSkeleton, RECURRING_EMPTY_HINT, type TabKey, useOnboardingScroll, useOnboardingTarget, StoreBadge, PrimaryButton } from "../components";
 import { radii, space, typography, useIsTablet, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
 import { type Session, getInitials, getAvatarUri, splitName } from "../auth/session";
 import {
@@ -18,12 +18,21 @@ import {
 	getOffers,
 	getRecurringProducts,
 	getSavingsReport,
-	offerPromo,
 	sortByOfferRelevance,
 } from "../services";
-import type { Offer, PromoIcon, RecurringProduct, SavingsReportResponse } from "../services";
+import type { Offer, RecurringProduct, SavingsReportResponse } from "../services";
 import { isFollowedPurchase } from "../utils/ean";
-import { formatLongDate, yyyyMM } from "../utils/format";
+import { formatCurrency, formatLongDate, yyyyMM } from "../utils/format";
+import { isLooseMatch } from "../utils/productMatch";
+import { ConditionsButton, PromoConditionsSheet } from "../components/PromoConditionsSheet";
+import { BankPromosTodayStrip } from "../components/BankPromosTodayStrip";
+import {
+	heroSpoken,
+	offerCardHero,
+	offerConditions,
+	productOfferHero,
+	type PromoConditions,
+} from "../components/promoConditions";
 import { catalogImageUri } from "../utils/productImage";
 import { isInBasket } from "../utils/basket";
 import { PRODUCT_PLACEHOLDER } from "../theme/productPlaceholder";
@@ -111,49 +120,39 @@ function RecurringProductThumb({
  * or points behind these, so the card states what is on offer, where, until
  * when, and which of the user's products it touches.
  *
- * The number gets a tile of its own with an icon, because a percentage buried
- * in a sentence is exactly what made these cards read as flat text. The chip
- * under it answers "¿sobre qué se aplica?" — a card that says 50% without
- * saying whether that is the unit or the second unit is worse than no card.
+ * Lo grande es lo que se paga. Una oferta de catálogo muestra el precio final
+ * con el de lista tachado, sin tile de porcentaje: con el tachado a la vista,
+ * el "-25%" es una cuenta que el usuario no necesita. Una campaña no trae
+ * precio, así que su número va en el tile y, al lado, el chip que responde
+ * "¿sobre qué se aplica?" — una card que dice 50% sin decir si es la unidad o
+ * la segunda unidad es peor que no tener card. La letra chica (el aviso de
+ * porcentaje leído de la imagen, los legales) está detrás de "Condiciones".
  */
 function OfferCarouselCard({
 	offer,
 	onPress,
+	onOpenConditions,
 	inBasket = false,
 	styles,
 }: {
 	offer: Offer;
 	onPress: () => void;
+	onOpenConditions: (conditions: PromoConditions) => void;
 	inBasket?: boolean;
 	styles: ReturnType<typeof createStyles>;
 }) {
 	const colors = useThemeColors();
 	const until = formatLongDate(offer.activeTo);
-	// Campaigns are worded here from the structured mechanic + percentages.
-	// A backend that predates those fields returns null and the card falls
-	// back to the headline string it already sent.
-	const promo = offerPromo(offer);
-	const catalogPct =
-		offer.kind === "catalog" && offer.discountPct != null && offer.discountPct >= 1
-			? `${Math.round(offer.discountPct)}%`
-			: null;
-
-	const amount = promo ? promo.amount : catalogPct;
-	const capped = promo ? promo.capped : false;
-	const icon: PromoIcon = promo ? promo.icon : "pricetag-outline";
-	// Conditional promotions are the ones a shopper misreads as a flat
-	// discount, so their cue is warm rather than navy.
-	const conditional = promo?.conditional ?? false;
+	// Campaigns are worded from the structured mechanic + percentages; a
+	// backend that predates those fields falls back to the headline string it
+	// already sent. `offerCardHero` hace las dos cosas.
+	const hero = offerCardHero(offer);
+	const conditions = offerConditions(offer);
 
 	const spoken = [
 		`${offer.kind === "catalog" ? "Oferta" : "Promoción"} en ${offer.retailerName ?? "tu súper"}`,
-		offer.kind === "catalog"
-			? offer.productName ?? offer.headline
-			: promo
-				? `${promo.amount ?? ""} ${promo.applies}`.trim()
-				: offer.headline,
-		offer.kind === "catalog" && catalogPct ? `${catalogPct} de descuento` : null,
-		offer.kind === "catalog" && offer.price != null ? `$${Math.round(offer.price).toLocaleString("es-AR")}` : null,
+		offer.kind === "catalog" ? offer.productName ?? offer.headline : null,
+		heroSpoken(hero) || (offer.kind === "catalog" ? null : offer.headline),
 		until ? `vigente hasta el ${until}` : null,
 		inBasket ? "de tu compra" : null,
 	]
@@ -161,102 +160,112 @@ function OfferCarouselCard({
 		.join(", ");
 
 	return (
-		<Pressable
-			onPress={onPress}
-			style={(state) => [styles.offerCard, state.pressed && styles.offerCardPressed, isFocused(state) && styles.focusRing]}
-			accessibilityRole="button"
-			accessibilityLabel={spoken}
-		>
-			<View style={styles.offerTop}>
-				<View style={styles.offerStoreRow}>
-					<StoreBadge retailerSlug={offer.retailerSlug} retailerName={offer.retailerName} />
-					<Text style={styles.storeName} numberOfLines={1}>
-						{offer.retailerName}
-					</Text>
-				</View>
-				{inBasket && (
-					<View style={styles.basketTag}>
-						<Ionicons name="cart-outline" size={12} color={colors.infoSoftText} />
-						<Text style={styles.basketTagText}>De tu compra</Text>
-					</View>
-				)}
-			</View>
-
-			<View style={styles.offerBody}>
-				{amount ? (
-					<View style={styles.amountTile}>
-						<View style={styles.amountKickerRow}>
-							<Ionicons name={icon} size={11} color={colors.cyan} />
-							{capped && <Text style={styles.amountKicker}>HASTA</Text>}
-						</View>
-						<Text
-							style={styles.amountValue}
-							numberOfLines={1}
-							adjustsFontSizeToFit
-							minimumFontScale={0.6}
-						>
-							{amount}
+		<View style={styles.offerCard}>
+			{/* El área que abre el detalle y el botón de condiciones son hermanos:
+			    con el label en toda la card, el lector de pantalla no vería el
+			    botón. */}
+			<Pressable
+				onPress={onPress}
+				style={(state) => [styles.offerMain, state.pressed && styles.offerCardPressed, isFocused(state) && styles.focusRing]}
+				accessibilityRole="button"
+				accessibilityLabel={spoken}
+			>
+				<View style={styles.offerTop}>
+					<View style={styles.offerStoreRow}>
+						<StoreBadge retailerSlug={offer.retailerSlug} retailerName={offer.retailerName} />
+						<Text style={styles.storeName} numberOfLines={1}>
+							{offer.retailerName}
 						</Text>
 					</View>
+					{inBasket && (
+						<View style={styles.basketTag}>
+							<Ionicons name="cart-outline" size={12} color={colors.infoSoftText} />
+							<Text style={styles.basketTagText}>De tu compra</Text>
+						</View>
+					)}
+				</View>
+
+				{hero.kind === "price" ? (
+					<View style={styles.catalogBody}>
+						<Text style={styles.offerProduct} numberOfLines={2}>
+							{offer.productName ?? offer.headline}
+						</Text>
+						<View style={styles.priceRow}>
+							<Text style={styles.priceNow} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+								{formatCurrency(hero.price)}
+							</Text>
+							{hero.listPrice != null && (
+								<Text style={styles.priceWas} numberOfLines={1}>
+									{formatCurrency(hero.listPrice)}
+								</Text>
+							)}
+							{hero.discountPct != null && <Text style={styles.pctNote}>-{hero.discountPct}%</Text>}
+						</View>
+					</View>
 				) : (
-					<View style={[styles.amountTile, styles.amountTileFlat]}>
-						<Ionicons name={icon} size={22} color={colors.cyan} />
+					<View style={styles.offerBody}>
+						{hero.kind === "mechanic" && hero.amount ? (
+							<View style={styles.amountTile}>
+								<View style={styles.amountKickerRow}>
+									<Ionicons name={hero.icon} size={11} color={colors.cyan} />
+									{hero.capped && <Text style={styles.amountKicker}>HASTA</Text>}
+								</View>
+								<Text
+									style={styles.amountValue}
+									numberOfLines={1}
+									adjustsFontSizeToFit
+									minimumFontScale={0.6}
+								>
+									{hero.amount}
+								</Text>
+							</View>
+						) : (
+							<View style={[styles.amountTile, styles.amountTileFlat]}>
+								<Ionicons name={hero.kind === "mechanic" ? hero.icon : "pricetag-outline"} size={22} color={colors.cyan} />
+							</View>
+						)}
+
+						<View style={styles.offerBodyRight}>
+							{offer.kind === "catalog" ? (
+								<Text style={styles.offerProduct} numberOfLines={2}>
+									{offer.productName ?? offer.headline}
+								</Text>
+							) : (
+								<>
+									{hero.kind === "mechanic" && hero.applies ? (
+										<View style={[styles.appliesChip, hero.conditional && styles.appliesChipWarm]}>
+											<Text
+												style={[styles.appliesText, hero.conditional && styles.appliesTextWarm]}
+												numberOfLines={2}
+											>
+												{hero.applies}
+											</Text>
+										</View>
+									) : null}
+									<Text style={styles.offerSub} numberOfLines={2}>
+										{/* `||`, not `??`: the scraper stores an unknown category as an
+										    empty string, not null, and `??` would render a blank line. */}
+										{offer.category || "Promoción del súper"}
+										{offer.province ? ` · ${offer.province}` : ""}
+									</Text>
+								</>
+							)}
+						</View>
 					</View>
 				)}
 
-				<View style={styles.offerBodyRight}>
-					{offer.kind === "catalog" ? (
-						<>
-							<Text style={styles.offerProduct} numberOfLines={2}>
-								{offer.productName ?? offer.headline}
-							</Text>
-							{offer.price != null && (
-								<View style={styles.priceRow}>
-									<Text style={styles.priceNow}>
-										${Math.round(offer.price).toLocaleString("es-AR")}
-									</Text>
-									{offer.listPrice != null && offer.listPrice > offer.price && (
-										<Text style={styles.priceWas}>
-											${Math.round(offer.listPrice).toLocaleString("es-AR")}
-										</Text>
-									)}
-								</View>
-							)}
-						</>
-					) : (
-						<>
-							<View style={[styles.appliesChip, conditional && styles.appliesChipWarm]}>
-								<Text
-									style={[styles.appliesText, conditional && styles.appliesTextWarm]}
-									numberOfLines={2}
-								>
-									{promo ? promo.applies : offer.headline}
-								</Text>
-							</View>
-							<Text style={styles.offerSub} numberOfLines={2}>
-								{/* `||`, not `??`: the scraper stores an unknown category as an
-							    empty string, not null, and `??` would render a blank line. */}
-							{offer.category || "Promoción del súper"}
-								{offer.province ? ` · ${offer.province}` : ""}
-							</Text>
-						</>
-					)}
-				</View>
-			</View>
+				{until && (
+					<Text style={styles.offerValidity}>Vigente hasta el {until}</Text>
+				)}
+			</Pressable>
 
-			{until && (
-				<Text style={styles.offerValidity}>Vigente hasta el {until}</Text>
+			{conditions !== null && (
+				<ConditionsButton
+					onPress={() => onOpenConditions(conditions)}
+					accessibilityLabel={`Condiciones de la promoción de ${offer.retailerName ?? "tu súper"}`}
+				/>
 			)}
-
-			{offer.percentagesUnverified && (
-				<View style={styles.offerCaveatRow}>
-					<Ionicons name="alert-circle-outline" size={11} color={colors.subtleText} />
-					<Text style={styles.offerCaveat} numberOfLines={1}>
-						Porcentaje leído de la imagen
-					</Text>
-				</View>
-			)}
-		</Pressable>
+		</View>
 	);
 }
 
@@ -277,6 +286,10 @@ type Props = {
 	/** The codes followed from the scanner, null until read: newer than each
 	 * recurring product's `followed` (see isFollowedPurchase). */
 	followedEans: string[] | null;
+	/** "Hoy con tus tarjetas" (OFT-56): lleva al calendario de promos bancarias. Sin él no se dibuja. */
+	onOpenBankPromos?: () => void;
+	/** Sube cuando cambian las tarjetas del usuario, para volver a pedir lo de hoy. */
+	bankPromosRevision?: number;
 };
 
 const FEED_PAGE_SIZE = 24;
@@ -294,6 +307,8 @@ export function HomeScreen({
 	onOpenFollowed,
 	onOpenOffer,
 	followedEans,
+	onOpenBankPromos,
+	bankPromosRevision = 0,
 }: Props) {
 	const insets = useSafeAreaInsets();
 	const isTablet = useIsTablet();
@@ -308,12 +323,25 @@ export function HomeScreen({
 	const [offers, setOffers] = useState<Offer[]>(cached?.offers ?? []);
 	const offersTarget = useOnboardingTarget("offers");
 	const historyTarget = useOnboardingTarget("history");
+	const tourScroll = useOnboardingScroll();
 	const [savingsError, setSavingsError] = useState(false);
 	const [loadingSavings, setLoadingSavings] = useState(!cached?.savings);
 	const [loadingRecurring, setLoadingRecurring] = useState(!cached?.recurring);
 	const [recurringError, setRecurringError] = useState(false);
 	const [loadingOffers, setLoadingOffers] = useState(!cached?.offers);
 	const [offersError, setOffersError] = useState(false);
+	// La hoja de condiciones del carrusel de ofertas, o null.
+	const [conditions, setConditions] = useState<PromoConditions | null>(null);
+	const openConditions = useCallback((next: PromoConditions) => setConditions(next), []);
+	const closeConditions = useCallback(() => setConditions(null), []);
+	// Se cierra antes de navegar para no encontrarla abierta al volver.
+	const openFullOffer = useCallback(
+		(offer: Offer) => {
+			setConditions(null);
+			onOpenOffer(offer.id, offer);
+		},
+		[onOpenOffer],
+	);
 
 	function formatCurrencyS(value: number | null | undefined): string {
 		if (value == null) return "$0";
@@ -465,6 +493,9 @@ export function HomeScreen({
 			<View style={styles.headerBottomCurve} />
 
 			<ScrollView
+				// eslint-disable-next-line react-hooks/refs -- attachRef/onScroll are stable callbacks from useOnboardingScroll, not a render-time ref read
+				ref={tourScroll.attachRef} onScroll={tourScroll.onScroll}
+				scrollEventThrottle={32}
 				style={styles.scroll}
 				contentContainerStyle={[
 					styles.scrollContent,
@@ -540,6 +571,10 @@ export function HomeScreen({
 					</View>
 				</View>
 
+				{onOpenBankPromos ? (
+					<BankPromosTodayStrip token={session.token} refreshKey={bankPromosRevision} onOpen={onOpenBankPromos} />
+				) : null}
+
 				{isNewUser ? (
 					<View style={styles.firstRunCard}>
 						<Ionicons name="receipt-outline" size={32} color={colors.cyan} />
@@ -601,8 +636,7 @@ export function HomeScreen({
 							<View style={styles.productsEmpty}>
 								<Ionicons name="cart-outline" size={20} color={colors.subtleText} />
 								<Text style={styles.productsEmptyText}>
-									Todavía no registramos productos que compres seguido. Escaneá
-									tickets y aparecen acá.
+									{RECURRING_EMPTY_HINT}
 								</Text>
 							</View>
 						) : (
@@ -613,7 +647,15 @@ export function HomeScreen({
 						>
 							{recurringProducts.map((p) => {
 								const id = p.barcode || p.description;
-								const delta = p.bestOffer?.discountPct != null ? `-${Math.round(p.bestOffer.discountPct)}%` : null;
+								// Lo mismo que muestra "Productos recurrentes", en chico: el
+								// precio final con el de lista tachado, o —con una promo
+								// condicional— el precio por unidad o la mecánica, y siempre
+								// cuánto sale una sola unidad. Un precio que es de otro
+								// producto (`isLooseMatch`) no lleva descuento: antes esta
+								// card le ponía el "-X%" igual.
+								const hero = p.bestOffer
+									? productOfferHero(p.bestOffer, isLooseMatch(p.description, p.bestOffer.productName))
+									: null;
 								// The photo belongs to the catalog SKU the offer resolved to —
 								// by barcode for most lines, so it really is the article on the
 								// receipt. No offer means no photo, and the icon stands.
@@ -622,8 +664,7 @@ export function HomeScreen({
 								const spoken = [
 									p.description,
 									followed ? "lo seguís" : null,
-									p.bestOffer ? `en oferta a ${formatCurrencyS(p.bestOffer.price)}` : null,
-									delta ? `${delta} de descuento` : null,
+									p.bestOffer && hero ? `en ${p.bestOffer.retailerName}, ${heroSpoken(hero)}` : null,
 									p.bestOffer && p.lastPaidPrice != null ? `última compra ${formatCurrencyS(p.lastPaidPrice)}` : null,
 								]
 									.filter(Boolean)
@@ -650,15 +691,45 @@ export function HomeScreen({
 											</Text>
 										)}
 										<View style={styles.productFooter}>
-											{p.bestOffer ? (
-												<>
-													<Text style={styles.productPrice}>{formatCurrencyS(p.bestOffer.price)}</Text>
-													{delta && (
+											{hero && hero.kind === "price" ? (
+												<View style={styles.productPriceCol}>
+													<Text style={styles.productPrice} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+														{formatCurrencyS(hero.price)}
+													</Text>
+													{hero.listPrice != null ? (
+														<Text style={styles.productPriceWas} numberOfLines={1}>
+															{formatCurrencyS(hero.listPrice)}
+														</Text>
+													) : hero.discountPct != null ? (
 														<View style={styles.productDeltaBadge}>
-															<Text style={styles.productDeltaText}>{delta}</Text>
+															<Text style={styles.productDeltaText}>-{hero.discountPct}%</Text>
 														</View>
-													)}
-												</>
+													) : null}
+												</View>
+											) : hero && hero.kind === "unitPrice" ? (
+												// El número y su condición en el mismo bloque, y abajo
+												// lo que sale una sola unidad.
+												<View style={styles.productPriceCol}>
+													<Text style={styles.productPrice} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+														{formatCurrencyS(hero.unitPrice)} c/u
+													</Text>
+													<Text style={styles.productCondition}>{hero.condition}</Text>
+													<Text style={styles.productSingle}>{hero.single.text}</Text>
+												</View>
+											) : hero && hero.kind === "mechanic" ? (
+												// Sin precio por unidad publicado: la mecánica manda.
+												<View style={styles.productPriceCol}>
+													<Text style={styles.productPromo} numberOfLines={1}>
+														{hero.capped ? "Hasta " : ""}
+														{hero.amount ?? "Promo"}
+													</Text>
+													{hero.applies ? (
+														<Text style={styles.productCondition} numberOfLines={2}>
+															{hero.applies}
+														</Text>
+													) : null}
+													{hero.single ? <Text style={styles.productSingle}>{hero.single.text}</Text> : null}
+												</View>
 											) : p.campaignOffers.length > 0 ? (
 												// Was missing entirely: a product whose only offer is a
 												// campaign promotion sorted to the front and then announced
@@ -794,6 +865,7 @@ export function HomeScreen({
 						{rankedOffers.map(({ offer, inBasket }) => (
 							<OfferCarouselCard key={offer.id} styles={styles} offer={offer} inBasket={inBasket}
 								onPress={() => onOpenOffer(offer.id, offer)}
+								onOpenConditions={openConditions}
 							/>
 						))}
 					</ScrollView>
@@ -824,6 +896,8 @@ export function HomeScreen({
 					onScanPress={onScanPress}
 				/>
 			</View>
+
+			<PromoConditionsSheet conditions={conditions} onClose={closeConditions} onOpenFull={openFullOffer} />
 		</View>
 	);
 }
@@ -1012,6 +1086,9 @@ function createStyles(colors: ColorTokens) {
 	pressed: { opacity: 0.88 },
 		focusRing: focusRing(colors),
 		offerCardPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
+	// El área tocable ocupa lo que sobra, así en un carrusel con cards de
+	// distinto alto el botón de condiciones queda siempre abajo de todo.
+	offerMain: { flexGrow: 1, gap: space.smPlus },
 	offersEmpty: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -1069,7 +1146,9 @@ function createStyles(colors: ColorTokens) {
 	offerStoreRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexShrink: 1 },
 	basketTag: { flexDirection: "row", alignItems: "center", gap: space.xs, backgroundColor: colors.infoSoft, borderRadius: radii.sm, paddingHorizontal: space.sm, paddingVertical: space.xs },
 	basketTagText: { color: colors.infoSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.micro },
-	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
+	// El súper en negrita: junto con el logo es lo que se reconoce de un
+	// vistazo.
+	storeName: { flex: 1, color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.label },
 	offerValidity: { color: colors.defaultText, fontFamily: typography.family.medium, fontSize: typography.sizes.caption },
 	offerBody: { flexDirection: "row", alignItems: "stretch", gap: space.md },
 	// The percentage gets its own block instead of being one more line of
@@ -1115,8 +1194,12 @@ function createStyles(colors: ColorTokens) {
 		fontSize: typography.sizes.caption,
 		lineHeight: typography.lineHeights.caption,
 	},
-	priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.xsPlus },
-	priceNow: { color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.body },
+	// Sin tile para una oferta de catálogo: el precio final es el número
+	// grande. `flexWrap` para que un monto largo baje el tachado de renglón.
+	catalogBody: { gap: space.xs },
+	priceRow: { flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", columnGap: space.xsPlus },
+	priceNow: { flexShrink: 1, color: colors.defaultText, fontFamily: typography.family.bold, fontSize: typography.sizes.h2, lineHeight: typography.lineHeights.h2 },
+	pctNote: { color: colors.successSoftText, fontFamily: typography.family.medium, fontSize: typography.sizes.micro },
 	priceWas: {
 		color: colors.subtleText,
 		fontFamily: typography.family.regular,
@@ -1124,14 +1207,6 @@ function createStyles(colors: ColorTokens) {
 		textDecorationLine: "line-through",
 	},
 	offerSub: { color: colors.mutedText2, fontFamily: typography.family.regular, fontSize: typography.sizes.micro, lineHeight: typography.lineHeights.micro },
-	offerCaveatRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
-	offerCaveat: {
-		flex: 1,
-		color: colors.subtleText,
-		fontFamily: typography.family.regular,
-		fontSize: typography.sizes.micro,
-		fontStyle: "italic",
-	},
 	// Matches offersRow above, so both carousels on this screen scroll the same.
 	productsRow: {
 		gap: space.smPlus,
@@ -1267,6 +1342,28 @@ function createStyles(colors: ColorTokens) {
 		fontFamily: typography.family.bold,
 		fontSize: typography.sizes.caption,
 		lineHeight: typography.lineHeights.caption,
+	},
+	productPriceCol: { flexShrink: 1, gap: 2 },
+	productPriceWas: {
+		color: colors.subtleText,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.micro,
+		lineHeight: typography.lineHeights.micro,
+		textDecorationLine: "line-through",
+	},
+	// La condición en el tono cálido de los chips de "aplica a": no es una
+	// rebaja lisa.
+	productCondition: {
+		color: colors.warmChipText,
+		fontFamily: typography.family.bold,
+		fontSize: typography.sizes.micro,
+		lineHeight: typography.lineHeights.micro,
+	},
+	productSingle: {
+		color: colors.mutedText2,
+		fontFamily: typography.family.regular,
+		fontSize: typography.sizes.micro,
+		lineHeight: typography.lineHeights.micro,
 	},
 	productDeltaBadge: {
 		backgroundColor: colors.successSoft,

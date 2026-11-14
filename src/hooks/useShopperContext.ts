@@ -4,15 +4,23 @@ import type { StoreChain } from "../services/storesApi";
 import { getRecurringProducts } from "../services";
 import type { RecurringProduct } from "../services";
 import { ensureLocationPermission, getLocationPermission } from "../location/permission";
-import { getDevicePosition, loadSearchOrigin } from "../location/searchOrigin";
+import { getDevicePosition, loadSearchPlaces } from "../location/searchOrigin";
+import { EMPTY_PLACES, effectiveReference, type ReferenceKind } from "../location/searchPlaces";
 
 /**
- * Where the search is centred: the place the user picked in "Mis tiendas
- * favoritas" if they picked one, otherwise where the device is.
+ * Where the search is centred: the reference picked in "Mis tiendas favoritas"
+ * (Casa o Trabajo) if one is active, otherwise where the device is.
  */
 export type Origin =
 	| { status: "loading" }
-	| { status: "ready"; latitude: number; longitude: number; label: string | null }
+	| {
+			status: "ready";
+			latitude: number;
+			longitude: number;
+			label: string | null;
+			/** Cuál de las referencias es: para decir "Cerca de Casa · 3 km". */
+			reference: ReferenceKind;
+	  }
 	/** No permission. `canAskAgain` false means only the settings can change that. */
 	| { status: "denied"; canAskAgain: boolean }
 	/** Permission but no position soon enough (GPS off, indoors). */
@@ -55,15 +63,16 @@ const LOADING: Omit<ShopperContext, "askForLocation"> = {
 	origin: { status: "loading" },
 };
 
+// La misma referencia que el mapa: si ahí está activa Casa, los precios más
+// baratos se buscan cerca de Casa, con el mismo radio.
 async function resolveOrigin(userId: number, ask: boolean): Promise<Origin> {
-	if (!ask) {
-		const picked = await loadSearchOrigin(userId).catch(() => null);
-		if (picked) return { status: "ready", latitude: picked.latitude, longitude: picked.longitude, label: picked.label };
-	}
+	const places = await loadSearchPlaces(userId).catch(() => EMPTY_PLACES);
+	const { kind, place } = effectiveReference(places);
+	if (place) return { status: "ready", latitude: place.latitude, longitude: place.longitude, label: place.label, reference: kind };
 	const permission = ask ? await ensureLocationPermission() : await getLocationPermission();
 	if (!permission.granted) return { status: "denied", canAskAgain: permission.canAskAgain };
 	const position = await getDevicePosition();
-	return position ? { status: "ready", ...position, label: null } : { status: "unavailable" };
+	return position ? { status: "ready", ...position, label: null, reference: "current" } : { status: "unavailable" };
 }
 
 export function useShopperContext(token: string, userId: number): ShopperContext {

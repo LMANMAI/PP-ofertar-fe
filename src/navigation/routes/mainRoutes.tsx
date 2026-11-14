@@ -22,9 +22,11 @@ import {
 	TicketProcessedScreen,
 } from "../../screens";
 import { resolveOffer } from "../../services";
-import { isFollowing, useFollowedProductsStore, useOffersStore, usePointsStore, useScanStore, useSessionStore } from "../../store";
+import { isFollowing, isInHabitual, useBankPromosStore, useFollowedProductsStore, useHabitualProductsStore, useOffersStore, usePointsStore, useScanStore, useSessionStore } from "../../store";
 import {
+	addScannedToHabitual,
 	followScannedProduct,
+	removeFromHabitual,
 	handleChoosePdf,
 	handleOcrRetry,
 	handleSelectTicket,
@@ -46,6 +48,7 @@ export function MainRoute() {
 	const referralPoints = usePointsStore((s) => s.balance);
 	const biometricEnabled = useSessionStore((s) => s.biometricEnabled);
 	const followedEans = useFollowedProductsStore((s) => s.followedEans);
+	const bankPromosRevision = useBankPromosStore((s) => s.revision);
 	if (!session) return null;
 
 	if (tabProps.activeTab === "offers") {
@@ -94,6 +97,8 @@ export function MainRoute() {
 			onOpenFollowed={() => nav.push("FollowedProducts")}
 			onOpenOffer={openOffer}
 			followedEans={followedEans}
+			onOpenBankPromos={() => nav.push("BankPromos")}
+			bankPromosRevision={bankPromosRevision}
 		/>
 	);
 }
@@ -169,13 +174,18 @@ export function RecurringProductsRoute() {
 export function HabitualPurchaseRoute() {
 	const session = useSession();
 	const tabProps = useTabProps();
+	// Al volver del escáner tiene que mostrar lo que se acaba de sumar.
+	const focused = useIsFocused();
 	if (!session) return null;
 	return (
 		<HabitualPurchaseScreen
 			{...tabProps}
 			session={session}
+			focused={focused}
 			onBack={() => nav.goMain("home")}
 			onOpenRecurring={() => nav.push("RecurringProducts")}
+			onScanProduct={() => nav.push("ScanBarcode", { origin: "habitual" })}
+			onRemove={(product) => (product.barcode ? removeFromHabitual(product.barcode) : Promise.resolve(false))}
 		/>
 	);
 }
@@ -223,6 +233,7 @@ export function ScanErrorRoute() {
 export function ScanBarcodeRoute({ route }: Props<"ScanBarcode">) {
 	const session = useSession();
 	const followedEans = useFollowedProductsStore((s) => s.followedEans);
+	const habitualEans = useHabitualProductsStore((s) => s.eans);
 	if (!session) return null;
 	const { origin } = route.params;
 	return (
@@ -232,6 +243,7 @@ export function ScanBarcodeRoute({ route }: Props<"ScanBarcode">) {
 				// Desde la lista de seguidos o desde Compare se vuelve a esa pantalla (antes iba a
 				// Inicio y sacaba la lista de la pila); desde la pestaña Escanear, a Inicio.
 				if (origin === "followedProducts") nav.backTo("FollowedProducts");
+				else if (origin === "habitual") nav.backTo("HabitualPurchase");
 				else if (origin === "compare") nav.goBack();
 				else nav.goMain("home");
 			}}
@@ -240,6 +252,10 @@ export function ScanBarcodeRoute({ route }: Props<"ScanBarcode">) {
 			isFollowing={(ean) => isFollowing(followedEans, ean)}
 			onSetFollowing={async (product, follow) => {
 				await (follow ? followScannedProduct(product) : unfollowProduct(product.ean));
+			}}
+			isInHabitual={(ean) => isInHabitual(habitualEans, ean)}
+			onSetInHabitual={async (product, add) => {
+				await (add ? addScannedToHabitual(product) : removeFromHabitual(product.ean));
 			}}
 		/>
 	);

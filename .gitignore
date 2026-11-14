@@ -49,3 +49,7 @@ yarn-error.*
 
 # Codegraph memory
 .codegraph
+
+# Firebase (va como variable de EAS, el repo es público)
+google-services.json
+GoogleService-Info.plist

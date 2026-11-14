@@ -58,9 +58,11 @@ export function LoginRoute() {
 
 export function Register1Route() {
 	const registerData = useAuthFlowStore((s) => s.registerData);
+	const linkedReferralCode = useAuthFlowStore((s) => s.linkedReferralCode);
 	return (
 		<RegisterStep1
 			initialData={registerData}
+			linkedReferralCode={linkedReferralCode}
 			onBack={nav.goBack}
 			onNext={(data) => {
 				useAuthFlowStore.getState().setRegisterData(data);

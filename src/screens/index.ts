@@ -23,6 +23,7 @@ export { PointsHistoryScreen } from "./PointsHistoryScreen";
 export { ProfileScreen } from "./ProfileScreen";
 export { PersonalDataScreen } from "./PersonalDataScreen";
 export { PaymentMethodsScreen } from "./PaymentMethodsScreen";
+export { BankPromosCalendarScreen } from "./BankPromosCalendarScreen";
 export { PlansScreen } from "./PlansScreen";
 export { FavoriteStoresScreen } from "./FavoriteStoresScreen";
 export { HelpCenterScreen } from "./HelpCenterScreen";

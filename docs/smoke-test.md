@@ -17,11 +17,14 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Cerrar la app por completo, abrirla y desbloquear con huella o rostro.
 - [ ] Cancelar la biometría y entrar con contraseña ("Iniciá sesión con tu contraseña").
 - [ ] Sin conexión durante el desbloqueo: mensaje de conexión, sin borrar la sesión.
+- [ ] Los nombres de la biometría son los de cada plataforma: Face ID / Touch ID en iOS, huella / reconocimiento facial en Android.
 
 ## 3. Inicio y Ofertas
 - [ ] Inicio carga tarjetas de ofertas y el resumen.
 - [ ] Ofertas: filtrar por cadena y categoría, paginar hasta el final.
 - [ ] Abrir el detalle de una oferta y volver.
+- [ ] Tarjetas de ofertas (Inicio, Ofertas y Productos recurrentes): el precio grande es el que se paga con la promo; las que tienen condiciones (tope de unidades, medio de pago, días) muestran "Condiciones" y la hoja lo explica sin tapar la lista al volver del detalle.
+- [ ] Desde la hoja de Condiciones, abrir la oferta completa: se cierra la hoja y al volver no queda abierta.
 
 ## 4. Tickets
 - [ ] Escanear un ticket con la cámara (una y varias fotos) y verlo aparecer en el historial.
@@ -36,8 +39,19 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Escanear uno que no está: dice que no hay precios, sin error.
 - [ ] Comparar precios y ver la sucursal más barata cerca (pedir ubicación).
 - [ ] Mis tiendas favoritas: cambiar cadenas y radio, y que persista.
+- [ ] Mis tiendas favoritas: buscar una dirección, barrio o ciudad; guardar Casa y Trabajo y cambiar entre las dos ("Buscar cerca de"); las sucursales se recalculan desde el origen elegido y persiste al reabrir la app.
+- [ ] Sin permiso de ubicación: aviso con el centro de CABA y la opción de guardar Casa o Trabajo, sin error.
+- [ ] Sucursales con horario: "Abierto · cierra 22:00", "Cierra pronto" en la última hora y "Cerrado · abre …" en la lista de precios, el mapa (pin) y el detalle de la tienda, con la semana completa en el detalle. Sin horario no se muestra nada (nunca "Abierto" sin dato).
+- [ ] A igual precio va primero la sucursal abierta; el estado cambia solo al pasar la hora de cierre con la pantalla abierta.
+- [ ] Con el teléfono en otra zona horaria (por ejemplo Madrid), el estado sigue la hora argentina.
 - [ ] Tras escanear un producto, "Seguir": pasa a "Siguiendo" (la primera vez pide el permiso de notificaciones) y aparece en Productos que seguís; tocar "Siguiendo" lo deja de seguir.
 - [ ] Productos que seguís (desde Inicio y desde Perfil): muestra cuáles están en promo y dónde; dejar de seguir uno lo saca de la lista; "Ver precios" y volver deja de nuevo en Productos que seguís; "atrás" vuelve a Inicio o a Perfil, según de dónde se vino. Con las notificaciones de ofertas apagadas en Perfil, lo avisa arriba.
+- [ ] Tras escanear un producto, "Compra habitual": queda marcado y aparece en Tu compra habitual; tocarlo de nuevo lo saca. No hay una lista aparte ni en Inicio ni en Perfil.
+- [ ] En Tu compra habitual, "Sumar un producto" → sumar uno → "atrás": vuelve ahí y ya aparece, sin recargar. Solo lo sumado tiene el botón para sacarlo; lo detectado por los tickets no.
+- [ ] Escanear un ticket sin un producto sumado: "¿Olvidaste comprar esto?" lo nombra, aun en el primer ticket de la cuenta. Si el ticket lo trae, no avisa y sigue en la compra habitual.
+- [ ] Un producto sumado que además sale de los tickets aparece una sola vez. Con más de 5 faltantes, el aviso muestra 5 y "Y N más."
+- [ ] Productos recurrentes no muestra lo sumado que no se compró: la regla de esa pantalla sigue siendo 2 tickets en 3 meses.
+- [ ] Tour en un teléfono chico y con la letra del sistema al máximo: en los 4 pasos se ven y se pueden tocar "Siguiente" y "Omitir tour". El paso 3 desplaza Inicio hasta las ofertas y, al terminar, Inicio vuelve arriba.
 - [ ] Un producto sin nombre (código que no está en SEPA ni en los proveedores) no ofrece "Seguir".
 - [ ] Leer con la cámara un código corto (UPC-E de 6 dígitos): muestra lo que haya del producto pero no ofrece "Seguir"; uno de 8 a 14 dígitos sí.
 - [ ] Productos que seguís vacío → "Escanear un producto" → "atrás" en el escáner vuelve a Productos que seguís (no a Inicio). Seguir uno en el escáner y volver: ya aparece en la lista, sin deslizar para recargar.
@@ -57,6 +71,7 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Cambiar nombre y correo (pide la contraseña actual).
 - [ ] Cambiar contraseña: al terminar la app sigue con la sesión abierta.
 - [ ] Activar y desactivar las notificaciones de ofertas.
+- [ ] En Expo Go: el switch de alertas de ofertas está deshabilitado con "Requiere un development build" y la app arranca sin error de expo-notifications.
 - [ ] Cerrar sesión: al entrar con otra cuenta no queda nada de la anterior (puntos, ofertas, tickets, productos seguidos).
 
 ## 8. Navegación
@@ -65,6 +80,7 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Cambiar entre las pestañas de la barra inferior (Inicio, Ofertas, Tickets, Perfil y el botón de escaneo) y volver; la pestaña marcada es la correcta, también después de subir un ticket.
 - [ ] En web/tablet o con el tema oscuro, el cambio de pantalla no muestra destellos blancos.
 - [ ] Rotar o pasar la app a segundo plano y volver: se mantiene la pantalla.
+- [ ] Con poco contenido (por ejemplo, Productos recurrentes vacío) la barra inferior queda pegada al pie, no a mitad de pantalla.
 
 ## 9. Notificaciones push (con la app cerrada y abierta)
 - [ ] Ticket procesado → abre el detalle del ticket.
@@ -74,3 +90,6 @@ Ejecutar contra un backend con datos: un usuario con tickets procesados, ofertas
 - [ ] Ofertas → abre Ofertas.
 - [ ] Producto seguido en promo → abre Productos que seguís, con la promo a la vista.
 - [ ] Tocar una notificación con la sesión cerrada no rompe nada (se ignora).
+- [ ] Perfil → "Enviar notificación de prueba": muestra "Enviando…", después "Te mandamos una notificación de prueba…" y llega en segundos con el encabezado "OfertAR"; el botón queda deshabilitado 10 s con la cuenta regresiva. Con las alertas de ofertas apagadas o sin permiso del sistema, está deshabilitado y explica por qué.
+- [ ] Los avisos de ofertas, productos seguidos y recordatorio de escaneo también se pueden disparar sin esperar al cron: `POST /push/test` con `{"type": "offers" | "followedProducts" | "reactivation"}` (mismo destino al tocarlo) o, como ADMIN, `POST /admin/push/jobs/{offers|followed|reactivation}?userId=` (corre la lógica real del job para ese usuario).
+- [ ] En Expo Go: seguir un producto no promete avisos (el toast dice que el push no funciona en Expo Go) y no se registra ningún listener de notificaciones.

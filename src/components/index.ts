@@ -21,6 +21,7 @@ export { StoreBadge } from "./ui/StoreBadge";
 export { ConfirmSheet } from "./ui/ConfirmSheet";
 export {
 	OnboardingProvider,
+	useOnboardingScroll,
 	useOnboardingTarget,
 } from "./onboarding/OnboardingProvider";
 export type { TabKey } from "./ui/BottomNav";
@@ -31,4 +32,14 @@ export { ProductPriceResult } from "./ProductPriceResult";
 export { OffersFilterSheet } from "./OffersFilterSheet";
 export type { OffersFilterSection, OffersFilterState } from "./OffersFilterSheet";
 export { OffersSortSheet } from "./OffersSortSheet";
-export { forgottenIn, habitualProducts, missingHabitual, MIN_TRIPS_TO_BE_HABITUAL, MAX_FORGOTTEN_SHOWN } from "./forgottenProducts";
+export {
+	forgottenIn,
+	isRecurring,
+	habitualProducts,
+	missingHabitual,
+	MIN_TRIPS_TO_BE_HABITUAL,
+	MAX_FORGOTTEN_SHOWN,
+	RECURRING_EMPTY_HINT,
+	RECURRING_RULE_TEXT,
+} from "./forgottenProducts";
+export { PaymentPromos } from "./PaymentPromos";

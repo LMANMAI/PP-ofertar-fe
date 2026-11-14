@@ -30,6 +30,8 @@ export type RegisterStep1Data = {
 };
 
 type Props = {
+	/** El código que trajo un link de referido. */
+	linkedReferralCode?: string | null;
 	onNext: (data: RegisterStep1Data) => void;
 	onBack: () => void;
 	onGoToLogin?: () => void;
@@ -45,7 +47,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const EMAIL_ERROR = "Revisá el correo: tiene que ser algo como nombre@correo.com";
 
-export default function RegisterStep1({ onNext, onBack, onGoToLogin, initialData }: Props) {
+export default function RegisterStep1({ onNext, onBack, onGoToLogin, initialData, linkedReferralCode }: Props) {
 	const insets = useSafeAreaInsets();
 	// With the keyboard up the footer shrinks: the home-indicator padding sits
 	// under the keyboard, and the secondary link only took space from the form.
@@ -60,6 +62,13 @@ export default function RegisterStep1({ onNext, onBack, onGoToLogin, initialData
 	const [email, setEmail] = useState(initialData?.email ?? "");
 	const [referralCode, setReferralCode] = useState(initialData?.referralCode ?? "");
 	const [referralOpen, setReferralOpen] = useState(Boolean(initialData?.referralCode));
+	// El link puede llegar con esta pantalla ya abierta.
+	const [appliedLink, setAppliedLink] = useState<string | null>(null);
+	if (linkedReferralCode && linkedReferralCode !== appliedLink) {
+		setAppliedLink(linkedReferralCode);
+		setReferralCode(linkedReferralCode);
+		setReferralOpen(true);
+	}
 	// Coming back from step 2 means they already accepted to get there.
 	const [accepted, setAccepted] = useState(Boolean(initialData));
 	const [errors, setErrors] = useState<Errors>({});

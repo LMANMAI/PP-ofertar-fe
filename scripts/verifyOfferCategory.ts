@@ -173,7 +173,11 @@ check("la card sigue sin crear closures nuevas por render", () => {
 	// `[\s\S]*?` y no `[^>]*`: una closure trae su propia `=>`, o sea un `>`, y
 	// con `[^>]*` el match fallaba de casualidad y reportaba "no encontre el uso
 	// de <OfferCard />" en vez del problema real.
-	const renderItem = screen.match(/<OfferCard[\s\S]*?\/>/)?.[0];
+	// `<OfferCard\s` y no `<OfferCard`: el esqueleto de carga
+	// (`<OfferCardSkeleton key={i} styles={styles} />`) está antes en el archivo
+	// y con el prefijo solo el match caía ahí, así que el check pasaba mirando
+	// el esqueleto y no la card.
+	const renderItem = screen.match(/<OfferCard\s[\s\S]*?\/>/)?.[0];
 	assert.ok(renderItem, "no encontre el uso de <OfferCard />");
 	assert.ok(
 		!/=>/.test(renderItem),

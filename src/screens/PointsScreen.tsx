@@ -14,6 +14,7 @@ import { BottomNav, ScreenHeader, type TabKey, PrimaryButton } from "../componen
 import { radii, space, typography, useThemeColors, type ColorTokens, isFocused, focusRing } from "../theme/designSystem";
 import { REWARDS, POINTS_REFERRED_SIGNUP, POINTS_REFERRER_ACTIVATION } from "../data/rewards";
 import type { Session } from "../auth/session";
+import { referralLink } from "../utils/referralLink";
 
 
 type Props = {
@@ -65,7 +66,7 @@ export function PointsScreen({
 
 	const handleShare = () => {
 		if (!referralCode) return;
-		const message = `Te invito a probar OfertAR, la app para ahorrar en el súper. Usá mi código ${referralCode} cuando te registres y arrancás con ${POINTS_REFERRED_SIGNUP} puntos.`;
+		const message = `Te invito a probar OfertAR, la app para ahorrar en el súper. Entrá a ${referralLink(referralCode)} o usá mi código ${referralCode} cuando te registres y arrancás con ${POINTS_REFERRED_SIGNUP} puntos.`;
 		Share.share({ message }).catch(() => {});
 	};
 

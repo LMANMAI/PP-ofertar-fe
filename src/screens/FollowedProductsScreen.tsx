@@ -10,7 +10,7 @@ import type { FollowedProduct, RecurringProduct } from "../services";
 import { friendlyAuthError } from "../services/authApi";
 import type { Session } from "../auth/session";
 import { PRODUCT_PLACEHOLDER } from "../theme/productPlaceholder";
-import { formatCurrency, formatLongDate } from "../utils/format";
+import { formatCurrency, lastPurchaseLine } from "../utils/format";
 import { catalogImageUri } from "../utils/productImage";
 import { isLooseMatch } from "../utils/productMatch";
 
@@ -59,19 +59,8 @@ function asOfferSubject(p: FollowedProduct): RecurringProduct {
 		campaignOffers: p.campaignOffers,
 		alternativeOffers: [],
 		followed: true,
+		addedToHabitual: false,
 	};
-}
-
-/**
- * "Lo compraste el 12 de octubre": it is also on a scanned ticket, so the user
- * sees it is the same product as in "Productos recurrentes" and not another
- * one. The year only when it is not this one. Null if never bought.
- */
-function lastPurchaseLine(iso: string | null): string | null {
-	if (!iso) return null;
-	const otherYear = new Date(iso).getFullYear() !== new Date().getFullYear();
-	const day = formatLongDate(iso, { year: otherYear });
-	return day ? `Lo compraste el ${day}` : null;
 }
 
 /** "3x2", "70% en la 2da unidad": the chain's label reworded by the same rules

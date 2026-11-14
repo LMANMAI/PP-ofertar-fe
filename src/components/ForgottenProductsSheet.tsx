@@ -3,10 +3,11 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { space, typography, useThemeColors, type ColorTokens, radii } from "../theme/designSystem";
 import type { RecurringProduct } from "../services";
+import { isRecurring, MAX_FORGOTTEN_SHOWN } from "./forgottenProducts";
 
 /**
  * "¿Olvidaste comprar algo?" — shown once a scanned ticket finishes processing,
- * listing the habitual products missing from it.
+ * listing the products of their habitual shop missing from it.
  *
  * Lives in components rather than inside a screen because two screens raise it:
  * the ticket-processed view and the history, which is where the user actually
@@ -23,6 +24,8 @@ export function ForgottenProductsSheet({
 }) {
 	const colors = useThemeColors();
 	const styles = useMemo(() => createStyles(colors), [colors]);
+	const shown = products.slice(0, MAX_FORGOTTEN_SHOWN);
+	const hidden = products.length - shown.length;
 	return (
 		<Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
 			<View style={styles.backdrop}>
@@ -35,24 +38,28 @@ export function ForgottenProductsSheet({
 					</Text>
 					<Text style={styles.subtitle}>
 						{products.length === 1
-							? "Solés comprarlo seguido, pero no aparece en este ticket."
-							: "Solés comprarlos seguido, pero no aparecen en este ticket."}
+							? "Es parte de tu compra habitual, pero no aparece en este ticket."
+							: "Son parte de tu compra habitual, pero no aparecen en este ticket."}
 					</Text>
 
 					<View style={styles.list}>
-						{products.map((p, idx) => (
+						{shown.map((p, idx) => (
 							<View key={p.barcode || p.description}>
 								<View style={styles.row}>
 									<Ionicons name="cart-outline" size={18} color={colors.subtleText} />
 									<View style={{ flex: 1 }}>
 										<Text style={styles.name}>{p.description}</Text>
-										<Text style={styles.meta}>En {p.ticketCount} de tus compras</Text>
+										<Text style={styles.meta}>
+											{isRecurring(p) ? `En ${p.ticketCount} de tus compras` : "Lo sumaste a tu compra habitual"}
+										</Text>
 									</View>
 								</View>
-								{idx < products.length - 1 && <View style={styles.divider} />}
+								{idx < shown.length - 1 && <View style={styles.divider} />}
 							</View>
 						))}
 					</View>
+
+					{hidden > 0 && <Text style={styles.meta}>{hidden === 1 ? "Y 1 más." : `Y ${hidden} más.`}</Text>}
 
 					<Pressable style={styles.button} onPress={onClose}>
 						<Text style={styles.buttonText}>Entendido</Text>

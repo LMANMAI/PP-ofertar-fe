@@ -9,20 +9,24 @@ export type RegisterData = { firstName: string; lastName: string; email: string;
  */
 type AuthFlowState = {
 	registerData: RegisterData | null;
+	/** El código que trajo un link de referido, para precargarlo en el registro. */
+	linkedReferralCode: string | null;
 	/** El correo al que se mandó el código de recuperación. */
 	recoveryEmail: string;
 	/** El código, una vez verificado. */
 	recoveryCode: string;
 	setRegisterData: (data: RegisterData | null) => void;
+	setLinkedReferralCode: (code: string) => void;
 	setRecovery: (patch: { email?: string; code?: string }) => void;
 	reset: () => void;
 };
 
-const vacio = { registerData: null, recoveryEmail: "", recoveryCode: "" };
+const vacio = { registerData: null, linkedReferralCode: null, recoveryEmail: "", recoveryCode: "" };
 
 export const useAuthFlowStore = create<AuthFlowState>()((set) => ({
 	...vacio,
 	setRegisterData: (registerData) => set({ registerData }),
+	setLinkedReferralCode: (linkedReferralCode) => set({ linkedReferralCode }),
 	setRecovery: ({ email, code }) =>
 		set((s) => ({
 			recoveryEmail: email ?? s.recoveryEmail,
