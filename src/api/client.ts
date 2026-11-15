@@ -1,5 +1,6 @@
 import type { ZodType } from "zod";
 import { API_BASE_URL, CONTRACT_MODE } from "../config";
+import { outcomeOfStatus, trackApiRequest, trackError } from "../telemetry/core";
 
 /** La respuesta llegó pero no cumple el contrato con el backend. */
 export class ApiContractError extends Error {
@@ -78,21 +79,27 @@ async function send(path: string, opts: RequestOptions<unknown>): Promise<Respon
 
 	const controller = opts.timeoutMs ? new AbortController() : null;
 	const timer = controller ? setTimeout(() => controller.abort(), opts.timeoutMs) : null;
+	const method = opts.method ?? "GET";
+	const startedAt = Date.now();
 	let res: Response;
 	try {
 		res = await fetch(buildUrl(path, opts.query), {
-			method: opts.method ?? "GET",
+			method,
 			headers,
 			body,
 			signal: controller?.signal,
 		});
 	} catch (err) {
-		if (controller?.signal.aborted) throw new ApiError("timeout", "La consulta tardó demasiado.");
+		const timedOut = Boolean(controller?.signal.aborted);
+		trackApiRequest(method, path, timedOut ? "timeout" : "network", Date.now() - startedAt);
+		if (timedOut) throw new ApiError("timeout", "La consulta tardó demasiado.");
 		throw err; // sin conexión: el TypeError original, que friendlyAuthError sabe traducir
 	} finally {
 		if (timer) clearTimeout(timer);
 	}
 
+	// Cuánto tardó y cómo salió cada pedido visto desde el teléfono (incluye la red), para el tablero.
+	trackApiRequest(method, path, outcomeOfStatus(res.status), Date.now() - startedAt);
 	if (!res.ok) throw new ApiError("http", await parseApiError(res), res.status);
 	return res;
 }
@@ -105,6 +112,8 @@ export function validate<T>(endpoint: string, data: unknown, schema: ZodType<T>,
 		.slice(0, 5)
 		.map((i) => `${i.path.join(".") || "(raíz)"}: ${i.message}`)
 		.join("; ");
+	// El backend cambió un DTO y la app no se enteró: que se vea en el tablero, no solo en el log.
+	trackError("contract", `${endpoint}: ${issues}`);
 	if (mode === "strict") throw new ApiContractError(endpoint, issues);
 	console.warn(`[contrato] ${endpoint}: ${issues}`);
 	return data as T;

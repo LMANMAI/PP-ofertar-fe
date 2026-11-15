@@ -6,6 +6,7 @@ import { getTicket, scanTicket } from "../services";
 import type { FollowProductInput, Offer, TicketResponse } from "../services";
 import { friendlyAuthError } from "../services/authApi";
 import { resetAllStores, useFollowedProductsStore, useHabitualProductsStore, useOffersStore, useScanStore, useSessionStore, useUiStore } from "../store";
+import { trackEvent } from "../telemetry/core";
 import { nav } from "./nav";
 
 /**
@@ -26,6 +27,7 @@ export async function handlePostLogin(): Promise<void> {
 }
 
 export function handleLogout(): void {
+	trackEvent("logout");
 	resetAllStores();
 	clearStoredToken();
 	nav.resetTo({ name: "Welcome" });
@@ -88,8 +90,10 @@ export async function handleSendPhotos(photos: { id: string; uri: string; base64
 		// even if they lose connection or close the app).
 		const uploaded = await scanTicket(session.token, photos);
 		scan.addAwaiting(uploaded.id);
+		trackEvent("ticket_upload_photo_ok");
 		nav.selectTab("history");
 	} catch (error) {
+		trackEvent("ticket_upload_photo_error");
 		scan.setOcrError(error instanceof Error ? error.message : "Error al subir el ticket");
 		nav.push("ScanError");
 	} finally {
@@ -107,8 +111,10 @@ export async function handleSendPdf(): Promise<void> {
 		const uploaded = await scanTicket(session.token, [{ uri: pdf.uri, base64: pdf.base64 }], "application/pdf");
 		scan.addAwaiting(uploaded.id);
 		scan.setSelectedPdf(null);
+		trackEvent("ticket_upload_pdf_ok");
 		nav.selectTab("history");
 	} catch (error) {
+		trackEvent("ticket_upload_pdf_error");
 		scan.setOcrError(error instanceof Error ? error.message : "Error al subir el PDF");
 		nav.push("ScanError");
 	} finally {
@@ -151,6 +157,7 @@ export async function followScannedProduct(product: FollowProductInput): Promise
 	if (!session) return false;
 	const followed = await productChange((token) => useFollowedProductsStore.getState().follow(token, product));
 	if (!followed) return false;
+	trackEvent("product_followed");
 
 	let push: PushRegistrationResult = "unsupported";
 	try {
